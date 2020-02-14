@@ -42,6 +42,7 @@ def run_script(resource_group_name, vm_name, script_path, client_id,secret,tenan
     #     time.sleep(5)
     #
     # result = poller.result()  # Blocking till executed
+    # print('TEST OF BALLS')
     # print(result.value[0].message)  # stdout/stderr
 
     print('Stopping VM')
