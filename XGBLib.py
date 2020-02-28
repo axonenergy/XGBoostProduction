@@ -1202,7 +1202,7 @@ def create_trade_file(input_mw_df, iso , all_ISOs_variables_df, working_director
         trades_tall_df.loc[(trades_tall_df['Node Name'] == location) & (trades_tall_df['Trade Type'] == 'DEC'), 'Bid'] = dec_bid
         trades_tall_df.loc[(trades_tall_df['Node Name'] == location), 'Node ID'] = alt_names_dict[location]
 
-    trades_tall_df['Node Name'] = trades_tall_df['Node Name'].str.replace('_DART','').str.replace(iso+'_','')
+    trades_tall_df['Node Name'] = trades_tall_df['Node Name'].str.replace('_DART','').str.replace(iso+'_','').str.replace('ISONE_','').str.replace('SPP_','')
     trades_tall_df.sort_values(['Node ID','Hour'],inplace=True)
     trades_tall_df.reset_index(inplace=True,drop=True)
     trades_tall_df['MW'] = abs(trades_tall_df['MW'])
@@ -2019,7 +2019,7 @@ def print_summary_pnl(isos,daily_actuals_dict,monthly_actuals_dict,yearly_actual
 
 
     summary_table_1 = go.Table(
-        columnwidth= [110]+[110]*(3*(len(isos)+1)),
+        columnwidth= [130]+[110]*(3*(len(isos)+1)),
         header=dict(
             values=summary_daily_pnl_df.reset_index().columns,
             font=dict(size=12, color='white'),
@@ -2034,7 +2034,7 @@ def print_summary_pnl(isos,daily_actuals_dict,monthly_actuals_dict,yearly_actual
             font=dict(color=['white','black', 'black', 'black', 'black', 'black', 'black', 'black', 'black', 'black', 'black', 'black', 'black','black', 'black', 'black', 'black', 'black', 'black'])))
 
     summary_table_2 = go.Table(
-        columnwidth=[110] + [85] * (3 * (len(isos) + 1)),
+        columnwidth=[110] + [110] * (3 * (len(isos) + 1)),
         header=dict(
             values=summary_monthly_pnl_df.reset_index().columns,
             font=dict(size=12, color='white'),
@@ -2049,7 +2049,7 @@ def print_summary_pnl(isos,daily_actuals_dict,monthly_actuals_dict,yearly_actual
             font=dict(color=['white','black', 'black', 'black', 'black', 'black', 'black', 'black', 'black', 'black', 'black', 'black', 'black','black', 'black', 'black', 'black', 'black', 'black'])))
 
     summary_table_3 = go.Table(
-        columnwidth=[110] + [85] * (3 * (len(isos) + 1)),
+        columnwidth=[110] + [110] * (3 * (len(isos) + 1)),
         header=dict(
             values=summary_yearly_pnl_df.reset_index().columns,
             font=dict(size=12, color='white'),
@@ -2149,7 +2149,7 @@ def print_summary_pnl(isos,daily_actuals_dict,monthly_actuals_dict,yearly_actual
         rows=4, cols=len(isos) + 1,
         shared_xaxes=True,
         row_heights=[.5,.3,.15,.5],
-        column_widths=[1.3] + [0.8]*len(isos),
+        column_widths=[1.4] + [0.8]*len(isos),
         vertical_spacing=0.05,
         horizontal_spacing = 0.01,
         specs=specs_dict[str(len(isos))],

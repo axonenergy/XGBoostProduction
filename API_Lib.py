@@ -1848,7 +1848,7 @@ def get_ISO_api_data(start_date, end_date, previous_data_dict_name, concat_old_d
                                                               input_timezone=time_zone)
 
     #### Process and add YES data extract wide files (ERCOT LMPs)
-    file_name = end_date_string + '_BACKTEST_INPUT_FILE_YES_DATA_EXTRACT_WIDE(ERCOTLMPs)'
+    file_name = end_date_string + '_BACKTEST_INPUT_FILE_YES_DATA_EXTRACT_WIDE(ERCOT_DART)'
     time_zone = 'CPT'
     print('')
     print('Processing Data Extract Wide File: ' + file_name)
@@ -2179,7 +2179,7 @@ def get_lmps(start_date, end_date, previous_data_dict_name, concat_old_dict, wor
 
     #
     # #### Process and add YES data extract wide files (ERCOT LMPs)
-    file_name = end_date_string + '_BACKTEST_INPUT_FILE_YES_DATA_EXTRACT_WIDE(ERCOT_DA+RT_LMPs)'
+    file_name = end_date_string + '_BACKTEST_INPUT_FILE_YES_DATA_EXTRACT_WIDE(ERCOT_LMP)'
     time_zone = 'CPT'
     print('')
     print('Processing Data Extract Wide File: ' + file_name)
@@ -2240,7 +2240,7 @@ def get_lmps(start_date, end_date, previous_data_dict_name, concat_old_dict, wor
             concat_df = concat_df.sort_index()
             output_dict_dataframes[timezone] = concat_df
 
-    dict_save_name = end_date_string + '_DALMP_DATA'
+    dict_save_name = end_date_string + '_LMP_DATA'
     save_obj(output_dict_dataframes, input_files_directory+dict_save_name+'_DICT_MASTER')
 
     # Save CSV Files

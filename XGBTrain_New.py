@@ -31,11 +31,11 @@ working_directory = 'X:\\Research\\'
 # input_file_name = '09_11_2019_GBM_DATA_MISO_V8.0_MASTER_159F'      # Use This If Reading From CSV (Old Method)
 # input_file_name = '09_11_2019_GBM_DATA_PJM_V8.0_MASTER_207F'      # Use This If Reading From CSV (Old Method)
 # input_file_type = 'csv'                                            # Use This If Reading From CSV (Old Method)
-input_file_name = '2020_01_05_BACKTEST_DATA_DICT_MASTER'               # Use This If Reading From Dictionary (New Method)
+input_file_name = '2020_02_24_BACKTEST_DATA_DICT_MASTER'               # Use This If Reading From Dictionary (New Method)
 input_file_type = 'dict'                                             # Use This If Reading From Dictionary (New Method)
 cat_vars = ['Month','Weekday']                                       # Categorial Variables
-iso = 'PJM'                                                          # ISO to Backtest
-all_best_features_filename = 'FeatImport_2020_01_05_BACKTEST_DATA_DICT_MASTER__SD6_ALL'  # Name of Feature Importance File
+iso = 'MISO'                                                          # ISO to Backtest
+all_best_features_filename = 'FeatImport_2020_02_24_BACKTEST_DATA_DICT_MASTER__SD6_ALL'  # Name of Feature Importance File
 name_adder = ''                                                        # Additional Identifier For The Run
 run_gridsearch = True                                                # Do A Gridsearch?
 run_backtest = False                                                    # Do A Backtest?
@@ -62,7 +62,7 @@ gpu_train = True                                                  # Train Using 
 gridsearch_iterations = 100                                                   # Number Of Gridsearch Iterations To Do
 gridsearch_sd_limit = 1000                                                       # SD Limit to Use In Gridsearch
 gridsearch_nrounds = 5000                                                     # Max Rounds To Train
-gridsearch_gpu_train = False                                                   # Train Using GPU (Default is CPU)
+gridsearch_gpu_train = True                                                   # Train Using GPU (Default is CPU)
 gridsearch_cv_folds = 4                                                       # Number of Folds If Doing CrossValidated Full Backtest (1 Or Less = No CV, Only Run Most Recent Year)
 gridsearch_feat_dict = {'DA_RT': 6, 'FLOAD': 8, 'FTEMP': 20, 'OUTAGE': 12}    # Number Of Top Features To Use If Reading From Dict
 

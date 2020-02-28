@@ -11,17 +11,17 @@ pd.set_option('max_row', 10)
 static_directory = 'C:\\XGBoostProduction\\'
 working_directory = 'X:\\Research\\'
 
-run_DART_PnL = False
-run_find_offer_prices = True
-lmp_filename = '2020_01_05_DALMP_DATA_DICT_MASTER'
-dart_backtest_filename = 'Backtest_2020_01_05_BACKTEST_DATA_DICT_MASTER_PJM_EXP15_'
+run_DART_PnL = True
+run_find_offer_prices = False
+lmp_filename = '2020_01_05_LMP_DATA_DICT_MASTER'
+dart_backtest_filename = 'Backtest_12092019_Master_Nodes_Dataset_Dict_PJM_EXP10_'
 # dart_backtest_filename = 'Backtest_09_11_2019_GBM_DATA_MISO_V8.0_MASTER_159F_MISO_EXP10_'
 # dart_backtest_filename = 'Backtest_09_11_2019_GBM_DATA_PJM_V8.0_MASTER_207F_PJM_EXP10_'
 # dart_backtest_filename = 'backtest_PJM_V8.0_all'
 
 dart_sd_location_filter = 'SD1000'  # Leave Blank For No Filter Otherwise Use 'SD4, SD3.5 etc' Format
 
-name_adder = 'CAPPED'
+name_adder = ''
 
 
 
@@ -104,8 +104,8 @@ elif 'ERCOT' in dart_backtest_filename:
     lmp_df = lmp_dict['CPT']
 elif 'ISONE' in dart_backtest_filename:
     max_trade_mws = 2
-    max_hourly_inc_mws = 20
-    max_hourly_dec_mws = 20
+    max_hourly_inc_mws = 15
+    max_hourly_dec_mws = 15
     target_mws = 300
     tier2_backtest = 'Backtest_daily_Tier2_Backtest_12092019_Master_Nodes_Dataset_Dict_ISONE_EXP10_'
     top_hourly_locs = 10
