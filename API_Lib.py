@@ -31,11 +31,10 @@ def save_obj(obj, name):
 
 
 def load_obj(file_name):
-    with open(file_name + '.pkl', 'rb') as file:
-        try:
-            return pickler.load(file)
-        except:
-            print('File Does Not Exist')
+    try:
+        return pd.read_pickle(file_name+'.pkl')
+    except:
+        print('File Does Not Exist')
 
 def get_spreads(input_dict, daily_pred=False):
     df = pd.DataFrame(columns=['Spread','Corr'])

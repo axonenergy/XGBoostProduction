@@ -18,17 +18,17 @@ static_directory = 'C:\\XGBoostProduction\\'
 #                                           API PULLS FOR HISTORIC DART DATES                                          #
 ####################################################################################################################
 
-start_date = '2020_02_20'   # 7/15/2015 start date
-end_date = '2020_03_19'   # check here for most recent file for end date: https://marketplace.spp.org/pages/rtbm-lmp-by-location#
-
-previous_data_dict_name = '2020_02_24_BACKTEST_DATA_DICT_RAW'
-
-data_dict = get_ISO_api_data(start_date=start_date,
-                             end_date=end_date,
-                             previous_data_dict_name = save_directory+previous_data_dict_name,
-                             static_directory=static_directory,
-                             working_directory=working_directory,
-                             concat_old_dict=True)
+# start_date = '2020_02_20'   # 7/15/2015 start date
+# end_date = '2020_03_19'   # check here for most recent file for end date: https://marketplace.spp.org/pages/rtbm-lmp-by-location#
+#
+# previous_data_dict_name = '2020_02_24_BACKTEST_DATA_DICT_RAW'
+#
+# data_dict = get_ISO_api_data(start_date=start_date,
+#                              end_date=end_date,
+#                              previous_data_dict_name = save_directory+previous_data_dict_name,
+#                              static_directory=static_directory,
+#                              working_directory=working_directory,
+#                              concat_old_dict=True)
 
 
 
@@ -37,17 +37,17 @@ data_dict = get_ISO_api_data(start_date=start_date,
 ####################################################################################################################
 
 
-start_date = '2020_02_20'   # 7/15/2015 start date
-end_date = '2020_03_19' # check here for most recent file for end date: https://marketplace.spp.org/pages/rtbm-lmp-by-location#
-
-previous_data_dict_name = '2020_02_24_LMP_DATA_DICT_MASTER'
-
-data_dict = get_lmps(start_date=start_date,
-                     end_date=end_date,
-                     previous_data_dict_name = save_directory+previous_data_dict_name,
-                     static_directory=static_directory,
-                     working_directory=working_directory,
-                     concat_old_dict=True)
+# start_date = '2020_02_20'   # 7/15/2015 start date
+# end_date = '2020_03_19' # check here for most recent file for end date: https://marketplace.spp.org/pages/rtbm-lmp-by-location#
+#
+# previous_data_dict_name = '2020_02_24_LMP_DATA_DICT_MASTER'
+#
+# data_dict = get_lmps(start_date=start_date,
+#                      end_date=end_date,
+#                      previous_data_dict_name = save_directory+previous_data_dict_name,
+#                      static_directory=static_directory,
+#                      working_directory=working_directory,
+#                      concat_old_dict=True)
 
 
 
@@ -56,7 +56,7 @@ data_dict = get_lmps(start_date=start_date,
 
 #Use this code to get reference prices
 
-data_dict_name = '2020_03_24_BACKTEST_DATA_DICT_RAW'
+data_dict_name = '2020_03_19_BACKTEST_DATA_DICT_RAW'
 
 get_reference_prices(data_dict_name=data_dict_name,
                      working_directory=working_directory,
