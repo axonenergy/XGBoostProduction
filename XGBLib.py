@@ -29,7 +29,7 @@ def create_features(input_df, feat_dict, iso, all_best_features_df, cat_vars, st
 
     # Grab the target variable first if its not a daily pred (target would not exist)
     if not daily_pred:
-        Y = input_df[target_name]
+        Y = pd.DataFrame(input_df[target_name])
 
     # Different data sources for PJM loads need name changes. Rename cols to correct things
     if daily_pred:
@@ -99,7 +99,7 @@ def create_features(input_df, feat_dict, iso, all_best_features_df, cat_vars, st
         input_df = input_df.drop(remove_dates, level='Date')
 
     ### Add second day dart lag
-    lagged_df = input_df[[col for col in input_df if 'LAG' in col]].reset_index()
+    lagged_df = input_df[[col for col in input_df if 'DART_LAG' in col]].reset_index()
     lagged_df['Date'] = lagged_df['Date'] + datetime.timedelta(days=1)
     lagged_df.set_index(['Date','HE'],inplace=True,drop=True)
     lagged_df.columns = [col.replace('LAG1','LAG2') for col in lagged_df.columns]
@@ -173,6 +173,7 @@ def create_features(input_df, feat_dict, iso, all_best_features_df, cat_vars, st
     input_df.set_index(['Date','HE'],drop=True,inplace=True)
 
     # Join the new features with the original target if the target exists. For daily predictions no target exists
+
     if daily_pred:
         output_df = input_df.sort_values(by=['Date', 'HE'], ascending=True)
     else:
@@ -187,45 +188,35 @@ def create_features(input_df, feat_dict, iso, all_best_features_df, cat_vars, st
 
     return output_df
 
-def create_tier2daily_features(backtest_df,target, daily_pred=False, daily_PnL_df=None):
+def create_tier2_features(backtest_df,target, daily_pred=False, hourly_PnL_df=None):
     # Takes Daily Predictions Per Target and Turns The Preds and SDs Into Features For A Daily Model
 
     # Take out the target variable if it is not a daily prediction
     if not daily_pred:
-        y_df = pd.DataFrame(daily_PnL_df[target])
-        y_df.columns = [target + '_PnL']
+        # Use if target is PnL
+        # y_df = pd.DataFrame(hourly_PnL_df[[col for col in hourly_PnL_df.columns if target in col]])
+
+        # Use if target is DART
+        y_df = pd.DataFrame(backtest_df[[col for col in backtest_df.columns if ((target in col) & ('_act' in col))]])
+
+        try:
+            y_df.columns = [target + '_Tier2Target']
+        except:
+            y_df[target + '_Tier2Target'] = np.nan # if there is no PnL for the backtest node (ie it was filtered out by not meeting min $/mwhr number) then set all hours to NaN
+
 
     x_df = backtest_df[[col for col in backtest_df.columns if (target in col)&('_act' not in col)]]
-    x_df.reset_index(inplace=True)
-    x_df = x_df.pivot(index='Date', columns='HE', values=list(set(x_df.columns)-set(['Date','HE'])))
-    x_df.columns = [col[0] + '_HE' + str(col[1]) for col in x_df.columns]
-    x_df['Month'] = x_df.index.month
-    x_df['Weekday'] = x_df.index.weekday
+    # x_df['HourEnding'] = x_df.index.get_level_values('HE')
+    # x_df['Month'] = x_df.index.get_level_values('Date').month
+    # x_df['Weekday'] = x_df.index.get_level_values('Date').weekday
+
 
     # Add the target back in if it was removed to start with
     if not daily_pred:
-        output_df = x_df.merge(y_df,on='Date',how='inner')
+        output_df = x_df.merge(y_df,on=['Date','HE'],how='inner')
     else:
         output_df = x_df
 
-    return output_df
-
-def create_tier2hourly_features(backtest_df, hourly_PnL_df, target=None):
-    # Takes Daily Predictions Per Target and Turns The Preds and SDs Into Features For A Daily Model
-
-    x_df = backtest_df[[col for col in backtest_df.columns if '_act' not in col]].copy()
-    x_df['Month'] = x_df.index.get_level_values('Date').month
-    x_df['Weekday'] = x_df.index.get_level_values('Date').weekday
-    x_df['HourEnding'] = x_df.index.get_level_values('HE')
-
-    if target == None:
-        y_df = pd.DataFrame(hourly_PnL_df[[col for col in hourly_PnL_df.columns if 'Total$Total' in col]])
-        y_df.columns = ['Total$Total_PnL']
-    else:
-        y_df = pd.DataFrame(hourly_PnL_df[target])
-        y_df.columns = [target + '_PnL']
-
-    output_df = x_df.merge(y_df,on=['Date','HE'],how='inner')
 
     return output_df
 
@@ -285,7 +276,8 @@ def read_clean_data(input_filename, input_file_type, iso, verbose=True):
 
     orig_cols = set(master_df.columns)
     inactive_nodes = ['MISO_AMIL.COFFEEN1_DART','MISO_AMIL.HAVANA86_DART','MISO_AMIL.HENNEPN82_DART','MISO_DMGEN3.AGG_DART','MISO_EES.CC.WPEC_DART','MISO_EES.WRPP1_DART',
-                      'MISO_AMIL.COFFEEN1_DA_RT_LAG','MISO_AMIL.HAVANA86_DA_RT_LAG','MISO_AMIL.HENNEPN82_DA_RT_LAG','MISO_DMGEN3.AGG_DA_RT_LAG','MISO_EES.CC.WPEC_DA_RT_LAG','MISO_EES.WRPP1_DA_RT_LAG']
+                      'MISO_AMIL.COFFEEN1_DA_RT_LAG','MISO_AMIL.HAVANA86_DA_RT_LAG','MISO_AMIL.HENNEPN82_DA_RT_LAG','MISO_DMGEN3.AGG_DA_RT_LAG','MISO_EES.CC.WPEC_DA_RT_LAG','MISO_EES.WRPP1_DA_RT_LAG'
+                      ]
     master_df = master_df[[col for col in master_df if col not in inactive_nodes]]
     new_cols = set(master_df.columns)
 
@@ -318,6 +310,7 @@ def xgb_train(test_df, train_df, eval_df, target, sd_limit, fit_params, gpu_trai
     y_train_df = train_df[[col for col in train_df.columns if target in col]]
     x_eval_df = eval_df[[col for col in eval_df.columns if target not in col]]
     y_eval_df = eval_df[[col for col in eval_df.columns if target in col]]
+
 
     dtrain = xgb.DMatrix(data=x_train_df, label=y_train_df)
     deval = xgb.DMatrix(data=x_eval_df, label=y_eval_df)
@@ -372,12 +365,13 @@ def xgb_gridsearch(train_df, target, cv_folds, iterations, sd_limit, gpu_train, 
     x_train_df = train_df[[col for col in train_df.columns if target not in col]]
     y_train_df = train_df[[col for col in train_df.columns if target in col]]
 
+
     if gpu_train:
         tree_method = 'gpu_hist'
         n_jobs = None
     else:
         tree_method = 'hist'
-        n_jobs = -4
+        n_jobs = -6
 
     model = xgb.XGBRegressor(objective='reg:squarederror',
                              n_estimators=nrounds,
@@ -385,36 +379,37 @@ def xgb_gridsearch(train_df, target, cv_folds, iterations, sd_limit, gpu_train, 
 
     skf = GroupKFold(n_splits=cv_folds)
 
-    # XGBOOST TIER 1 GRID PJM
-    param_grid = {'min_child_weight': [3],
-                  'learning_rate': [0.01],
-                  'reg_lambda': [3],
-                  'reg_alpha' : [0.1],
-                  # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
-                  'subsample': [0.8],
-                  'colsample_bytree': [0.55],
-                  'max_depth': [8,9,10,11]}
+
+    #XGBOOST TIER 1 GRID PJM
+    # param_grid = {'min_child_weight': [2],
+    #               'learning_rate': [0.01],
+    #               'reg_lambda': [3],
+    #               'reg_alpha' : [0.1],
+    #               # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
+    #               'subsample': [0.90],
+    #               'colsample_bytree': [0.25,0.30,0.35],
+    #               'max_depth': [10,12,14]}
 
     # # XGBOOST TIER 1 GRID MISO
     # param_grid = {'min_child_weight': [2],
-    #               'learning_rate': [0.004,0.005,0.006],
+    #               'learning_rate': [0.007],
     #               'reg_lambda': [5],
     #               'reg_alpha' : [0.30], ## doesnt really change much
     #               # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
-    #               'subsample': [0.9],
-    #               'colsample_bytree': [0.45],
-    #               'max_depth': [10]}
+    #               'subsample': [0.85],
+    #               'colsample_bytree': [0.25],
+    #               'max_depth': [12]}
 
 
     # # XGBOOST TIER 1 GRID ISONE
-    # param_grid = {'min_child_weight': [2],
-    #               'learning_rate': [0.02],
-    #               'reg_lambda': [3],
-    #               'reg_alpha' : [0.10],
-    #               # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
-    #               'subsample': [0.9],
-    #               'colsample_bytree': [0.6],
-    #               'max_depth': [10]}
+    param_grid = {'min_child_weight': [2],
+                  'learning_rate': [0.03],
+                  'reg_lambda': [3],
+                  'reg_alpha' : [0.10],
+                  # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
+                  'subsample': [0.95],
+                  'colsample_bytree': [0.05],
+                  'max_depth': [8]}
     #
     # # XGBOOST TIER 1 GRID NYISO
     # param_grid = {'min_child_weight': [2],
@@ -437,15 +432,17 @@ def xgb_gridsearch(train_df, target, cv_folds, iterations, sd_limit, gpu_train, 
     #               'max_depth': [15]}
 
 
-    # XGBOOST TIER 2 GRID Daily MISO
-    # param_grid = {'min_child_weight': [2,4,6],
-    #               'learning_rate': [0.0001,0.0005,0.001,0.005,0.01,0.05],
-    #               'reg_lambda': [1,2,3,4,5],
-    #               'reg_alpha' : [0.005,0.001,0.005,0.01,0.05,0.1,0.5,1],
-    #               # 'gamma': [0.01,0.1,0.5,1,2,3],  ## Gamma does not affect results with such low min child weight
-    #               'subsample': [0.85,0.90,0.95],
-    #               'colsample_bytree': [0.80,0.85,0.9,0.95],
-    #               'max_depth': [3,4,5,6,7,8,9]}
+    # # XGBOOST TIER 1 GRID ERCOT **SPREAD**
+    # param_grid = {'min_child_weight': [2],
+    #               'learning_rate': [0.009,0.01,0.02],
+    #               'reg_lambda': [2,3,4],
+    #               'reg_alpha' : [0.1],
+    #               # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
+    #               'subsample': [0.6],
+    #               'colsample_bytree': [0.05,0.1],
+    #               'max_depth': [4]}
+
+
 
     random_search = RandomizedSearchCV(estimator=model,
                                        param_distributions=param_grid,
@@ -558,7 +555,7 @@ def xgb_predict(input_df, target,model_directory):
 
     return pred_tier1_df, pred_tier2_df, feature_match_success, model_load_success
 
-def do_xgb_prediction(predict_date_str_mm_dd_yyyy, iso, daily_trade_file_name, working_directory, static_directory):
+def do_xgb_prediction(predict_date_str_mm_dd_yyyy, iso, daily_trade_file_name, working_directory, static_directory, model_type):
     #Predicts all locations for a given ISO and date
     pred_save_directory = working_directory + '\PredFiles\\'
     input_file_directory = working_directory + '\InputFiles\\'
@@ -600,6 +597,10 @@ def do_xgb_prediction(predict_date_str_mm_dd_yyyy, iso, daily_trade_file_name, w
     all_locations_variables_df = pd.read_excel(trade_variables, 'Locations')
     all_locations_variables_df = all_locations_variables_df[all_locations_variables_df['ISO']==iso]
     all_locations_variables_df = all_locations_variables_df[all_locations_variables_df['active_trading_location'] == 1]
+    if model_type == 'DART':
+        all_locations_variables_df = all_locations_variables_df[all_locations_variables_df['Location'].str.contains('DART')]
+    elif (model_type == 'SPREAD') or (model_type == 'SYN_SPREAD'):
+        all_locations_variables_df = all_locations_variables_df[all_locations_variables_df['Location'].str.contains('SPREAD')]
 
     all_ISOs_variables_df = pd.read_excel(trade_variables, 'ISOs')
     all_ISOs_variables_df = all_ISOs_variables_df[all_ISOs_variables_df['ISO'] == iso]
@@ -675,8 +676,15 @@ def do_xgb_prediction(predict_date_str_mm_dd_yyyy, iso, daily_trade_file_name, w
 
     # Grab the number of targets per target type for each ISO (only takes the top one)
     try:
-        feat_dict = {'DA_RT': all_ISOs_variables_df['DA_RT_feats'][0], 'FLOAD': all_ISOs_variables_df['FLOAD_feats'][0],
-                     'FTEMP': all_ISOs_variables_df['FTEMP_feats'][0], 'OUTAGE': all_ISOs_variables_df['OUTAGE_feats'][0]}
+        if model_type=='DART':
+            feat_dict = {'SPR_EAD': all_ISOs_variables_df['SPR_EAD_feats_dart'][0],'DA_RT': all_ISOs_variables_df['DA_RT_feats_dart'][0], 'FLOAD': all_ISOs_variables_df['FLOAD_feats_dart'][0],
+                         'FTEMP': all_ISOs_variables_df['FTEMP_feats_dart'][0], 'OUTAGE': all_ISOs_variables_df['OUTAGE_feats_dart'][0]}
+            all_best_features_filename = all_ISOs_variables_df['all_best_features_filename_dart'][0]
+
+        elif (model_type=='SPREAD') or (model_type=='SYN_SPREAD'):
+            feat_dict = {'SPR_EAD': all_ISOs_variables_df['SPR_EAD_feats_spread'][0],'DA_RT': all_ISOs_variables_df['DA_RT_feats_spread'][0], 'FLOAD': all_ISOs_variables_df['FLOAD_feats_spread'][0],
+                         'FTEMP': all_ISOs_variables_df['FTEMP_feats_spread'][0], 'OUTAGE': all_ISOs_variables_df['OUTAGE_feats_spread'][0]}
+            all_best_features_filename = all_ISOs_variables_df['all_best_features_filename_spread'][0]
     except:
         print('#################################################################################')
         print('No Locations Turned On For Selected ISO. Check Daily Train Variables Excel Sheet.')
@@ -759,7 +767,7 @@ def do_xgb_prediction(predict_date_str_mm_dd_yyyy, iso, daily_trade_file_name, w
 
     return preds_tier1_df, preds_tier2_df, failed_locations_df
 
-def post_process_trades(iso, predict_date_str_mm_dd_yyyy, daily_trade_file_name,name_adder, working_directory, static_directory):
+def post_process_trades(iso, predict_date_str_mm_dd_yyyy, daily_trade_file_name,name_adder, working_directory, static_directory, model_type):
     print('')
     print('Post-Processing '+iso+' For Date: ' + predict_date_str_mm_dd_yyyy+'...')
     print('')

@@ -18,10 +18,10 @@ working_directory = 'X:\\Research\\'
 # COMMON PARAMETERS
 # input_file_name = '09_11_2019_GBM_DATA_MISO_V8.0_MASTER_159F'                 # Use This If Reading From CSV (Old Method)
 # input_file_type = 'csv'                                                       # Use This If Reading From CSV (Old Method)
-input_file_name = '2020_02_24_BACKTEST_DATA_DICT_MASTER'                        # Use This If Reading From Dictionary (New Method)
+input_file_name = '2020_02_24_BACKTEST_DATA_DICT_MASTER_SPREAD'                        # Use This If Reading From Dictionary (New Method)
 input_file_type = 'dict'                                                        # Use This If Reading From Dictionary
 hypergrid_dict_name = 'RFGridsearchDict_12092019_MISOAll_Master_Dataset_Dict_'  # Name Of Hypergrid File
-all_best_features_filename = 'FeatImport_2020_02_24_BACKTEST_DATA_DICT_MASTER__SD6_ALL' # Name of Feature Importance File
+all_best_features_filename = 'FeatImport12092019_Master_Nodes_Dataset_Dict_full_SD6_ALL' # Name of Feature Importance File
 name_adder = ''                                                                 # Additional Identifier For The Run
 add_calculated_features = False                                                 # If True Adds Calcualted Features From A Previous Best Feature Importance Run. Will Error If Matching Non-Calculated Feature Importances Are Not Run First. Used to Determine If Calcualted Features Are Good Or Not
 do_all_feats = False                                                             # dont segregate the features into feature types
@@ -30,8 +30,8 @@ gridsearch_iterations = 100                                                     
 cv_folds = 4                                                                    # CV Folds For Gridsearch
 train_end_date = datetime.datetime(2020, 8, 24)                                 # Backtest Start Date (If Not Doing Cross Validation)
 feat_dict = {'DA_RT': 6, 'FLOAD': 8, 'FTEMP': 20, 'OUTAGE': 12}               # Number Of Top Features To Use If Reading From Dict And Adding Calculated Features
-iso_list = ['ERCOT','ISONE']
-feat_types_list = ['DA_RT','FLOAD','FTEMP','OUTAGE']                            # Feat Types To Run
+iso_list = ['PJM']
+feat_types_list = ['SPR_EAD','DA_RT','FLOAD','FTEMP','OUTAGE']                            # Feat Types To Run
 run_gridsearch = False                                                          # Do A Gridsearch?
 run_feature_importances = True                                                  # Do Feature Importances?
 
@@ -103,7 +103,7 @@ def rf_gridsearch(train_df, feat_type, target, cv_folds, gridsearch_iterations, 
 
     # Prepare X_train and Y_train
     if feat_type == 'OUTAGE':
-        x_train_df = train_df[[col for col in train_df.columns if (('DA_RT' not in col)&('FLOAD' not in col )&('FTEMP' not in col)&('DART' not in col))]]
+        x_train_df = train_df[[col for col in train_df.columns if (('DA_RT' not in col)&('FLOAD' not in col )&('FTEMP' not in col)&('DART' not in col)&('SPREAD' not in col)&('SPR_EAD' not in col))]]
     else:
         x_train_df = train_df[[col for col in train_df.columns if feat_type in col]]
     y_train_df = pd.DataFrame(train_df[target])
@@ -194,10 +194,10 @@ def do_top_features(input_filename, save_name, iso_list, feat_dict, hypergrid_di
                 # params = literal_eval(params)
 
                 if do_all_feats:
-                    x_train_df = feature_df[[col for col in feature_df.columns if 'DART' not in col]]
-                    x_train_df = pd.get_dummies(x_train_df,columns=['Month','Weekday'])
+                    x_train_df = feature_df[[col for col in feature_df.columns if (('DART' not in col)&('SPREAD'not in col))]]
+                    # x_train_df = pd.get_dummies(x_train_df,columns=['Month','Weekday'])
                 elif feat_type == 'OUTAGE':
-                    x_train_df = feature_df[[col for col in feature_df.columns if(('DA_RT' not in col) & ('FLOAD' not in col) & ('FTEMP' not in col) & ('DART' not in col) & ('Weekday' not in col) & ('Month' not in col) & ('HourEnding' not in col))]]
+                    x_train_df = feature_df[[col for col in feature_df.columns if(('DA_RT' not in col) & ('FLOAD' not in col) & ('FTEMP' not in col) & ('DART' not in col) & ('Weekday' not in col) & ('Month' not in col) & ('HourEnding' not in col)&('SPREAD' not in col)&('SPR_EAD' not in col))]]
                 else:
                     x_train_df = feature_df[[col for col in feature_df.columns if feat_type in col]]
 

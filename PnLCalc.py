@@ -14,21 +14,19 @@ working_directory = 'X:\\Research\\'
 run_DART_PnL = True
 run_find_offer_prices = False
 lmp_filename = '2020_01_05_LMP_DATA_DICT_MASTER'
-dart_backtest_filename = 'Backtest_12092019_Master_Nodes_Dataset_Dict_PJM_EXP10_'
+dart_backtest_filename = 'Backtest_2020_02_24_BACKTEST_DATA_DICT_MASTER_SPREAD_ISONE_EXP10_DART_6outage_'
 # dart_backtest_filename = 'Backtest_09_11_2019_GBM_DATA_MISO_V8.0_MASTER_159F_MISO_EXP10_'
 # dart_backtest_filename = 'Backtest_09_11_2019_GBM_DATA_PJM_V8.0_MASTER_207F_PJM_EXP10_'
 # dart_backtest_filename = 'backtest_PJM_V8.0_all'
 
 dart_sd_location_filter = 'SD1000'  # Leave Blank For No Filter Otherwise Use 'SD4, SD3.5 etc' Format
 
-name_adder = ''
-
-
+name_adder = 'capped'
 
 dart_scale_mean_div_sd = False # Keep False
 limit_daily_mws = True # True increases compute time greatly. If false, scales to max hour limitations but not daily limits
 limit_hourly_mws = True
-dart_sd_band = 1
+dart_sd_band = 1.00
 dart_cutoff_dolMW = 1.00
 cutoff_max_hourly_loss = 100000 #Positive Value!
 dart_start_date = datetime.datetime(2014, 8, 24)
@@ -59,8 +57,8 @@ if 'MISO' in dart_backtest_filename:
     max_hourly_inc_mws = 50
     max_hourly_dec_mws = 50
     target_mws = 1000
-    top_hourly_locs = 20
-    tier2_backtest = 'Backtest_daily_Tier2_Backtest_12092019_Master_Nodes_Dataset_Dict_MISO_EXP10_'
+    top_hourly_locs = 10
+    tier2_backtest = 'Backtest_Tier2_Backtest_Exps_2020_02_24_BACKTEST_DATA_DICT_MASTER_MISO_EXP20_'
     dart_inc_mean_band_peak = 1.25
     dart_inc_mean_band_offpeak = 1.00
     dart_dec_mean_band_peak = dart_inc_mean_band_peak  # Positive Value!
@@ -72,7 +70,7 @@ elif 'PJM' in dart_backtest_filename:
     max_hourly_dec_mws = 150
     top_hourly_locs = 30
     target_mws = 2000
-    tier2_backtest = 'Backtest_daily_Tier2_Backtest_12092019_Master_Nodes_Dataset_Dict_PJM_EXP10_'
+    tier2_backtest = 'Backtest_Tier2_Backtest_Exps_2020_02_24_BACKTEST_DATA_DICT_MASTER_PJM_EXP20_'
     dart_inc_mean_band_peak = 0.75
     dart_inc_mean_band_offpeak = 0.75
     dart_dec_mean_band_peak = dart_inc_mean_band_peak  # Positive Value!
@@ -117,8 +115,8 @@ elif 'ISONE' in dart_backtest_filename:
 
 min_trade_mws = min(max_hourly_dec_mws/top_hourly_locs,max_hourly_inc_mws/top_hourly_locs)
 
-def calc_hourly_pnl(backtest_filename, sd_band, inc_mean_band_peak, dec_mean_band_peak, inc_mean_band_offpeak, tier2_PnL_cutoff,tier2_filter,tier2_backtest, dec_mean_band_offpeak, scale_mean_div_sd, start_date, end_date, dart_sd_location_filter,top_hourly_locs, max_trade_mws, min_trade_mws, target_mws, max_hourly_inc_mws, max_hourly_dec_mws,limit_daily_mws,limit_hourly_mws,tier2_sd_filter, working_directory):
-    load_directory = working_directory + '\BacktestFiles\\'
+def calc_hourly_pnl(backtest_filename, sd_band, inc_mean_band_peak, dec_mean_band_peak, inc_mean_band_offpeak, tier2_PnL_cutoff,tier2_filter,tier2_backtest, dec_mean_band_offpeak, scale_mean_div_sd, start_date, end_date, dart_sd_location_filter,top_hourly_locs, max_trade_mws, min_trade_mws, target_mws, max_hourly_inc_mws, max_hourly_dec_mws,limit_daily_mws,limit_hourly_mws,tier2_sd_filter, working_directory,static_directory):
+    load_directory = static_directory + '\BacktestFiles\\'
     # CALCULATES HOURLY PnL AND OUTPUTS DICT WITH DATAFRAMES FOR TOT/INC/DEC PnL and MWs
     input_df=pd.read_csv(load_directory+dart_backtest_filename+'.csv',index_col=['Date','HE'],parse_dates=True)
 
@@ -138,17 +136,20 @@ def calc_hourly_pnl(backtest_filename, sd_band, inc_mean_band_peak, dec_mean_ban
     sd_df = sd_df[[col for col in sd_df.columns if col[-3:]==dart_sd_location_filter[-3:]]]
     act_df = act_df[[col for col in act_df.columns if col[-3:]==dart_sd_location_filter[-3:]]]
 
+    pred_df.columns = [col.split('_SD')[0] for col in pred_df.columns]
+    sd_df.columns = [col.split('_SD')[0] for col in sd_df.columns]
+    act_df.columns = [col.split('_SD')[0] for col in act_df.columns]
 
     # Apply tier 2 waive-off
     if tier2_filter:
-        tier2_backtest_df = pd.read_csv(load_directory + tier2_backtest + '.csv', index_col=['Date'],parse_dates=True)
+        tier2_backtest_df = pd.read_csv(load_directory + tier2_backtest + '.csv', index_col=['Date','HE'],parse_dates=True)
         tier2_backtest_df = tier2_backtest_df[[col for col in tier2_backtest_df.columns if 'pred' in col]].copy()
         tier2_backtest_df.columns = [col.replace('_pred', '') for col in tier2_backtest_df.columns]
         tier2_backtest_df = tier2_backtest_df[[col for col in tier2_backtest_df.columns if col[-3:] == tier2_sd_filter[-3:]]]
         tier2_backtest_df.reset_index(inplace=True)
         blank_df = pd.DataFrame(index=pred_df.index)
         blank_df.reset_index(inplace=True)
-        tier2_backtest_df = pd.merge(blank_df, tier2_backtest_df,on=['Date'],how='outer')
+        tier2_backtest_df = pd.merge(blank_df, tier2_backtest_df,on=['Date','HE'],how='outer')
         tier2_backtest_df.set_index(['Date','HE'],inplace=True,drop=True)
         tier2_backtest_df.columns = [col.split('_PnL',1)[0] for col in tier2_backtest_df.columns]
         tier2_backtest_df.fillna(-1000,inplace=True)
@@ -358,7 +359,7 @@ def calc_summary_pnl(input_dict):
 
     return summary_df
 
-def do_dart_PnL(backtest_filename, save, sd_band, inc_mean_band_peak, dec_mean_band_peak, inc_mean_band_offpeak,tier2_PnL_cutoff, dec_mean_band_offpeak, tier2_filter,tier2_backtest, scale_mean_div_sd, start_date, end_date,cutoff_dolMW,cutoff_max_hourly_loss,dart_sd_location_filter,top_hourly_locs, max_trade_mws, min_trade_mws, target_mws,save_name, max_hourly_inc_mws, max_hourly_dec_mws,tier2_sd_filter,working_directory,limit_daily_mws,limit_hourly_mws,locations=None):
+def do_dart_PnL(backtest_filename, save, sd_band, inc_mean_band_peak, dec_mean_band_peak, inc_mean_band_offpeak,tier2_PnL_cutoff, dec_mean_band_offpeak, tier2_filter,tier2_backtest, scale_mean_div_sd, start_date, end_date,cutoff_dolMW,cutoff_max_hourly_loss,dart_sd_location_filter,top_hourly_locs, max_trade_mws, min_trade_mws, target_mws,save_name, max_hourly_inc_mws, max_hourly_dec_mws,tier2_sd_filter,working_directory,static_directory,limit_daily_mws,limit_hourly_mws,locations=None):
     save_directory = working_directory + '\PnLFiles\\'
     hourly_PnL_dict = calc_hourly_pnl(backtest_filename=backtest_filename,
                                       sd_band=sd_band,
@@ -382,7 +383,8 @@ def do_dart_PnL(backtest_filename, save, sd_band, inc_mean_band_peak, dec_mean_b
                                       target_mws = target_mws,
                                       dart_sd_location_filter=dart_sd_location_filter,
                                       tier2_sd_filter=tier2_sd_filter,
-                                      working_directory=working_directory)
+                                      working_directory=working_directory,
+                                      static_directory=static_directory)
 
     daily_PnL_dict = dict()
     monthly_PnL_dict = dict()
@@ -773,7 +775,8 @@ if run_DART_PnL:
                 save_name=save_name,
                 working_directory=working_directory,
                 limit_daily_mws=limit_daily_mws,
-                limit_hourly_mws=limit_hourly_mws)
+                limit_hourly_mws=limit_hourly_mws,
+                static_directory=static_directory)
 
 if run_find_offer_prices:
     save_name = dart_backtest_filename+'_'+dart_sd_location_filter+str(dart_inc_mean_band_peak)+'_OfferPrices_'+name_adder

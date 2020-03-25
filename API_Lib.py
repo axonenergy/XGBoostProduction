@@ -12,6 +12,7 @@ import os
 import pytz
 import zipfile
 import json
+from dateutil.relativedelta import relativedelta
 from pandas.io.json import json_normalize
 
 
@@ -35,6 +36,69 @@ def load_obj(file_name):
             return pickler.load(file)
         except:
             print('File Does Not Exist')
+
+def get_spreads(input_dict, daily_pred=False):
+    df = pd.DataFrame(columns=['Spread','Corr'])
+
+    # Get EST frame
+    orig_df = input_dict['EST']
+    orig_df = orig_df.astype('float')
+
+    # Run correlations on each ISO and drop all but top X DARTs - highly negative correlated
+    iso_dict_dart = {'NYISO': 0.90,  # .90 ###Correlation cutoffs by ISO
+                     'PJM': 0.64,  # .64
+                     'MISO': 0.62,  # .618
+                     'ERCOT': 0.92,  # .998
+                     'SPP': 0.78,  # .78
+                     'ISONE': 0.90}  # .90
+
+    input_df = orig_df[[col for col in orig_df.columns if (('DART' in col) & ('LAG' not in col))]].copy()
+
+    if daily_pred==False:
+        # Create dataframe of only DARTs
+
+        # Get least correlated DARTs to construct spreads out of
+
+        for iso, perc in iso_dict_dart.items():
+
+            temp_df = input_df[[col for col in input_df.columns if col.split('_')[0]==iso]].copy()
+            temp_df.dropna(axis=0, inplace=True)
+            correlated_features = set()
+            print('Running Corr Matrix ' + iso)
+            corr_matrix = temp_df.corr()
+            orig_cols = max(len(temp_df.columns), 0.00001)
+            for i in range(len(corr_matrix.columns)):
+                for j in range(i):
+                    if corr_matrix.iloc[i, j] > perc:
+                         colname = corr_matrix.columns[i]
+                         correlated_features.add(colname)
+            input_df.drop(columns=correlated_features, inplace=True)
+            print(iso + ' Dropped ' + str(len(correlated_features)) + ' (' + str(
+                round(100 * len(correlated_features) / orig_cols, 0)) + '%) correlated (>' + str(perc) + '%'') DART locations.')
+
+        for iso, perc in iso_dict_dart.items():
+            print('Remaining Nodes in ' + iso + ':' + str(len([col for col in input_df.columns if iso in col])))
+
+
+    # Construct spreads from least correlated DARTs
+
+    for timezone, spread_df in input_dict.items():
+        for iso, perc in iso_dict_dart.items():
+            temp_df = input_df[[col for col in input_df.columns if col.split('_')[0]==iso]].copy()
+
+            for source_col_num in range(len(temp_df.columns)):
+                source_name = temp_df.columns[source_col_num]
+                for sink_col_num in range(source_col_num+1,len(temp_df.columns),1):
+                    sink_name = temp_df.columns[sink_col_num]
+                    spread_df[(source_name+'$'+sink_name+'_SPREAD').replace('_DART','')] = temp_df[source_name]-temp_df[sink_name]
+        input_dict[timezone]=spread_df
+
+
+    # Lag spreads using 16-40 function
+    input_dict = lag_data16_40(input_dict=input_dict,
+                               col_type='SPREAD')
+
+    return input_dict
 
 
 def timezone_shift(input_datetime_df, date_col_name, input_tz, output_tz):
@@ -109,6 +173,16 @@ def preprocess_data(input_dict, static_directory):
     new_columns = len(input_df.columns)
     print('Dropped ' + str(initial_columns-new_columns) + ' features (' + str(round(100 * (initial_columns-new_columns) / initial_columns, 2)) + '%) due NaN limit break of > '+str(nan_limit_days)+ ' days of data missing.')
     print('Initial Empty/Null Values: ' + str(input_df.isnull().sum().sum()))
+
+    ###drop data in which most recent three days of data are missing
+    temp_df = input_df.tail(72)
+    orig_cols = temp_df.columns
+    temp_df.dropna(axis=1,thresh=len(temp_df)-(48),inplace=True)
+    new_cols = temp_df.columns
+    removed_cols = list(set(orig_cols)-set(new_cols))
+    print('Removed following columns due to missing recent data:')
+    print(removed_cols)
+    input_df = input_df.drop(columns=removed_cols)
 
 
     ### drop duplicate days (from timechanges)
@@ -200,7 +274,7 @@ def drop_correlated_data(input_dict):
                      'ISONE': 0.995} #.99
 
     for iso, perc in iso_dict_dart.items():
-        temp_df = input_df[[col for col in input_df.columns if 'DART' in col]]
+        temp_df = input_df[[col for col in input_df.columns if col.split('_')[0]==iso]]
         temp_df = temp_df[[col for col in temp_df.columns if iso in col]]
         temp_df.dropna(axis=0, inplace=True)
         correlated_features = set()
@@ -235,7 +309,7 @@ def lag_data16_40(input_dict, col_type='DART', return_only_lagged = False):
         temp_df.loc[temp_df['HourEnding']<=8, 'Date'] = temp_df['Date'] + datetime.timedelta(days=1)
         temp_df.loc[temp_df['HourEnding']> 8, 'Date'] = temp_df['Date'] + datetime.timedelta(days=2)
         temp_df.set_index(['Date', 'HourEnding'],inplace=True, drop=-True)
-        temp_df.columns = [col.replace('DART','DA_RT_LAG') for col in temp_df.columns]
+        temp_df.columns = [col.replace('DART','DA_RT').replace('_SPREAD','_SPR_EAD')+'_LAG' for col in temp_df.columns]
 
         if not return_only_lagged:
             output_df = dataframe.join(temp_df, how='inner', rsuffix='DELETE').sort_values(by=['Date','HourEnding'],ascending=True)
@@ -1934,6 +2008,8 @@ def get_ISO_api_data(start_date, end_date, previous_data_dict_name, concat_old_d
                 except:
                     output_dict_dataframes[timezone] = dict_to_concat[timezone]
 
+
+
     if concat_old_dict == True:
         for timezone in ['EST','EPT','CPT']:
             old_df = previous_dict[timezone]
@@ -1949,17 +2025,19 @@ def get_ISO_api_data(start_date, end_date, previous_data_dict_name, concat_old_d
     post_process_dict = post_process_backtest_data(input_dict=output_dict_dataframes,
                                                    static_directory=static_directory)
 
+    spread_dict = get_spreads(input_dict=post_process_dict)
+
 
     # Save Final Dict
-    save_obj(post_process_dict,input_files_directory + dict_save_name+'_DICT_MASTER')
+    save_obj(spread_dict,input_files_directory + dict_save_name+'_DICT_MASTER')
 
     # Save CSV Files
-    for key, value in post_process_dict.items():
-        post_process_dict[key].to_csv(input_files_directory+ dict_save_name+'_MASTER'+'_'+key+'.csv')
+    # for key, value in spread_dict.items():
+    #     spread_dict[key].to_csv(input_files_directory+ dict_save_name+'_MASTER_'+key+'.csv')
 
     #Create Max Min Limits For Daily Trade File
     max_min_save_name = end_date_string + '_MAX_MIN_LIMITS'
-    max_min_df = create_max_min_limits(input_dict=output_dict_dataframes)
+    max_min_df = create_max_min_limits(input_dict=spread_dict)
     max_min_df.to_csv(input_files_directory+max_min_save_name+'.csv')
 
     return post_process_dict
@@ -2158,6 +2236,9 @@ def get_daily_input_data(predict_date_str_mm_dd_yyyy, working_directory, static_
                     df = dict_to_concat[timezone]
                 output_dict_dataframes[timezone]= df
 
+    output_dict_dataframes = get_spreads(input_dict=output_dict_dataframes,
+                                         daily_pred=True)
+
 
     # Save Final Dict
     save_obj(output_dict_dataframes, input_files_directory+predict_date_str_mm_dd_yyyy + '_RAW_DAILY_INPUT_DATA_DICT')
@@ -2244,8 +2325,8 @@ def get_lmps(start_date, end_date, previous_data_dict_name, concat_old_dict, wor
     save_obj(output_dict_dataframes, input_files_directory+dict_save_name+'_DICT_MASTER')
 
     # Save CSV Files
-    for key, value in output_dict_dataframes.items():
-        output_dict_dataframes[key].to_csv(input_files_directory+ dict_save_name+'_MASTER'+'_'+key+'.csv')
+    # for key, value in output_dict_dataframes.items():
+    #     output_dict_dataframes[key].to_csv(input_files_directory+ dict_save_name+'_MASTER'+'_'+key+'.csv')
 
     return output_dict_dataframes
 
@@ -2278,3 +2359,260 @@ def create_max_min_limits(input_dict):
     max_min_df['DARTNameForYESCollection'] = max_min_df['FeatureName'].str.replace('_DART','').str.replace('MISO_','').str.replace('PJM_','').str.replace('SPP_','').str.replace('ERCOT_','').str.replace('ISONE_','').str.replace('NYISO_','')
 
     return max_min_df
+
+
+def get_reference_prices(data_dict_name, working_directory, static_directory):
+    print('Calculating Reference Prices for: '+data_dict_name)
+    #Read in data dict
+    dart_files_directory = static_directory + '\ModelUpdateData\\'
+    input_df = load_obj(dart_files_directory+data_dict_name)['EST']
+    output_dict = {} #ISO:output_df
+
+    #Get only DARTs
+    input_df = input_df[[col for col in input_df.columns if '_DART' in col]]
+
+    #Make new column of 'year-season' and 'iso' and set as index
+    input_df.reset_index(inplace=True)
+    input_df = input_df[input_df['Date']>=pd.Timestamp(datetime.date(year=2018,month=4,day=1))]
+    input_df['Year'] = pd.DatetimeIndex(input_df['Date']).year
+    input_df['Year'] = input_df['Year']  +1
+    input_df['Month'] = pd.DatetimeIndex(input_df['Date']).month
+    season_dict = {1:'1-2',2:'1-2',
+                   3:'3-4',4:'3-4',
+                   5:'5-6',6:'5-6',
+                   7:'7-8',8:'7-8',
+                   9:'9-10',10:'9-10',
+                   11:'11-12',12:'11-12'}
+    quarter_dict = {1:'1-3',2:'1-3',
+                   3:'1-3',4:'4-6',
+                   5:'4-6',6:'4-6',
+                   7:'7-9',8:'7-9',
+                   9:'7-9',10:'10-12',
+                   11:'10-12',12:'10-12'}
+    input_df['Season'] = input_df['Month'].apply(lambda month: season_dict[month])
+    input_df['Quarter'] = input_df['Month'].apply(lambda month: quarter_dict[month])
+    input_df['Year-MISO'] = np.where(input_df['Quarter'] == 'Q1', input_df['Year'] -1 , input_df['Year'])
+    input_df['Year-MISO'] =input_df['Year-MISO'].astype('str')+'_Apr-Mar'
+    input_df['Year-Season'] = input_df['Year'].astype('str')+'_'+input_df['Season']
+    input_df['Year-Month'] = input_df['Year'].astype('str') + '_' + input_df['Month'].astype('str')
+    input_df['Year-Quarter'] = input_df['Year'].astype('str') + '_' + input_df['Quarter'].astype('str')
+
+
+    #Loop through each location:
+    for location in input_df.columns:
+        print(location)
+        if 'DART' not in location:
+            continue
+
+        iso = location.split('_',1)[0]
+        node_name = location.split('_',1)[1].replace('_DART','')
+        offpeak = [23,24,1,2,3,4,5,6]
+
+        #Get percentiles for each (look up percentiles for each ISO - get right numbers and right things for each iso
+        if iso =='PJM':
+            location_df = input_df.set_index(['Year-Season'])
+            location_df = location_df[location].astype('float')
+
+
+            location_df = abs(location_df)
+
+            tot_location_df = pd.DataFrame(
+                location_df.groupby(['Year-Season']).quantile(0.97).round(2))
+
+            tot_location_df.columns = ['REF_PRICE']
+
+            tot_location_df.insert(0, 'NODE', node_name)
+
+
+            if iso in output_dict.keys():
+                old_df = output_dict[iso]
+                output_dict[iso] = pd.concat([old_df, tot_location_df], axis=0)
+            else:
+                output_dict[iso] = tot_location_df
+
+
+        elif iso=='MISO':
+            location_df = input_df.set_index(['Year-MISO'])
+            location_df = pd.DataFrame(location_df[location])
+            tot_location_df = abs(location_df)
+            tot_location_df = pd.DataFrame(tot_location_df.groupby(['Year-MISO']).quantile(0.50).round(2))
+            tot_location_df.columns = ['REF_PRICE']
+            tot_location_df.insert(0, 'NODE', node_name)
+            if iso in output_dict.keys():
+                old_df = output_dict[iso]
+                output_dict[iso] = pd.concat([old_df, tot_location_df], axis=0)
+            else:
+                output_dict[iso] = tot_location_df
+
+        elif iso == 'SPP':
+            location_df = input_df.set_index(['Year-Quarter'])
+            location_df = location_df[location]
+            inc_location_df = abs(location_df[location_df < 0])
+            dec_location_df = abs(location_df[location_df > 0])
+            inc_location_df = pd.DataFrame(inc_location_df.groupby(['Year-Quarter']).quantile(0.97).round(2))
+            dec_location_df = pd.DataFrame(dec_location_df.groupby(['Year-Quarter']).quantile(0.97).round(2))
+            inc_location_df.columns = ['REF_PRICE_INC']
+            dec_location_df.columns = ['REF_PRICE_DEC']
+            tot_location_df = pd.concat([inc_location_df,dec_location_df],axis=1)
+            tot_location_df.insert(0, 'NODE', node_name)
+
+            if iso in output_dict.keys():
+                old_df=output_dict[iso]
+                output_dict[iso] = pd.concat([old_df,tot_location_df],axis=0)
+            else:
+                output_dict[iso]=tot_location_df
+
+        elif iso == 'ISONE':
+            location_df = input_df.set_index(['Year-Month'])
+            offpeak_location_df = location_df[location_df['HourEnding'].isin(offpeak)]
+            onpeak_location_df = location_df[~location_df['HourEnding'].isin(offpeak)]
+            offpeak_location_df = offpeak_location_df[location]
+            onpeak_location_df = onpeak_location_df[location]
+
+            inc_offpeak_location_df = abs(offpeak_location_df[offpeak_location_df < 0])
+            dec_offpeak_location_df = abs(offpeak_location_df[offpeak_location_df > 0])
+            inc_onpeak_location_df = abs(onpeak_location_df[onpeak_location_df < 0])
+            dec_onpeak_location_df = abs(onpeak_location_df[onpeak_location_df > 0])
+
+            inc_offpeak_location_df = pd.DataFrame(inc_offpeak_location_df.groupby(['Year-Month']).quantile(0.95).round(2))
+            dec_offpeak_location_df = pd.DataFrame(dec_offpeak_location_df.groupby(['Year-Month']).quantile(0.95).round(2))
+            inc_onpeak_location_df = pd.DataFrame(inc_onpeak_location_df.groupby(['Year-Month']).quantile(0.95).round(2))
+            dec_onpeak_location_df = pd.DataFrame(dec_onpeak_location_df.groupby(['Year-Month']).quantile(0.95).round(2))
+
+            inc_onpeak_location_df.columns = ['REF_PRICE_INC_ONp']
+            dec_onpeak_location_df.columns = ['REF_PRICE_DEC_ONp']
+            inc_offpeak_location_df.columns = ['REF_PRICE_INC_OFFp']
+            dec_offpeak_location_df.columns = ['REF_PRICE_DEC_OFFp']
+
+            tot_location_df = pd.concat([inc_onpeak_location_df,dec_onpeak_location_df,inc_offpeak_location_df,dec_offpeak_location_df],axis=1)
+            tot_location_df.insert(0, 'NODE', node_name)
+
+            if iso in output_dict.keys():
+                old_df=output_dict[iso]
+                output_dict[iso] = pd.concat([old_df,tot_location_df],axis=0)
+            else:
+                output_dict[iso]=tot_location_df
+
+
+        elif iso == 'ERCOT':
+            location_df = input_df.set_index(['Year-Month'])
+            offpeak_location_df = location_df[location_df['HourEnding'].isin(offpeak)]
+            onpeak_location_df = location_df[~location_df['HourEnding'].isin(offpeak)]
+            offpeak_location_df = offpeak_location_df[location].astype('float')
+            onpeak_location_df = onpeak_location_df[location].astype('float')
+
+            inc_offpeak_location_df = abs(offpeak_location_df[offpeak_location_df < 0])
+            dec_offpeak_location_df = abs(offpeak_location_df[offpeak_location_df > 0])
+            inc_onpeak_location_df = abs(onpeak_location_df[onpeak_location_df < 0])
+            dec_onpeak_location_df = abs(onpeak_location_df[onpeak_location_df > 0])
+
+            inc_offpeak_location_df = pd.DataFrame(inc_offpeak_location_df.groupby(['Year-Month']).quantile(0.95).round(2))
+            dec_offpeak_location_df = pd.DataFrame(dec_offpeak_location_df.groupby(['Year-Month']).quantile(0.95).round(2))
+            inc_onpeak_location_df = pd.DataFrame(inc_onpeak_location_df.groupby(['Year-Month']).quantile(0.95).round(2))
+            dec_onpeak_location_df = pd.DataFrame(dec_onpeak_location_df.groupby(['Year-Month']).quantile(0.95).round(2))
+
+            inc_onpeak_location_df.columns = ['REF_PRICE_INC_ONp']
+            dec_onpeak_location_df.columns = ['REF_PRICE_DEC_ONp']
+            inc_offpeak_location_df.columns = ['REF_PRICE_INC_OFFp']
+            dec_offpeak_location_df.columns = ['REF_PRICE_DEC_OFFp']
+
+            tot_location_df = pd.concat([inc_onpeak_location_df,dec_onpeak_location_df,inc_offpeak_location_df,dec_offpeak_location_df],axis=1)
+            tot_location_df.insert(0, 'NODE', node_name)
+
+            if iso in output_dict.keys():
+                old_df=output_dict[iso]
+                output_dict[iso] = pd.concat([old_df,tot_location_df],axis=0)
+            else:
+                output_dict[iso]=tot_location_df
+
+
+        #PJM 97% of 2-month previous year - no split
+        #SPP 97% of quarter from previous year - inc and dec split - this is clearly outlined but doesnt appear to be correct?
+        #MISO 50% percentile of April1-Mar31 of previous year
+        #ISONE - on peak and off peak incs and decs by month - dataset is last years' month, last 9 days two months from current, and first 19 days one month from current. 95th percentile
+        #ERCOT unsure - just use ISONE rules
+
+    writer = pd.ExcelWriter(dart_files_directory + 'REF_PRICES_' + data_dict_name + '.xlsx', engine='xlsxwriter')
+    for iso, df in output_dict.items():
+        if iso=='MISO':
+            df['year']=pd.Series(df.index).apply(lambda x : x.split('_')[0]).astype('int').values
+            df['month']=5
+            df['day']=1
+            df['Start']= pd.to_datetime(df[['year', 'month', 'day']])
+            df['End']= df['Start'].apply(lambda x: x + pd.DateOffset(years=1,days=-1))
+            df.drop(columns=['year','month','day'],inplace=True)
+            df.sort_values('Start',inplace=True)
+            temp_df = pd.DataFrame(df.groupby(['Start','End']).max().round(2))
+            temp_df['NODE'] = iso+'_ALL'
+            df.set_index(['Start', 'End'], inplace=True)
+            new_df = pd.concat([temp_df,df],axis=0,sort=False)
+            new_df.reset_index(inplace=True)
+            new_df['Start'] = new_df['Start'].dt.strftime('%b_%d_%Y')
+            new_df['End'] = new_df['End'].dt.strftime('%b_%d_%Y')
+            new_df.set_index(['Start', 'End'], inplace=True)
+            output_dict[iso]=new_df
+            new_df.to_excel(writer, sheet_name=iso)
+            print(new_df)
+        elif (iso=='SPP'):
+            df['year']=pd.Series(df.index).apply(lambda x : x.split('_')[0]).astype('int').values
+            df['month']=pd.Series(df.index).apply(lambda x : x.split('_')[1].split('-')[0]).astype('int').values
+            df['day']=1
+            df['Start']= pd.to_datetime(df[['year', 'month', 'day']])
+            df['End']= df['Start'].apply(lambda x: x + pd.DateOffset(months=3,days=-1))
+            df.drop(columns=['year','month','day'],inplace=True)
+            df.sort_values('Start',inplace=True)
+            temp_df = pd.DataFrame(df.groupby(['Start','End']).mean().round(2))
+            temp_df['NODE'] = iso+'_ALL'
+            df.set_index(['Start', 'End'], inplace=True)
+            new_df = pd.concat([temp_df,df],axis=0,sort=False)
+            new_df.reset_index(inplace=True)
+            new_df['Start'] = new_df['Start'].dt.strftime('%b_%d_%Y')
+            new_df['End'] = new_df['End'].dt.strftime('%b_%d_%Y')
+            new_df.set_index(['Start', 'End'], inplace=True)
+            output_dict[iso]=new_df
+            new_df.to_excel(writer, sheet_name=iso)
+            print(new_df)
+        elif (iso == 'PJM'):
+            df['year'] = pd.Series(df.index).apply(lambda x: x.split('_')[0]).astype('int').values
+            df['month'] = pd.Series(df.index).apply(lambda x: x.split('_')[1].split('-')[0]).astype('int').values
+            df['day'] = 1
+            df['Start'] = pd.to_datetime(df[['year', 'month', 'day']])
+            df['End'] = df['Start'].apply(lambda x: x + pd.DateOffset(months=2, days=-1))
+            df.drop(columns=['year', 'month', 'day'], inplace=True)
+            df.sort_values('Start', inplace=True)
+            temp_df = pd.DataFrame(df.groupby(['Start', 'End']).mean().round(2))
+            temp_df['NODE'] = iso + '_ALL'
+            df.set_index(['Start', 'End'], inplace=True)
+            new_df = pd.concat([temp_df, df], axis=0, sort=False)
+            new_df.reset_index(inplace=True)
+            new_df['Start'] = new_df['Start'].dt.strftime('%b_%d_%Y')
+            new_df['End'] = new_df['End'].dt.strftime('%b_%d_%Y')
+            new_df.set_index(['Start', 'End'], inplace=True)
+            output_dict[iso] = new_df
+            new_df.to_excel(writer, sheet_name=iso)
+            print(new_df)
+        elif (iso=='ISONE' or iso=='ERCOT'):
+            df['year']=pd.Series(df.index).apply(lambda x : x.split('_')[0]).astype('int').values
+            df['month']=pd.Series(df.index).apply(lambda x : x.split('_')[1]).astype('int').values
+            df['day']=1
+            df['Start']= pd.to_datetime(df[['year', 'month', 'day']])
+            df['End']= df['Start'].apply(lambda x: x + pd.DateOffset(months=1,days=-1))
+            df.drop(columns=['year','month','day'],inplace=True)
+            df.sort_values('Start',inplace=True)
+            temp_df = pd.DataFrame(df.groupby(['Start','End']).mean().round(2))
+            temp_df['NODE'] = iso+'_ALL'
+            df.set_index(['Start', 'End'], inplace=True)
+            new_df = pd.concat([temp_df,df],axis=0,sort=False)
+            new_df.reset_index(inplace=True)
+            new_df['Start'] = new_df['Start'].dt.strftime('%b_%d_%Y')
+            new_df['End'] = new_df['End'].dt.strftime('%b_%d_%Y')
+            new_df.set_index(['Start', 'End'], inplace=True)
+            output_dict[iso]=new_df
+            new_df.to_excel(writer, sheet_name=iso)
+            print(new_df)
+
+    writer.close()
+
+
+    return
+

@@ -30,6 +30,7 @@ for row in trade_handler_df.index:
     current_isos = current_isos.replace(' ','').split(',')
     date = trade_handler_df['Date'][row]
     predict_date_str_mm_dd_yyyy = date.strftime('%m_%d_%Y')
+    model_type = trade_handler_df['DARTorSPREAD'][row]
     do_data_pull = trade_handler_df['DataPull'][row]
     do_prediction = trade_handler_df['Prediction'][row]
     do_postprocessing = trade_handler_df['PostProcessing_YESFiles'][row]
@@ -60,7 +61,8 @@ for row in trade_handler_df.index:
                                                                                            iso=iso,
                                                                                            daily_trade_file_name=daily_trade_file_name,
                                                                                            working_directory= working_directory,
-                                                                                           static_directory=static_directory)
+                                                                                           static_directory=static_directory,
+                                                                                           model_type=model_type)
 
         if do_postprocessing:
             trades_df, yes_dfs_dict[iso], upload_dfs_dict[iso] = post_process_trades(predict_date_str_mm_dd_yyyy=predict_date_str_mm_dd_yyyy,
@@ -68,7 +70,8 @@ for row in trade_handler_df.index:
                                                                           daily_trade_file_name=daily_trade_file_name,
                                                                           name_adder=name_adder,
                                                                           working_directory= working_directory,
-                                                                          static_directory=static_directory)
+                                                                          static_directory=static_directory,
+                                                                          model_type=model_type)
 
     if do_postprocessing:
         # Write all upload files to same Excel file
