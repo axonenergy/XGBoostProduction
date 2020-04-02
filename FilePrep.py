@@ -3,6 +3,8 @@ from API_Lib import get_lmps
 from API_Lib import get_reference_prices
 from API_Lib import add_tall_files_together
 from API_Lib import get_spreads
+from API_Lib import get_var_dict
+from API_Lib import load_obj
 
 import pandas as pd
 import os
@@ -18,17 +20,17 @@ static_directory = 'C:\\XGBoostProduction\\'
 #                                           API PULLS FOR HISTORIC DART DATES                                          #
 ####################################################################################################################
 
-# start_date = '2020_02_20'   # 7/15/2015 start date
-# end_date = '2020_03_19'   # check here for most recent file for end date: https://marketplace.spp.org/pages/rtbm-lmp-by-location#
-#
-# previous_data_dict_name = '2020_02_24_BACKTEST_DATA_DICT_RAW'
-#
-# data_dict = get_ISO_api_data(start_date=start_date,
-#                              end_date=end_date,
-#                              previous_data_dict_name = save_directory+previous_data_dict_name,
-#                              static_directory=static_directory,
-#                              working_directory=working_directory,
-#                              concat_old_dict=True)
+start_date = '2020_03_19'   # 7/15/2015 start date
+end_date = '2020_03_19'   # check here for most recent file for end date: https://marketplace.spp.org/pages/rtbm-lmp-by-location#
+
+previous_data_dict_name = '2020_03_19_BACKTEST_DATA_DICT_RAW'
+
+data_dict = get_ISO_api_data(start_date=start_date,
+                             end_date=end_date,
+                             previous_data_dict_name = save_directory+previous_data_dict_name,
+                             static_directory=static_directory,
+                             working_directory=working_directory,
+                             concat_old_dict=True)
 
 
 
@@ -56,11 +58,23 @@ static_directory = 'C:\\XGBoostProduction\\'
 
 #Use this code to get reference prices
 
-data_dict_name = '2020_03_19_BACKTEST_DATA_DICT_RAW'
+# data_dict_name = '2020_03_19_BACKTEST_DATA_DICT_RAW'
+#
+# get_reference_prices(data_dict_name=data_dict_name,
+#                      working_directory=working_directory,
+#                      static_directory=static_directory)
 
-get_reference_prices(data_dict_name=data_dict_name,
-                     working_directory=working_directory,
-                     static_directory=static_directory)
+
+
+####################################################################################################################
+####################################################################################################################
+#Use this code to var
+
+data_dict_name = '2020_03_19_BACKTEST_DATA_DICT_MASTER'
+input_dict = load_obj('C:\\XGBoostProduction\ModelUpdateData\\'+data_dict_name)
+
+new_dict = get_var_dict(input_dict = input_dict)
+
 
 
 

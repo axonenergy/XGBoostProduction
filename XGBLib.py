@@ -402,14 +402,14 @@ def xgb_gridsearch(train_df, target, cv_folds, iterations, sd_limit, gpu_train, 
 
 
     # # XGBOOST TIER 1 GRID ISONE
-    param_grid = {'min_child_weight': [2],
-                  'learning_rate': [0.03],
-                  'reg_lambda': [3],
-                  'reg_alpha' : [0.10],
-                  # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
-                  'subsample': [0.95],
-                  'colsample_bytree': [0.05],
-                  'max_depth': [8]}
+    # param_grid = {'min_child_weight': [2],
+    #               'learning_rate': [0.03],
+    #               'reg_lambda': [3],
+    #               'reg_alpha' : [0.10],
+    #               # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
+    #               'subsample': [0.95],
+    #               'colsample_bytree': [0.05],
+    #               'max_depth': [8]}
     #
     # # XGBOOST TIER 1 GRID NYISO
     # param_grid = {'min_child_weight': [2],
@@ -422,14 +422,14 @@ def xgb_gridsearch(train_df, target, cv_folds, iterations, sd_limit, gpu_train, 
     #               'max_depth': [14]}
 
     # # XGBOOST TIER 1 GRID SPP
-    # param_grid = {'min_child_weight': [2],
-    #               'learning_rate': [0.01],
-    #               'reg_lambda': [3],
-    #               'reg_alpha' : [0.10],
-    #               # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
-    #               'subsample': [0.85],
-    #               # 'colsample_bytree': [0.05],
-    #               'max_depth': [15]}
+    param_grid = {'min_child_weight': [2],
+                  'learning_rate': [0.01],
+                  'reg_lambda': [3],
+                  'reg_alpha' : [0.10],
+                  # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
+                  'subsample': [0.85],
+                  'colsample_bytree': [0.05],
+                  'max_depth': [15]}
 
 
     # # XGBOOST TIER 1 GRID ERCOT **SPREAD**
@@ -690,8 +690,7 @@ def do_xgb_prediction(predict_date_str_mm_dd_yyyy, iso, daily_trade_file_name, w
         print('No Locations Turned On For Selected ISO. Check Daily Train Variables Excel Sheet.')
         print('#################################################################################')
 
-    # Get the best features per node matrix
-    all_best_features_filename = all_ISOs_variables_df['all_best_features_filename'][0]
+
     all_best_features_df = pd.read_csv(feat_import_files_directory+all_best_features_filename + ".csv", dtype=np.str)
 
     # Create all the features
@@ -996,11 +995,11 @@ def create_trade_summary(predict_date_str_mm_dd_yyyy, isos, do_printcharts, name
         df_inc_dec.loc[df_inc_dec['HE'] == 300, 'HE'] = '<b>Total<b>'
         df_inc_dec = df_inc_dec[['HE','Trades_Total','MWs/Trade','MW_INC','MW_DEC','MW_Total']]
         df_inc_dec = df_inc_dec.round(1)
-        df_inc_dec['MW_Total'] = df_inc_dec['MW_Total'].round(0)
-        df_inc_dec['MW_INC'] = df_inc_dec['MW_INC'].round(0)
-        df_inc_dec['MW_DEC'] = df_inc_dec['MW_DEC'].round(0)
+        df_inc_dec['MW_Total'] = df_inc_dec['MW_Total'].round(1)
+        df_inc_dec['MW_INC'] = df_inc_dec['MW_INC'].round(1)
+        df_inc_dec['MW_DEC'] = df_inc_dec['MW_DEC'].round(1)
         df = df.round(1)
-        df['MW'] = df['MW'].round(0)
+        df['MW'] = df['MW'].round(1)
         df = df[['Trades','MW/Trade','MW']]
 
         df.reset_index(inplace=True)
@@ -1030,7 +1029,7 @@ def create_trade_summary(predict_date_str_mm_dd_yyyy, isos, do_printcharts, name
                 cells=dict(
                     values=[df_inc_dec[k].tolist() for k in df_inc_dec.columns[0:]],
                     align="left",
-                format=[None,",d", None, ",d", ",d", ",d"],
+                format=[None,",d", None, ",.1f", ",.1f", ",.1f"],
                 fill=dict(color=['#23282D','#CED2CC','#CED2CC','#CED2CC','#CED2CC','#23282D']),
                 font=dict(color=['white', 'black', 'black', 'black', 'black', 'white']))
             )
@@ -1069,7 +1068,7 @@ def create_trade_summary(predict_date_str_mm_dd_yyyy, isos, do_printcharts, name
         cells=dict(
             values=[summary_df[k].tolist() for k in summary_df.columns[0:]],
             align="left",
-            format=[None, ",d", ".1f", ",d", ",d", ",d"],
+            format=[None, ",d", ".1f", ",.1f", ",.1f", ",.1f"],
             fill=dict(color=['#23282D', '#CED2CC', '#CED2CC', '#CED2CC', '#CED2CC', '#23282D']),
             font=dict(color=['white', 'black', 'black', 'black', 'black', 'white']))
     )
@@ -1164,7 +1163,7 @@ def create_trade_summary(predict_date_str_mm_dd_yyyy, isos, do_printcharts, name
         fig.update_xaxes(tickmode='linear', row=1, col=col)
 
 
-    url = plotly.offline.plot(fig,filename=upload_save_directory + 'DailyTrades_' + predict_date_str_mm_dd_yyyy + '.html',auto_open=True)
+    url = plotly.offline.plot(fig,filename=upload_save_directory + 'DailyTrades_' + predict_date_str_mm_dd_yyyy + '_' + name_adder+ '.html',auto_open=True)
 
     print('')
     print('**********************************************************************************')
@@ -2153,6 +2152,10 @@ def print_summary_pnl(isos,daily_actuals_dict,monthly_actuals_dict,yearly_actual
                   '<b>Axon Energy Yearly PnL Summary<b>', '<b>' + isos[0] + ' Yearly PnL Summary<b>', '<b>' + isos[1] + ' Yearly PnL Summary<b>', '<b>' + isos[2] + ' Yearly PnL Summary<b>', '<b>' + isos[3] + ' Yearly PnL Summary<b>', '<b>' + isos[4] + ' Yearly PnL Summary<b>', '<b>' + isos[5] + ' Yearly PnL Summary<b>',
                   '<b>Hourly PnL Comparison To Backtest<b>', '<b>' + isos[0] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + isos[1] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + isos[2] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + isos[3] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + isos[4] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + isos[5] + ' Hourly PnL Comparison To Backtest<b>')
 
+
+
+
+
     fig = make_subplots(
         rows=4, cols=len(isos) + 1,
         shared_xaxes=True,
@@ -2184,8 +2187,216 @@ def print_summary_pnl(isos,daily_actuals_dict,monthly_actuals_dict,yearly_actual
             color="black")
     )
 
+    return fig
+
+def print_var(var_dataframes_dict,predict_date_str_mm_dd_yyyy):
+    figures_dict = {}
+
+    for type, df in var_dataframes_dict.items():
+
+        table1 = go.Table(
+            header=dict(
+                values=df.reset_index().columns,
+                font=dict(size=12, color='white'),
+                align="left",
+                fill=dict(color=['#1C4E80'])
+            ),
+            cells=dict(
+                values=[df.reset_index()[k].tolist() for k in df.reset_index().columns[0:]],
+                align="left",
+                format=[None, "$,d", "$,d", "$,d", "", "$,d","$,d", "$,d"],
+                fill=dict(color=['#202020', '#F1F1F1', '#F1F1F1', '#F1F1F1', '#F1F1F1', '#F1F1F1', '#F1F1F1', '#F1F1F1']),
+                font=dict(color=['white', 'red', 'red', 'red','black', 'green', 'green', 'green']))
+        )
+        figures_dict[type]=table1
+
+    specs1 = [[{"type": "table"}],
+              [{"type": "table"}],
+              [{"type": "table"}],
+              [{"type": "table"}]]
+
+    titles = ('<b>'+predict_date_str_mm_dd_yyyy + ' Axon Energy 3-Year 90 Day Rolling VAR<b>',
+              '<b>'+predict_date_str_mm_dd_yyyy + ' Axon Energy 1-Year VAR<b>',
+              '<b>'+predict_date_str_mm_dd_yyyy + ' Axon Energy 2-Year VAR<b>',
+              '<b>'+predict_date_str_mm_dd_yyyy + ' Axon Energy 3-Year VAR<b>',
+)
+
+    fig = make_subplots(
+        rows=len(figures_dict), cols=1,
+        shared_xaxes=True,
+        row_heights=[.5, .5, .5,.5],
+        vertical_spacing=0.05,
+        horizontal_spacing=0.01,
+        specs=specs1,
+        subplot_titles=titles
+    )
+
+    counter=1
+    for type, table in figures_dict.items():
+        fig.add_trace(table, counter,1)
+        counter+=1
+
+    fig.update_layout(
+        height=1300,
+        width=1300,
+        paper_bgcolor='white',
+        plot_bgcolor='#CED2CC',
+        font=dict(
+            color="black")
+    )
 
     return fig
 
+def create_VAR(preds_dict, VAR_ISOs, daily_trade_file_name, working_directory, static_directory, model_type,predict_date_str_mm_dd_yyyy):
+    daily_trade_directory = working_directory + '\\DailyTradeFiles\\'
+    VAR_files_directory = static_directory + '\ModelUpdateData\\'
+    save_directory = working_directory + '\\DailyPnL\\'
+    iso_daily_PnL = pd.DataFrame()
+
+    # Find correct VAR file
+    trade_variables = pd.ExcelFile(daily_trade_directory + daily_trade_file_name + '.xlsx')
+    all_ISOs_variables_df = pd.read_excel(trade_variables, 'ISOs')
+    all_ISOs_variables_df.reset_index(inplace=True, drop=True)
+    VAR_file_name = all_ISOs_variables_df['VAR_file'][0]
+    VAR_dict = load_obj(VAR_files_directory+VAR_file_name)
+    timezone_dict = {'MISO': 'EST', 'PJM': 'EPT', 'ISONE': 'EPT', 'NYISO': 'EPT', 'ERCOT': 'CPT', 'SPP': 'CPT'}
+
+    for iso in VAR_ISOs:
+        VAR_df = VAR_dict[timezone_dict[iso]]
+        VAR_df = VAR_df[[col for col in VAR_df.columns if iso in col]]
+        VAR_df = VAR_df.astype('float')
+        pred_df = preds_dict[iso]
+
+        # put preds in right format and make decs negative volumne
+        mw_df = pred_df.pivot(index= 'Hour',columns='Node Name', values='MW')
+        mw_df.fillna(0,inplace=True)
+        trade_type_df = pred_df.pivot(index='Hour', columns='Node Name', values='Trade Type')
+        trade_type_df.fillna(0, inplace=True)
+
+        for col in trade_type_df.columns:
+            trade_type_df.loc[trade_type_df[col]=='INC',col] = 1
+            trade_type_df.loc[trade_type_df[col]=='DEC',col] = -1
+
+        mw_df = mw_df * trade_type_df
+        mw_df.columns = [iso+'_'+col  for col in mw_df.columns]
+
+        # Combine VAR df and pred df
+
+        VAR_df.reset_index(inplace=True)
+        mw_df.reset_index(inplace=True)
+        mw_df = mw_df.rename(columns={'Hour':'HourEnding'})
+
+        full_pred_df = pd.merge(VAR_df,mw_df,on='HourEnding')
+        full_pred_df.set_index(['Date','HourEnding'],inplace=True)
+        full_pred_df.sort_values(['Date','HourEnding'],inplace=True)
+        full_pred_df.fillna(0,inplace=True)
+
+        hourly_PnL_df = pd.DataFrame(index=full_pred_df.index)
+
+        for col in [col for col in full_pred_df.columns if ('DART' not in col) and ('SPREAD' not in col)]:
+            if model_type == 'SPREAD':
+                try:
+                    pred_df = pd.DataFrame(full_pred_df[[col2 for col2 in full_pred_df.columns if ('SPREAD' in col2) and (col in col2)]])
+                    act_df = pd.DataFrame(full_pred_df[col])
+                    hourly_PnL_df[col] =  pred_df[pred_df.columns[0]]*act_df[act_df.columns[0]]
+                except:
+                    pass
+
+            if model_type =='DART':
+                try:
+                    pred_df = pd.DataFrame(full_pred_df[[col2 for col2 in full_pred_df.columns if ('DART' in col2) and (col in col2)]])
+                    act_df = pd.DataFrame(full_pred_df[col])
+                    hourly_PnL_df[col] =  pred_df[pred_df.columns[0]]*act_df[act_df.columns[0]]
+                except:
+                    pass
+
+        hourly_PnL_df.reset_index(inplace=True)
+        hourly_PnL_df.set_index('Date',inplace=True)
+        hourly_PnL_df.drop(columns='HourEnding',inplace=True)
+        hourly_PnL_df[iso] = hourly_PnL_df.sum(axis=1)
+        daily_PnL_df = hourly_PnL_df.groupby(pd.Grouper(freq='D')).sum()
+        if iso_daily_PnL.empty:
+            iso_daily_PnL = pd.DataFrame(daily_PnL_df[iso])
+        else:
+            iso_daily_PnL[iso] = daily_PnL_df[iso]
+
+    iso_daily_PnL['Combined_Portfolio'] = iso_daily_PnL.sum(axis=1)
+
+    var_dataframes_dict = {}
+
+    iso_daily_PnL.index = pd.to_datetime(iso_daily_PnL.index)
+
+    current_date = datetime.datetime.today()
+    one_year = current_date - datetime.timedelta(1*365)
+    two_year = current_date - datetime.timedelta(2 * 365)
+    three_year = current_date - datetime.timedelta(3 * 365)
+    start_dates = {current_date:'THREE_YEAR_90DAY_WINDOW',one_year:'ONE_YEAR',two_year:'TWO_YEAR',three_year:'THREE_YEAR'}
+
+    for date,date_type in start_dates.items():
+
+        if date == current_date:
+            temp_iso_daily_PnL = pd.DataFrame()
+
+            for prev_year in range(0, 4):
+                start_date = current_date - datetime.timedelta(days=prev_year * 365+45)
+                end_date = current_date - datetime.timedelta(days=prev_year * 365-45)
+                temp_backtest_pnl_df = iso_daily_PnL.loc[start_date:end_date]
+                if temp_iso_daily_PnL.empty:
+                    temp_iso_daily_PnL = temp_backtest_pnl_df
+                else:
+                    temp_iso_daily_PnL = pd.concat([temp_iso_daily_PnL, temp_backtest_pnl_df], axis=0,sort=True)
+
+        else:
+            temp_iso_daily_PnL = iso_daily_PnL.loc[date:current_date]
 
 
+        summary_df = pd.DataFrame(
+            columns=['ISO', 'VAR98', 'CVAR98', 'MAX_LOSS', date_type, 'VAR02', 'CVAR02', 'MAX_GAIN'])
+
+        for col in iso_daily_PnL.columns:
+            max_loss = round(temp_iso_daily_PnL[col].min(),0)
+            max_gain = round(temp_iso_daily_PnL[col].max(),0)
+
+            var_98 = round(temp_iso_daily_PnL[col].quantile(0.02),0)
+            cvar_98_dol = temp_iso_daily_PnL[iso_daily_PnL[col] < var_98][col].sum()
+            cvar_98_samps = temp_iso_daily_PnL[temp_iso_daily_PnL[col] < var_98][col].count()
+            cvar_98 = round(cvar_98_dol/cvar_98_samps,0)
+
+            var_02 = round(temp_iso_daily_PnL[col].quantile(0.98),0)
+            cvar_02_dol = temp_iso_daily_PnL[temp_iso_daily_PnL[col] > var_02][col].sum()
+            cvar_02_samps = temp_iso_daily_PnL[temp_iso_daily_PnL[col] > var_02][col].count()
+            cvar_02 = round(cvar_02_dol / cvar_02_samps,0)
+
+            dict = {'ISO': col,
+                    'VAR98': var_98,
+                    'CVAR98': cvar_98,
+                    'MAX_LOSS' : max_loss,
+                    date_type: date_type,
+                    'VAR02': var_02,
+                    'CVAR02': cvar_02,
+                    'MAX_GAIN': max_gain}
+
+            summary_df = summary_df.append(dict, ignore_index=True)
+
+        summary_df.set_index('ISO', inplace=True)
+        var_dataframes_dict[date_type] = summary_df
+
+
+    var_fig = print_var(var_dataframes_dict=var_dataframes_dict,
+                        predict_date_str_mm_dd_yyyy=predict_date_str_mm_dd_yyyy)
+
+    var_writer = pd.ExcelWriter(save_directory + 'Daily_VAR_Report_'+predict_date_str_mm_dd_yyyy+'.xlsx', engine='xlsxwriter')
+
+    for type, df in var_dataframes_dict.items():
+        df.to_excel(var_writer, sheet_name=type, index=True)
+    var_writer.save()
+    var_writer.close()
+
+
+
+
+
+    url = plotly.offline.plot(var_fig,
+                              filename=save_directory + 'Daily_VAR_Report_' + predict_date_str_mm_dd_yyyy + '.html',
+                              auto_open=True)
+    return

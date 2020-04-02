@@ -18,20 +18,21 @@ working_directory = 'X:\\Research\\'
 # COMMON PARAMETERS
 # input_file_name = '09_11_2019_GBM_DATA_MISO_V8.0_MASTER_159F'                 # Use This If Reading From CSV (Old Method)
 # input_file_type = 'csv'                                                       # Use This If Reading From CSV (Old Method)
-input_file_name = '2020_03_19_BACKTEST_DATA_DICT_MASTER'                        # Use This If Reading From Dictionary (New Method)
+input_file_name = '2020_02_24_BACKTEST_DATA_DICT_MASTER_SPREAD'                        # Use This If Reading From Dictionary (New Method)
 input_file_type = 'dict'                                                        # Use This If Reading From Dictionary
 hypergrid_dict_name = 'RFGridsearchDict_12092019_MISOAll_Master_Dataset_Dict_'  # Name Of Hypergrid File
-all_best_features_filename = 'FeatImport12092019_Master_Nodes_Dataset_Dict_full_SD6_ALL' # Name of Feature Importance File
-name_adder = ''                                                                 # Additional Identifier For The Run
-add_calculated_features = False                                                 # If True Adds Calcualted Features From A Previous Best Feature Importance Run. Will Error If Matching Non-Calculated Feature Importances Are Not Run First. Used to Determine If Calcualted Features Are Good Or Not
-do_all_feats = False                                                             # dont segregate the features into feature types
+all_best_features_filename = 'FeatImport_2020_02_24_BACKTEST_DATA_DICT_MASTER_SPREAD_ONE_YEAR_SD6_PJM' # Name of Feature Importance File
+name_adder = 'ONE_YEAR_ALL_FEATS'                                                                 # Additional Identifier For The Run
+add_calculated_features = True                                                 # If True Adds Calcualted Features From A Previous Best Feature Importance Run. Will Error If Matching Non-Calculated Feature Importances Are Not Run First. Used to Determine If Calcualted Features Are Good Or Not
+do_all_feats = True                                                             # dont segregate the features into feature types
 sd_limit = 6                                                                    # SD Limit For Outlier Removal
 gridsearch_iterations = 100                                                      # Gridsearch Iterations
 cv_folds = 4                                                                    # CV Folds For Gridsearch
 train_end_date = datetime.datetime(2020, 8, 24)                                 # Backtest Start Date (If Not Doing Cross Validation)
-feat_dict = {'DA_RT': 6, 'FLOAD': 8, 'FTEMP': 20, 'OUTAGE': 12}               # Number Of Top Features To Use If Reading From Dict And Adding Calculated Features
-iso_list = ['ISONE','SPP','ERCOT']
-feat_types_list = ['SPR_EAD','DA_RT','FLOAD','FTEMP','OUTAGE']                            # Feat Types To Run
+train_start_date = datetime.datetime(2019, 3, 19)                                 # Backtest Start Date (If Not Doing Cross Validation)
+feat_dict = {'SPR_EAD': 2,'DA_RT': 2, 'FLOAD': 8, 'FTEMP': 24, 'OUTAGE': 4}               # Number Of Top Features To Use If Reading From Dict And Adding Calculated Features
+iso_list = ['PJM']
+feat_types_list = ['SPR_EAD']                            # Feat Types To Run
 run_gridsearch = False                                                          # Do A Gridsearch?
 run_feature_importances = True                                                  # Do Feature Importances?
 
@@ -130,7 +131,7 @@ def rf_gridsearch(train_df, feat_type, target, cv_folds, gridsearch_iterations, 
 
     return results
 
-def do_top_features(input_filename, save_name, iso_list, feat_dict, hypergrid_dict_name, feat_types_list, input_file_type, sd_limit, train_end_date, add_calculated_features, static_directory,working_directory):
+def do_top_features(input_filename, save_name, iso_list, feat_dict, hypergrid_dict_name, feat_types_list, input_file_type, sd_limit, train_end_date, add_calculated_features, static_directory,working_directory,train_start_date):
     feature_importance_directory = working_directory + '\FeatureImportanceFiles\\'
     model_data_directory = static_directory + '\ModelUpdateData\\'
     gridsearch_directory = working_directory + '\GridsearchFiles\\'
@@ -147,6 +148,7 @@ def do_top_features(input_filename, save_name, iso_list, feat_dict, hypergrid_di
                                     iso=iso)
 
         train_df = master_df[master_df.index.get_level_values('Date') < train_end_date]
+        train_df = master_df[master_df.index.get_level_values('Date') > train_start_date]
 
         targets_df = train_df[[col for col in train_df.columns if 'DART' in col]]
         targets_df = train_df[[col for col in targets_df.columns if iso in col]]
@@ -157,12 +159,16 @@ def do_top_features(input_filename, save_name, iso_list, feat_dict, hypergrid_di
             if input_file_type.upper() == 'DICT':
                 if add_calculated_features:
 
-                    all_best_features_df = pd.read_csv(all_best_features_filename + ".csv", dtype=np.str)
+                    all_best_features_df = pd.read_csv(feature_importance_directory+all_best_features_filename + ".csv", dtype=np.str)
+
+                    cat_vars = ['Month', 'Weekday']
 
                     feature_df = create_features(input_df=train_df,
                                                  feat_dict=feat_dict,
                                                  target_name=target,
                                                  iso=iso.upper(),
+                                                 cat_vars = cat_vars,
+                                                 static_directory=static_directory,
                                                  all_best_features_df=all_best_features_df)
                 else: feature_df=train_df
 
@@ -291,6 +297,7 @@ if run_feature_importances:
                     train_end_date=train_end_date,
                     add_calculated_features=add_calculated_features,
                     static_directory=static_directory,
-                    working_directory=working_directory)
+                    working_directory=working_directory,
+                    train_start_date=train_start_date)
 
 

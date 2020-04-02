@@ -36,7 +36,8 @@ def load_obj(file_name):
     except:
         print('File Does Not Exist')
 
-def get_spreads(input_dict, daily_pred=False):
+
+def get_spreads(input_dict, spread_locs_df=None, daily_pred=False):
     df = pd.DataFrame(columns=['Spread','Corr'])
 
     # Get EST frame
@@ -44,6 +45,7 @@ def get_spreads(input_dict, daily_pred=False):
     orig_df = orig_df.astype('float')
 
     # Run correlations on each ISO and drop all but top X DARTs - highly negative correlated
+
     iso_dict_dart = {'NYISO': 0.90,  # .90 ###Correlation cutoffs by ISO
                      'PJM': 0.64,  # .64
                      'MISO': 0.62,  # .618
@@ -78,13 +80,16 @@ def get_spreads(input_dict, daily_pred=False):
         for iso, perc in iso_dict_dart.items():
             print('Remaining Nodes in ' + iso + ':' + str(len([col for col in input_df.columns if iso in col])))
 
+    # Load the DARTs used in the initial model update datapull so that 10,000,0000,00000000 spreads arent calced
+    if daily_pred==True:
+        input_df = input_df[spread_locs_df.columns]
+
 
     # Construct spreads from least correlated DARTs
 
     for timezone, spread_df in input_dict.items():
         for iso, perc in iso_dict_dart.items():
             temp_df = input_df[[col for col in input_df.columns if col.split('_')[0]==iso]].copy()
-
             for source_col_num in range(len(temp_df.columns)):
                 source_name = temp_df.columns[source_col_num]
                 for sink_col_num in range(source_col_num+1,len(temp_df.columns),1):
@@ -95,9 +100,10 @@ def get_spreads(input_dict, daily_pred=False):
 
     # Lag spreads using 16-40 function
     input_dict = lag_data16_40(input_dict=input_dict,
-                               col_type='SPREAD')
+                               col_type='SPREAD',
+                               return_only_lagged=True)
 
-    return input_dict
+    return input_dict, input_df
 
 
 def timezone_shift(input_datetime_df, date_col_name, input_tz, output_tz):
@@ -301,6 +307,8 @@ def drop_correlated_data(input_dict):
 
 
 def lag_data16_40(input_dict, col_type='DART', return_only_lagged = False):
+
+
     for timezone, dataframe in input_dict.items():
         temp_df = dataframe[[col for col in dataframe.columns if col_type in col]].copy()
         temp_df.reset_index(inplace=True)
@@ -310,11 +318,11 @@ def lag_data16_40(input_dict, col_type='DART', return_only_lagged = False):
         temp_df.set_index(['Date', 'HourEnding'],inplace=True, drop=-True)
         temp_df.columns = [col.replace('DART','DA_RT').replace('_SPREAD','_SPR_EAD')+'_LAG' for col in temp_df.columns]
 
-        if not return_only_lagged:
+        if return_only_lagged:
+            input_dict[timezone] = temp_df.sort_values(by=['Date', 'HourEnding'], ascending=True)
+        else:
             output_df = dataframe.join(temp_df, how='inner', rsuffix='DELETE').sort_values(by=['Date','HourEnding'],ascending=True)
             input_dict[timezone] = output_df
-        else:
-            input_dict[timezone] = temp_df.sort_values(by=['Date','HourEnding'],ascending=True)
 
     return input_dict
 
@@ -1987,7 +1995,7 @@ def get_ISO_api_data(start_date, end_date, previous_data_dict_name, concat_old_d
                                      static_directory=static_directory)
 
     NYISO_DALMP_dict, NYISO_RTLMP_dict, NYISO_DART_dict = get_NYISO_LMPs(start_date=start_date,
-                                                                     end_date=end_date,
+                                                                         end_date=end_date,
                                                                          static_directory=static_directory)
 
 
@@ -2024,8 +2032,9 @@ def get_ISO_api_data(start_date, end_date, previous_data_dict_name, concat_old_d
     post_process_dict = post_process_backtest_data(input_dict=output_dict_dataframes,
                                                    static_directory=static_directory)
 
-    spread_dict = get_spreads(input_dict=post_process_dict)
+    spread_dict, spread_locs_df = get_spreads(input_dict=post_process_dict)
 
+    save_obj(spread_locs_df.head(48),input_files_directory + dict_save_name+'_SPREAD_DART_LOCS')
 
     # Save Final Dict
     save_obj(spread_dict,input_files_directory + dict_save_name+'_DICT_MASTER')
@@ -2038,6 +2047,10 @@ def get_ISO_api_data(start_date, end_date, previous_data_dict_name, concat_old_d
     max_min_save_name = end_date_string + '_MAX_MIN_LIMITS'
     max_min_df = create_max_min_limits(input_dict=spread_dict)
     max_min_df.to_csv(input_files_directory+max_min_save_name+'.csv')
+
+    #Make VAR dictionary for daily VAR
+    var_dict = get_var_dict(input_dict=spread_dict)
+    save_obj(var_dict,input_files_directory + end_date_string+'_VAR_DART_DICT')
 
     return post_process_dict
 
@@ -2085,7 +2098,7 @@ def post_process_backtest_data(static_directory,dict_filename=None, input_dict=N
     return input_dict
 
 
-def get_daily_input_data(predict_date_str_mm_dd_yyyy, working_directory, static_directory):
+def get_daily_input_data(predict_date_str_mm_dd_yyyy, working_directory, static_directory,spread_files_name):
     print('')
     print('**********************************************************************************')
     print('')
@@ -2095,6 +2108,8 @@ def get_daily_input_data(predict_date_str_mm_dd_yyyy, working_directory, static_
 
 
     input_files_directory = working_directory + '\InputFiles\\'
+    spread_files_directory = static_directory + '\ModelUpdateData\\'
+
     output_dict_dataframes = {'EST':None,'EPT':None,'CPT':None}
 
     predict_date = datetime.datetime.strptime(predict_date_str_mm_dd_yyyy, '%m_%d_%Y')
@@ -2205,10 +2220,18 @@ def get_daily_input_data(predict_date_str_mm_dd_yyyy, working_directory, static_
         print('ERROR: YES PriceTable File Error. Check Start and End Dates In YES File Download')
         exit()
 
+    spread_locs_df = load_obj(spread_files_directory+ spread_files_name)
+
+    spreads_dict, input_df = get_spreads(input_dict=yes_pricetable_dict.copy(),
+                                         spread_locs_df=spread_locs_df,
+                                         daily_pred=True)
+
+
 
     ### LAG DART DATA
-    yes_pricetable_dict = lag_data16_40(input_dict=yes_pricetable_dict,
+    yes_pricetable_dict = lag_data16_40(input_dict=yes_pricetable_dict.copy(),
                                         return_only_lagged=True)
+
 
     ### CONCAT ALL DATA INTO ONE DICTIONARY
 
@@ -2221,9 +2244,9 @@ def get_daily_input_data(predict_date_str_mm_dd_yyyy, working_directory, static_
                       ISONE_outage_dict,
                       ISONE_load_dict,
                       NYISO_load_dict,
-                      #yes_tall_temps_dict,
                       yes_timeseries_dict,
-                      yes_pricetable_dict]
+                      yes_pricetable_dict,
+                      spreads_dict]
 
     for dict_to_concat in list_to_concat:
         for timezone in ['EST','EPT','CPT']:
@@ -2234,10 +2257,6 @@ def get_daily_input_data(predict_date_str_mm_dd_yyyy, working_directory, static_
                 except:
                     df = dict_to_concat[timezone]
                 output_dict_dataframes[timezone]= df
-
-    output_dict_dataframes = get_spreads(input_dict=output_dict_dataframes,
-                                         daily_pred=True)
-
 
     # Save Final Dict
     save_obj(output_dict_dataframes, input_files_directory+predict_date_str_mm_dd_yyyy + '_RAW_DAILY_INPUT_DATA_DICT')
@@ -2358,6 +2377,19 @@ def create_max_min_limits(input_dict):
     max_min_df['DARTNameForYESCollection'] = max_min_df['FeatureName'].str.replace('_DART','').str.replace('MISO_','').str.replace('PJM_','').str.replace('SPP_','').str.replace('ERCOT_','').str.replace('ISONE_','').str.replace('NYISO_','')
 
     return max_min_df
+
+
+def get_var_dict(input_dict):
+
+    for timezone, df in input_dict.items():
+        df = df[[col for col in df.columns if (('DART' in col) or ('SPREAD' in col))]]
+        df.index = df.index.set_levels([pd.to_datetime(df.index.levels[0]), df.index.levels[1]])
+        end_date = df.index.levels[0][-1]
+        start_date = end_date - datetime.timedelta(days=3*365+2*30)
+        df = df[df.index.get_level_values('Date')>= start_date]
+        input_dict[timezone]=df
+
+    return input_dict
 
 
 def get_reference_prices(data_dict_name, working_directory, static_directory):

@@ -1,10 +1,12 @@
 import os
 import pandas as pd
 from API_Lib import get_daily_input_data
+from XGBLib import create_VAR
 from XGBLib import do_xgb_prediction
 from XGBLib import post_process_trades
 from XGBLib import create_trade_summary
 from XGBLib import daily_PnL
+
 from dateutil.parser import parse
 
 pd.set_option('display.max_columns', 100)
@@ -39,9 +41,12 @@ for row in trade_handler_df.index:
     do_daily_PnL = trade_handler_df['DailyPnL'][row]
     do_settlement_PnL = trade_handler_df['SettlementPnL'][row]
     do_VAR = trade_handler_df['VAR'][row]
+    VAR_isos = trade_handler_df['VAR_ISOs'][row]
+    VAR_isos = VAR_isos.replace(' ','').split(',')
     working_directory = trade_handler_df['WorkingDirectory'][row]
     static_directory = trade_handler_df['StaticDirectory'][row]
     daily_trade_file_name = trade_handler_df['TradeVariablesFileName'][row]
+    spread_files_name = trade_handler_df['SpreadFilesName'][row]
     name_adder = trade_handler_df['NameAdder'][row]
 
 
@@ -52,7 +57,8 @@ for row in trade_handler_df.index:
     if do_data_pull:
         daily_input_data_dict = get_daily_input_data(predict_date_str_mm_dd_yyyy=predict_date_str_mm_dd_yyyy,
                                                      working_directory= working_directory,
-                                                     static_directory=static_directory)
+                                                     static_directory=static_directory,
+                                                     spread_files_name=spread_files_name)
 
     for iso in current_isos:
 
@@ -66,12 +72,12 @@ for row in trade_handler_df.index:
 
         if do_postprocessing:
             trades_df, yes_dfs_dict[iso], upload_dfs_dict[iso] = post_process_trades(predict_date_str_mm_dd_yyyy=predict_date_str_mm_dd_yyyy,
-                                                                          iso=iso,
-                                                                          daily_trade_file_name=daily_trade_file_name,
-                                                                          name_adder=name_adder,
-                                                                          working_directory= working_directory,
-                                                                          static_directory=static_directory,
-                                                                          model_type=model_type)
+                                                                                      iso=iso,
+                                                                                      daily_trade_file_name=daily_trade_file_name,
+                                                                                      name_adder=name_adder,
+                                                                                      working_directory= working_directory,
+                                                                                      static_directory=static_directory,
+                                                                                      model_type=model_type)
 
     if do_postprocessing:
         # Write all upload files to same Excel file
@@ -97,4 +103,15 @@ for row in trade_handler_df.index:
                   working_directory=root_directory,
                   static_directory=root_directory,
                   do_printcharts=do_printcharts)
+
+
+    if do_VAR:
+        create_VAR(preds_dict = yes_dfs_dict,
+                   VAR_ISOs=VAR_isos,
+                   daily_trade_file_name=daily_trade_file_name,
+                   working_directory=working_directory,
+                   static_directory=static_directory,
+                   model_type=model_type,
+                   predict_date_str_mm_dd_yyyy=predict_date_str_mm_dd_yyyy)
+
 
