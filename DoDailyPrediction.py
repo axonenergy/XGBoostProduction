@@ -47,7 +47,8 @@ for row in trade_handler_df.index:
     static_directory = trade_handler_df['StaticDirectory'][row]
     daily_trade_file_name = trade_handler_df['TradeVariablesFileName'][row]
     spread_files_name = trade_handler_df['SpreadFilesName'][row]
-    name_adder = trade_handler_df['NameAdder'][row]
+    name_adder = trade_handler_df['PaperTrade?'][row]
+    backtest_pnl_filename = trade_handler_df['BacktestPnLFilename'][row]
 
 
     yes_dfs_dict = {}
@@ -102,7 +103,8 @@ for row in trade_handler_df.index:
                   name_adder=name_adder,
                   working_directory=root_directory,
                   static_directory=root_directory,
-                  do_printcharts=do_printcharts)
+                  do_printcharts=do_printcharts,
+                  backtest_pnl_filename=backtest_pnl_filename)
 
 
     if do_VAR:
@@ -112,6 +114,11 @@ for row in trade_handler_df.index:
                    working_directory=working_directory,
                    static_directory=static_directory,
                    model_type=model_type,
-                   predict_date_str_mm_dd_yyyy=predict_date_str_mm_dd_yyyy)
+                   predict_date_str_mm_dd_yyyy=predict_date_str_mm_dd_yyyy,
+                   name_adder=name_adder)
 
-
+    print('')
+    print('**********************************************************************************')
+    print('')
+    print('$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ submit trades get rich $$$$$$$$$$$$$$$$$$$$$$$$$$$$$')
+    print('')

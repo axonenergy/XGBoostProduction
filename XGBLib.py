@@ -1105,27 +1105,27 @@ def create_trade_summary(predict_date_str_mm_dd_yyyy, isos, do_printcharts, name
 
 
     if len(isos)==1:
-        titles = ('<b>Axon Energy GBM Trades ' + date+'<b>','<b>'+isos[0] + ' GBM Trades ' + date+'<b>',
+        titles = ('<b>'+name_adder+' Axon Energy GBM Trades ' + date+'<b>','<b>'+isos[0] + ' GBM Trades ' + date+'<b>',
                    None,None,
                    None,'<b>'+isos[0] + ' Failed Locations<b>')
     elif len(isos)==2:
-        titles = ('<b>Axon Energy GBM Trades ' + date+'<b>','<b>'+isos[0] + ' GBM Trades ' + date+'<b>','<b>'+isos[1] + ' GBM Trades ' + date+'<b>',
+        titles = ('<b>'+name_adder+' Axon Energy GBM Trades ' + date+'<b>','<b>'+isos[0] + ' GBM Trades ' + date+'<b>','<b>'+isos[1] + ' GBM Trades ' + date+'<b>',
                    None,None, None,
                    None,'<b>'+isos[0] + ' Failed Locations<b>','<b>'+ isos[1] + ' Failed Locations<b>')
     elif len(isos) == 3:
-        titles = ('<b>Axon Energy GBM Trades ' + date+'<b>','<b>'+isos[0] + ' GBM Trades ' + date+'<b>','<b>'+ isos[1] + ' GBM Trades ' + date+'<b>','<b>'+isos[2] + ' GBM Trades ' + date+'<b>',
+        titles = ('<b>'+name_adder+' Axon Energy GBM Trades ' + date+'<b>','<b>'+isos[0] + ' GBM Trades ' + date+'<b>','<b>'+ isos[1] + ' GBM Trades ' + date+'<b>','<b>'+isos[2] + ' GBM Trades ' + date+'<b>',
                    None,None, None, None,
                    None,'<b>'+isos[0] + ' Failed Locations<b>', '<b>'+isos[1] + ' Failed Locations<b>','<b>'+ isos[2] + ' Failed Locations<b>')
     elif len(isos) == 4:
-        titles = ('<b>Axon Energy GBM Trades ' + date+'<b>','<b>'+isos[0] + ' GBM Trades ' + date+'<b>','<b>'+ isos[1] + ' GBM Trades ' + date+'<b>','<b>'+ isos[2] + ' GBM Trades ' + date+'<b>','<b>'+isos[3] + ' GBM Trades ' + date+'<b>',
+        titles = ('<b>'+name_adder+' Axon Energy GBM Trades ' + date+'<b>','<b>'+isos[0] + ' GBM Trades ' + date+'<b>','<b>'+ isos[1] + ' GBM Trades ' + date+'<b>','<b>'+ isos[2] + ' GBM Trades ' + date+'<b>','<b>'+isos[3] + ' GBM Trades ' + date+'<b>',
                    None,None, None, None, None,
                    None,'<b>'+isos[0] + ' Failed Locations<b>','<b>'+isos[1] + ' Failed Locations<b>','<b>'+isos[2] + ' Failed Locations<b>', '<b>'+isos[3] + ' Failed Locations<b>')
     elif len(isos) == 5:
-        titles = ('<b>Axon Energy GBM Trades ' + date+'<b>','<b>'+isos[0] + ' GBM Trades ' + date+'<b>','<b>'+isos[1] + ' GBM Trades ' + date+'<b>', '<b>'+isos[2] + ' GBM Trades ' + date+'<b>','<b>'+isos[3] + ' GBM Trades ' + date+'<b>','<b>'+isos[4] + ' GBM Trades ' + date+'<b>',
+        titles = ('<b>'+name_adder+' Axon Energy GBM Trades ' + date+'<b>','<b>'+isos[0] + ' GBM Trades ' + date+'<b>','<b>'+isos[1] + ' GBM Trades ' + date+'<b>', '<b>'+isos[2] + ' GBM Trades ' + date+'<b>','<b>'+isos[3] + ' GBM Trades ' + date+'<b>','<b>'+isos[4] + ' GBM Trades ' + date+'<b>',
                    None,None, None, None, None,None,
                   None,'<b>' + isos[0] + ' Failed Locations<b>','<b>'+ isos[1] + ' Failed Locations<b>', '<b>'+isos[2] + ' Failed Locations<b>','<b>'+isos[3] + ' Failed Locations<b>','<b>'+isos[4] + ' Failed Locations<b>')
     elif len(isos) == 6:
-        titles = ('<b>Axon Energy GBM Trades ' + date+'<b>','<b>'+isos[0] + ' GBM Trades ' + date+'<b>', '<b>'+isos[1] + ' GBM Trades ' + date+'<b>','<b>'+ isos[2] + ' GBM Trades ' + date+'<b>','<b>'+isos[3] + ' GBM Trades ' + date+'<b>','<b>'+isos[4] + ' GBM Trades ' + date+'<b>','<b>'+isos[5] + ' GBM Trades ' + date+'<b>',
+        titles = ('<b>'+name_adder+' Axon Energy GBM Trades ' + date+'<b>','<b>'+isos[0] + ' GBM Trades ' + date+'<b>', '<b>'+isos[1] + ' GBM Trades ' + date+'<b>','<b>'+ isos[2] + ' GBM Trades ' + date+'<b>','<b>'+isos[3] + ' GBM Trades ' + date+'<b>','<b>'+isos[4] + ' GBM Trades ' + date+'<b>','<b>'+isos[5] + ' GBM Trades ' + date+'<b>',
                    None,None, None, None, None,None,None,
                    None,'<b>'+isos[0] + ' Failed Locations<b>', '<b>'+isos[1] + ' Failed Locations<b>','<b>'+ isos[2] + ' Failed Locations<b>','<b>'+isos[3] + ' Failed Locations<b>','<b>'+isos[4] + ' Failed Locations<b>','<b>'+isos[5] + ' Failed Locations<b>')
 
@@ -1165,11 +1165,6 @@ def create_trade_summary(predict_date_str_mm_dd_yyyy, isos, do_printcharts, name
 
     url = plotly.offline.plot(fig,filename=upload_save_directory + 'DailyTrades_' + predict_date_str_mm_dd_yyyy + '_' + name_adder+ '.html',auto_open=True)
 
-    print('')
-    print('**********************************************************************************')
-    print('')
-    print('$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ submit trades get rich $$$$$$$$$$$$$$$$$$$$$$$$$$$$$')
-    print('')
     pass
 
 def create_trade_file(input_mw_df, iso , all_ISOs_variables_df, working_directory):
@@ -1183,7 +1178,7 @@ def create_trade_file(input_mw_df, iso , all_ISOs_variables_df, working_director
     trades_tall_df = pd.DataFrame({'MW':trades_tall_df[:]},index=trades_tall_df.index)
     trades_tall_df.reset_index(inplace=True)
     trades_tall_df.rename(columns={'level_2':'Node Name', 'HE':'Hour','Date':'targetdate'},inplace=True)
-    trades_tall_df['targetdate'] = trades_tall_df['targetdate'].dt.strftime('%Y-%m-%d')
+    trades_tall_df['targetdate'] = trades_tall_df['targetdate'].dt.strftime('%m/%d/%Y')
     trades_tall_df = trades_tall_df[trades_tall_df['MW'] != 0]
     trades_tall_df.reset_index(inplace=True,drop=True)
     trades_tall_df['iso'] = iso
@@ -1220,7 +1215,7 @@ def create_trade_file(input_mw_df, iso , all_ISOs_variables_df, working_director
 
     return yes_df, upload_df
 
-def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, static_directory, do_printcharts):
+def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, static_directory, do_printcharts, backtest_pnl_filename):
     print('**********************************************************************************')
     print('')
     print('Running Daily PnL For: '+predict_date_str_mm_dd_yyyy + '...')
@@ -1319,7 +1314,7 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
 
     all_trades_df.to_csv(save_directory + predict_date_str_mm_dd_yyyy + '_DAILY_PnL_' + name_adder + '.csv')
 
-    master_trades_df = pd.read_csv(save_directory+'2020_MASTER_PnL_.csv', index_col=['Date','HourEnding'], parse_dates=True)
+    master_trades_df = pd.read_csv(save_directory+'2020_MASTER_PnL_'+name_adder+'.csv', index_col=['Date','HourEnding'], parse_dates=True)
     master_trades_df = pd.concat([master_trades_df,all_trades_df],axis=0, sort=True)
     master_trades_df.reset_index(inplace=True)
     master_trades_df.set_index(['Date','HourEnding','Node Name'],inplace=True,drop=True)
@@ -1327,7 +1322,7 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
     master_trades_df.reset_index(inplace=True)
     master_trades_df.set_index(['Date','HourEnding'],inplace=True)
 
-    master_trades_df.to_csv(save_directory+'2020_MASTER_PnL_.csv')
+    master_trades_df.to_csv(save_directory+'2020_MASTER_PnL_'+name_adder+'.csv')
 
     backtest_start_date = predict_date - datetime.timedelta(days=60)
     backtest_end_date = predict_date + datetime.timedelta(days=30)
@@ -1395,7 +1390,7 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
     node_name_node_id_dict = dict(zip(actuals_pnl_df['Node Name'], actuals_pnl_df['Node ID']))
     node_name_iso_dict = dict(zip(actuals_pnl_df['Node Name'], actuals_pnl_df['ISO']))
 
-    backtest_pnl_df = pd.read_csv(save_directory+'12092019_HOURLY_BACKTEST_PnL.csv',index_col=['Date','HE'],parse_dates=True)
+    backtest_pnl_df = pd.read_csv(save_directory+backtest_pnl_filename+'.csv',index_col=['Date','HE'],parse_dates=True)
     backtest_pnl_df.index.names = ['Date','HourEnding']
     limited_backtest_pnl_df = pd.DataFrame()
 
@@ -1526,13 +1521,13 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
     iso_compare_df.set_index('ISO', inplace=True)
     iso_compare_df = iso_compare_df[['ActHR','TestHR','%DeltHR','ActMed', 'TestMed', '%DeltMed', 'ActMean', 'TestMean', '%DeltMean', 'MeanProb', 'DistProb']]
 
-    daily_writer = pd.ExcelWriter(save_directory + 'Daily_PnL_Results.xlsx', engine='xlsxwriter')
+    daily_writer = pd.ExcelWriter(save_directory + 'Daily_PnL_Results_'+name_adder+'.xlsx', engine='xlsxwriter')
     for iso, df in daily_actuals_dict.items():
         df.to_excel(daily_writer, sheet_name=iso, index=True)
     daily_writer.save()
     daily_writer.close()
 
-    distr_writer = pd.ExcelWriter(save_directory + 'PnL_Distributions.xlsx', engine='xlsxwriter')
+    distr_writer = pd.ExcelWriter(save_directory + 'PnL_Distributions_'+name_adder+'.xlsx', engine='xlsxwriter')
     compare_df.to_excel(distr_writer, sheet_name='Nodal', index=True)
     iso_compare_df.to_excel(distr_writer, sheet_name='ISOs', index=True)
     distr_writer.save()
@@ -1549,15 +1544,17 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
                                             monthly_actuals_dict=monthly_actuals_dict,
                                             yearly_actuals_dict=yearly_actuals_dict,
                                             compare_df=compare_df,
-                                            iso_compare_df=iso_compare_df)
+                                            iso_compare_df=iso_compare_df,
+                                            name_adder=name_adder)
         url = plotly.offline.plot(summary_pnl_fig,
-                                  filename=save_directory + 'SummaryPnL_' + predict_date_str_mm_dd_yyyy + '.html',
+                                  filename=save_directory + 'SummaryPnL_' + predict_date_str_mm_dd_yyyy + '_'+name_adder +'.html',
                                   auto_open=True)
 
         daily_pnl_fig = print_daily_pnl(trades_dict=trades_dict,
                                         isos=isos,
-                                        date=predict_date_str_mm_dd_yyyy)
-        url = plotly.offline.plot(daily_pnl_fig,filename=save_directory + 'DailyPnL_' + predict_date_str_mm_dd_yyyy + '.html',auto_open=True)
+                                        date=predict_date_str_mm_dd_yyyy,
+                                        name_adder=name_adder)
+        url = plotly.offline.plot(daily_pnl_fig,filename=save_directory + 'DailyPnL_' + predict_date_str_mm_dd_yyyy + '_'+name_adder +'.html',auto_open=True)
 
     print('')
     print('Daily PnL Complete For: '+predict_date_str_mm_dd_yyyy)
@@ -1567,7 +1564,7 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
 
     return trades_dict
 
-def print_daily_pnl(trades_dict,isos,date):
+def print_daily_pnl(trades_dict,isos,date,name_adder):
     figures_dict = {}
     hit_rate_df = pd.DataFrame({'ISO':[],'Inc_Trds': [], 'Inc_HR': [], 'Dec_Trds': [], 'Dec_HR': [], 'Tot_Trds': [], 'Tot_HR': []})
     summary_df = pd.DataFrame({'ISO':[],'Inc_$': [], 'Dec_$': [], 'Ene_$': [], 'Con_$': [], 'Los_$': [], 'Tot_$': [], 'MW': [], '$/MW': []})
@@ -1825,23 +1822,23 @@ def print_daily_pnl(trades_dict,isos,date):
     specs_dict = {'1': specs1, '2': specs2, '3': specs3, '4': specs4, '5': specs5, '6': specs6}
 
     if len(isos) == 1:
-        titles = ('<b>Axon Energy Daily PnL Summary ' + date + '<b>', '<b>' + isos[0] + ' PnL ' + date + '<b>',
+        titles = ('<b>'+name_adder+' Axon Energy Daily PnL Summary ' + date + '<b>', '<b>' + isos[0] + ' PnL ' + date + '<b>',
                   '<b>Daily PnL By ISO', None,
                   '<b>Daily Hit Rate Summary ' + date + '<b>', '<b>' + isos[0] + ' Nodal Results<b>')
     elif len(isos) == 2:
-        titles = ('Axon Energy Daily PnL Summary ' + date + '<b>', '<b>' + isos[0] + ' PnL ' + date + '<b>',
+        titles = ('<b>'+name_adder+' Axon Energy Daily PnL Summary ' + date + '<b>', '<b>' + isos[0] + ' PnL ' + date + '<b>',
                   '<b>' + isos[1] + ' PnL ' + date + '<b>',
                   '<b>Daily PnL By ISO', None, None,
                   '<b>Daily Hit Rate Summary ' + date + '<b>', '<b>' + isos[0] + ' Nodal Results<b>',
                   '<b>' + isos[1] + ' Nodal Results<b>')
     elif len(isos) == 3:
-        titles = ('<b>Axon Energy Daily PnL Summary ' + date + '<b>', '<b>' + isos[0] + ' PnL ' + date + '<b>',
+        titles = ('<b>'+name_adder+' Axon Energy Daily PnL Summary ' + date + '<b>', '<b>' + isos[0] + ' PnL ' + date + '<b>',
                   '<b>' + isos[1] + ' PnL ' + date + '<b>', '<b>' + isos[2] + ' PnL ' + date + '<b>',
                   '<b>Daily PnL By ISO', None, None, None,
                   '<b>Daily Hit Rate Summary ' + date + '<b>', '<b>' + isos[0] + ' Nodal Results<b>',
                   '<b>' + isos[1] + ' Nodal Results<b>', '<b>' + isos[2] + ' Nodal Results<b>')
     elif len(isos) == 4:
-        titles = ('Axon Energy Daily PnL Summary ' + date + '<b>', '<b>' + isos[0] + ' PnL ' + date + '<b>',
+        titles = ('<b>'+name_adder+' Axon Energy Daily PnL Summary ' + date + '<b>', '<b>' + isos[0] + ' PnL ' + date + '<b>',
                   '<b>' + isos[1] + ' PnL ' + date + '<b>', '<b>' + isos[2] + ' PnL ' + date + '<b>',
                   '<b>' + isos[3] + ' PnL ' + date + '<b>',
                   '<b>Daily PnL By ISO', None, None, None, None,
@@ -1849,7 +1846,7 @@ def print_daily_pnl(trades_dict,isos,date):
                   '<b>' + isos[1] + ' Nodal Results<b>', '<b>' + isos[2] + ' Nodal Results<b>',
                   '<b>' + isos[3] + ' Nodal Resultss<b>')
     elif len(isos) == 5:
-        titles = ('<b>Axon Energy Daily PnL Summary ' + date + '<b>', '<b>' + isos[0] + ' PnL ' + date + '<b>',
+        titles = ('<b>'+name_adder+' Axon Energy Daily PnL Summary ' + date + '<b>', '<b>' + isos[0] + ' PnL ' + date + '<b>',
                   '<b>' + isos[1] + ' PnL ' + date + '<b>', '<b>' + isos[2] + ' PnL ' + date + '<b>',
                   '<b>' + isos[3] + ' PnL ' + date + '<b>', '<b>' + isos[4] + ' PnL ' + date + '<b>',
                   '<b>Daily PnL By ISO', None, None, None, None, None,
@@ -1857,7 +1854,7 @@ def print_daily_pnl(trades_dict,isos,date):
                   '<b>' + isos[1] + ' Nodal Results<b>', '<b>' + isos[2] + ' Nodal Results<b>',
                   '<b>' + isos[3] + ' Nodal Results<b>', '<b>' + isos[4] + ' Nodal Results<b>')
     elif len(isos) == 6:
-        titles = ('<b>Axon Energy Daily PnL Summary ' + date + '<b>', '<b>' + isos[0] + ' PnL ' + date + '<b>',
+        titles = ('<b>'+name_adder+' Axon Energy Daily PnL Summary ' + date + '<b>', '<b>' + isos[0] + ' PnL ' + date + '<b>',
                   '<b>' + isos[1] + ' PnL ' + date + '<b>', '<b>' + isos[2] + ' PnL ' + date + '<b>',
                   '<b>' + isos[3] + ' PnL ' + date + '<b>', '<b>' + isos[4] + ' PnL ' + date + '<b>',
                   '<b>' + isos[5] + ' PnL ' + date + '<b>',
@@ -1909,7 +1906,7 @@ def print_daily_pnl(trades_dict,isos,date):
 
     return fig
 
-def print_summary_pnl(isos,daily_actuals_dict,monthly_actuals_dict,yearly_actuals_dict,compare_df,iso_compare_df):
+def print_summary_pnl(isos,daily_actuals_dict,monthly_actuals_dict,yearly_actuals_dict,compare_df,iso_compare_df,name_adder):
     figures_dict = {}
     summary_daily_pnl_df = pd.DataFrame()
     summary_monthly_pnl_df = pd.DataFrame()
@@ -2122,32 +2119,32 @@ def print_summary_pnl(isos,daily_actuals_dict,monthly_actuals_dict,yearly_actual
     specs_dict = {'1': specs1, '2': specs2, '3': specs3, '4': specs4, '5': specs5, '6': specs6}
 
     if len(isos) == 1:
-        titles = ('<b>Axon Energy Daily PnL Summary<b>', '<b>' + isos[0] + ' Daily PnL Summary<b>',
+        titles = ('<b>'+name_adder+' Axon Energy Daily PnL Summary<b>', '<b>' + isos[0] + ' Daily PnL Summary<b>',
                   '<b>Axon Energy Monthly PnL Summary<b>', '<b>' + isos[0] + ' Monthly PnL Summary<b>',
                   '<b>Axon Energy Yearly PnL Summary<b>', '<b>' + isos[0] + ' Yearly PnL Summary<b>',
                   '<b>Hourly PnL Comparison To Backtest<b>', '<b>' + isos[0] + ' Hourly PnL Comparison To Backtest<b>')
     elif len(isos) == 2:
-        titles = ('<b>Axon Energy Daily PnL Summary<b>', '<b>' + isos[0] + ' Daily PnL Summary<b>', '<b>' + isos[1] + ' Daily PnL Summary<b>',
+        titles = ('<b>'+name_adder+' Axon Energy Daily PnL Summary<b>', '<b>' + isos[0] + ' Daily PnL Summary<b>', '<b>' + isos[1] + ' Daily PnL Summary<b>',
                   '<b>Axon Energy Monthly PnL Summary<b>', '<b>' + isos[0] + ' Monthly PnL Summary<b>', '<b>' + isos[1] + ' Monthly PnL Summary<b>',
                   '<b>Axon Energy Yearly PnL Summary<b>', '<b>' + isos[0] + ' Yearly PnL Summary<b>', '<b>' + isos[1] + ' Yearly PnL Summary<b>',
                   '<b>Hourly PnL Comparison To Backtest<b>', '<b>' + isos[0] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + isos[1] + ' Hourly PnL Comparison To Backtest<b>')
     elif len(isos) == 3:
-        titles = ('<b>Axon Energy Daily PnL Summary<b>', '<b>' + isos[0] + ' Daily PnL Summary<b>', '<b>' + isos[1] + ' Daily PnL Summary<b>', '<b>' + isos[2] + ' Daily PnL Summary<b>',
+        titles = ('<b>'+name_adder+' Axon Energy Daily PnL Summary<b>', '<b>' + isos[0] + ' Daily PnL Summary<b>', '<b>' + isos[1] + ' Daily PnL Summary<b>', '<b>' + isos[2] + ' Daily PnL Summary<b>',
                   '<b>Axon Energy Monthly PnL Summary<b>', '<b>' + isos[0] + ' Monthly PnL Summary<b>', '<b>' + isos[1] + ' Monthly PnL Summary<b>', '<b>' + isos[2] + ' Monthly PnL Summary<b>',
                   '<b>Axon Energy Yearly PnL Summary<b>', '<b>' + isos[0] + ' Yearly PnL Summary<b>', '<b>' + isos[1] + ' Yearly PnL Summary<b>', '<b>' + isos[2] + ' Yearly PnL Summary<b>',
                   '<b>Hourly PnL Comparison To Backtest<b>', '<b>' + isos[0] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + isos[1] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + isos[2] + ' Hourly PnL Comparison To Backtest<b>')
     elif len(isos) == 4:
-        titles = ('<b>Axon Energy Daily PnL Summary<b>', '<b>' + isos[0] + ' Daily PnL Summary<b>', '<b>' + isos[1] + ' Daily PnL Summary<b>', '<b>' + isos[2] + ' Daily PnL Summary<b>', '<b>' + isos[3] + ' Daily PnL Summary<b>',
+        titles = ('<b>'+name_adder+' Axon Energy Daily PnL Summary<b>', '<b>' + isos[0] + ' Daily PnL Summary<b>', '<b>' + isos[1] + ' Daily PnL Summary<b>', '<b>' + isos[2] + ' Daily PnL Summary<b>', '<b>' + isos[3] + ' Daily PnL Summary<b>',
                   '<b>Axon Energy Monthly PnL Summary<b>', '<b>' + isos[0] + ' Monthly PnL Summary<b>', '<b>' + isos[1] + ' Monthly PnL Summary<b>', '<b>' + isos[2] + ' Monthly PnL Summary<b>', '<b>' + isos[3] + ' Monthly PnL Summary<b>',
                   '<b>Axon Energy Yearly PnL Summary<b>', '<b>' + isos[0] + ' Yearly PnL Summary<b>', '<b>' + isos[1] + ' Yearly PnL Summary<b>', '<b>' + isos[2] + ' Yearly PnL Summary<b>', '<b>' + isos[3] + ' Yearly PnL Summary<b>',
                   '<b>Hourly PnL Comparison To Backtest<b>', '<b>' + isos[0] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + isos[1] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + isos[2] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + isos[3] + ' Hourly PnL Comparison To Backtest<b>')
     elif len(isos) == 5:
-        titles = ('<b>Axon Energy Daily PnL Summary<b>', '<b>' + isos[0] + ' Daily PnL Summary<b>', '<b>' + isos[1] + ' Daily PnL Summary<b>', '<b>' + isos[2] + ' Daily PnL Summary<b>', '<b>' + isos[3] + ' Daily PnL Summary<b>', '<b>' + isos[4] + ' Daily PnL Summary<b>',
+        titles = ('<b>'+name_adder+' Axon Energy Daily PnL Summary<b>', '<b>' + isos[0] + ' Daily PnL Summary<b>', '<b>' + isos[1] + ' Daily PnL Summary<b>', '<b>' + isos[2] + ' Daily PnL Summary<b>', '<b>' + isos[3] + ' Daily PnL Summary<b>', '<b>' + isos[4] + ' Daily PnL Summary<b>',
                   '<b>Axon Energy Monthly PnL Summary<b>', '<b>' + isos[0] + ' Monthly PnL Summary<b>', '<b>' + isos[1] + ' Monthly PnL Summary<b>', '<b>' + isos[2] + ' Monthly PnL Summary<b>', '<b>' + isos[3] + ' Monthly PnL Summary<b>', '<b>' + isos[4] + ' Monthly PnL Summary<b>',
                   '<b>Axon Energy Yearly PnL Summary<b>', '<b>' + isos[0] + ' Yearly PnL Summary<b>', '<b>' + isos[1] + ' Yearly PnL Summary<b>', '<b>' + isos[2] + ' Yearly PnL Summary<b>', '<b>' + isos[3] + ' Yearly PnL Summary<b>', '<b>' + isos[4] + ' Yearly PnL Summary<b>',
                   '<b>Hourly PnL Comparison To Backtest<b>', '<b>' + isos[0] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + isos[1] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + isos[2] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + isos[3] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + isos[4] + ' Hourly PnL Comparison To Backtest<b>')
     elif len(isos) == 6:
-        titles = ('<b>Axon Energy Daily PnL Summary<b>', '<b>' + isos[0] + ' Daily PnL Summary<b>', '<b>' + isos[1] + ' Daily PnL Summary<b>', '<b>' + isos[2] + ' Daily PnL Summary<b>', '<b>' + isos[3] + ' Daily PnL Summary<b>', '<b>' + isos[4] + ' Daily PnL Summary<b>', '<b>' + isos[5] + ' Daily PnL Summary<b>',
+        titles = ('<b>'+name_adder+' Axon Energy Daily PnL Summary<b>', '<b>' + isos[0] + ' Daily PnL Summary<b>', '<b>' + isos[1] + ' Daily PnL Summary<b>', '<b>' + isos[2] + ' Daily PnL Summary<b>', '<b>' + isos[3] + ' Daily PnL Summary<b>', '<b>' + isos[4] + ' Daily PnL Summary<b>', '<b>' + isos[5] + ' Daily PnL Summary<b>',
                   '<b>Axon Energy Monthly PnL Summary<b>', '<b>' + isos[0] + ' Monthly PnL Summary<b>', '<b>' + isos[1] + ' Monthly PnL Summary<b>', '<b>' + isos[2] + ' Monthly PnL Summary<b>', '<b>' + isos[3] + ' Monthly PnL Summary<b>', '<b>' + isos[4] + ' Monthly PnL Summary<b>', '<b>' + isos[5] + ' Monthly PnL Summary<b>',
                   '<b>Axon Energy Yearly PnL Summary<b>', '<b>' + isos[0] + ' Yearly PnL Summary<b>', '<b>' + isos[1] + ' Yearly PnL Summary<b>', '<b>' + isos[2] + ' Yearly PnL Summary<b>', '<b>' + isos[3] + ' Yearly PnL Summary<b>', '<b>' + isos[4] + ' Yearly PnL Summary<b>', '<b>' + isos[5] + ' Yearly PnL Summary<b>',
                   '<b>Hourly PnL Comparison To Backtest<b>', '<b>' + isos[0] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + isos[1] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + isos[2] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + isos[3] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + isos[4] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + isos[5] + ' Hourly PnL Comparison To Backtest<b>')
@@ -2189,7 +2186,7 @@ def print_summary_pnl(isos,daily_actuals_dict,monthly_actuals_dict,yearly_actual
 
     return fig
 
-def print_var(var_dataframes_dict,predict_date_str_mm_dd_yyyy):
+def print_var(var_dataframes_dict,predict_date_str_mm_dd_yyyy,name_adder):
     figures_dict = {}
 
     for type, df in var_dataframes_dict.items():
@@ -2215,10 +2212,10 @@ def print_var(var_dataframes_dict,predict_date_str_mm_dd_yyyy):
               [{"type": "table"}],
               [{"type": "table"}]]
 
-    titles = ('<b>'+predict_date_str_mm_dd_yyyy + ' Axon Energy 3-Year 90 Day Rolling VAR<b>',
-              '<b>'+predict_date_str_mm_dd_yyyy + ' Axon Energy 1-Year VAR<b>',
-              '<b>'+predict_date_str_mm_dd_yyyy + ' Axon Energy 2-Year VAR<b>',
-              '<b>'+predict_date_str_mm_dd_yyyy + ' Axon Energy 3-Year VAR<b>',
+    titles = ('<b>'+ name_adder + ' ' + predict_date_str_mm_dd_yyyy + ' Axon Energy 3-Year 90 Day Rolling VAR<b>',
+              '<b>'+ name_adder + ' ' + predict_date_str_mm_dd_yyyy + ' Axon Energy 1-Year VAR<b>',
+              '<b>'+ name_adder + ' ' + predict_date_str_mm_dd_yyyy + ' Axon Energy 2-Year VAR<b>',
+              '<b>'+ name_adder + ' ' + predict_date_str_mm_dd_yyyy + ' Axon Energy 3-Year VAR<b>',
 )
 
     fig = make_subplots(
@@ -2247,7 +2244,7 @@ def print_var(var_dataframes_dict,predict_date_str_mm_dd_yyyy):
 
     return fig
 
-def create_VAR(preds_dict, VAR_ISOs, daily_trade_file_name, working_directory, static_directory, model_type,predict_date_str_mm_dd_yyyy):
+def create_VAR(preds_dict, VAR_ISOs, daily_trade_file_name, working_directory, static_directory, model_type,predict_date_str_mm_dd_yyyy,name_adder):
     daily_trade_directory = working_directory + '\\DailyTradeFiles\\'
     VAR_files_directory = static_directory + '\ModelUpdateData\\'
     save_directory = working_directory + '\\DailyPnL\\'
@@ -2383,9 +2380,10 @@ def create_VAR(preds_dict, VAR_ISOs, daily_trade_file_name, working_directory, s
 
 
     var_fig = print_var(var_dataframes_dict=var_dataframes_dict,
-                        predict_date_str_mm_dd_yyyy=predict_date_str_mm_dd_yyyy)
+                        predict_date_str_mm_dd_yyyy=predict_date_str_mm_dd_yyyy,
+                        name_adder=name_adder)
 
-    var_writer = pd.ExcelWriter(save_directory + 'Daily_VAR_Report_'+predict_date_str_mm_dd_yyyy+'.xlsx', engine='xlsxwriter')
+    var_writer = pd.ExcelWriter(save_directory + 'Daily_VAR_Report_'+predict_date_str_mm_dd_yyyy+'_'+name_adder+'.xlsx', engine='xlsxwriter')
 
     for type, df in var_dataframes_dict.items():
         df.to_excel(var_writer, sheet_name=type, index=True)
@@ -2397,6 +2395,6 @@ def create_VAR(preds_dict, VAR_ISOs, daily_trade_file_name, working_directory, s
 
 
     url = plotly.offline.plot(var_fig,
-                              filename=save_directory + 'Daily_VAR_Report_' + predict_date_str_mm_dd_yyyy + '.html',
+                              filename=save_directory + 'Daily_VAR_Report_' + predict_date_str_mm_dd_yyyy + '_'+name_adder+ '.html',
                               auto_open=True)
     return
