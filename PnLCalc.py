@@ -14,14 +14,18 @@ working_directory = 'X:\\Research\\'
 run_DART_PnL = True
 run_find_offer_prices = False
 lmp_filename = '2020_01_05_LMP_DATA_DICT_MASTER'
-dart_backtest_filename = 'Backtest_2020_03_19_BACKTEST_DATA_DICT_MASTER_ERCOT_EXP20_SPREAD_revisedFeats2NewGrid_'
+dart_backtest_filename = 'Backtest_2020_03_19_BACKTEST_DATA_DICT_MASTER_ERCOT_EXP20_SPREAD_revisedFeats3OldGrid_'
 # dart_backtest_filename = 'Backtest_09_11_2019_GBM_DATA_MISO_V8.0_MASTER_159F_MISO_EXP10_'
 # dart_backtest_filename = 'Backtest_09_11_2019_GBM_DATA_PJM_V8.0_MASTER_207F_PJM_EXP10_'
 # dart_backtest_filename = 'backtest_PJM_V8.0_all'
 
 dart_sd_location_filter = 'SD1000'  # Leave Blank For No Filter Otherwise Use 'SD4, SD3.5 etc' Format
 
-name_adder = 'capped'
+name_adder = '10'
+dart_inc_mean_band_peak = 0.0
+dart_inc_mean_band_offpeak = 1.0
+dart_inc_mean_band_offpeak =dart_inc_mean_band_peak
+
 
 dart_scale_mean_div_sd = False # Keep False
 limit_daily_mws = True # True increases compute time greatly. If false, scales to max hour limitations but not daily limits
@@ -95,8 +99,7 @@ elif 'ERCOT' in dart_backtest_filename:
     target_mws = 400
     tier2_backtest = 'Backtest_daily_Tier2_Backtest_12092019_Master_Nodes_Dataset_Dict_ERCOT_EXP10_'
     top_hourly_locs = 15
-    dart_inc_mean_band_peak = 1.0
-    dart_inc_mean_band_offpeak = 1.0
+
     dart_dec_mean_band_peak = dart_inc_mean_band_peak  # Positive Value!
     dart_dec_mean_band_offpeak = dart_inc_mean_band_offpeak  # Positive Value!
     lmp_df = lmp_dict['CPT']
