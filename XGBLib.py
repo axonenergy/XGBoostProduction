@@ -1212,6 +1212,8 @@ def create_trade_file(input_mw_df, iso , all_ISOs_variables_df, working_director
 
     if iso == 'NEISO':
         upload_df = trades_tall_df[['targetdate', 'Node Name', 'Trade Type', 'BidSegment', 'Hour', 'MW', 'Bid', 'Node ID']]
+    elif iso == 'PJM':
+        upload_df = trades_tall_df[['targetdate', 'Node Name', 'Trade Type', 'BidSegment', 'Hour','MW','Bid']]
     else:
         upload_df = trades_tall_df[['targetdate', 'Node ID', 'Trade Type', 'BidSegment', 'Hour','MW','Bid']]
 
@@ -1558,6 +1560,8 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
                                         date=predict_date_str_mm_dd_yyyy,
                                         name_adder=name_adder)
         url = plotly.offline.plot(daily_pnl_fig,filename=save_directory + 'DailyPnL_' + predict_date_str_mm_dd_yyyy + '_'+name_adder +'.html',auto_open=True)
+
+    master_trades_df.to_csv(save_directory + '2020_MASTER_PnL_' + name_adder + '_BACKUP.csv')
 
     print('')
     print('Daily PnL Complete For: '+predict_date_str_mm_dd_yyyy)
@@ -2123,34 +2127,34 @@ def print_summary_pnl(isos,daily_actuals_dict,monthly_actuals_dict,yearly_actual
 
     if len(isos) == 1:
         titles = ('<b>'+name_adder+' Axon Energy Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Daily PnL Summary<b>',
-                  '<b>Axon Energy Monthly PnL Summary<b>', '<b>' + name_adder + ' ' +isos[0] + ' Monthly PnL Summary<b>',
-                  '<b>Axon Energy Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Yearly PnL Summary<b>',
-                  '<b>Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[0] + ' Hourly PnL Comparison To Backtest<b>')
+                  '<b>'+name_adder+' Axon Energy Monthly PnL Summary<b>', '<b>' + name_adder + ' ' +isos[0] + ' Monthly PnL Summary<b>',
+                  '<b>'+name_adder+' Axon Energy Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Yearly PnL Summary<b>',
+                  '<b>'+name_adder+' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[0] + ' Hourly PnL Comparison To Backtest<b>')
     elif len(isos) == 2:
         titles = ('<b>'+name_adder+' Axon Energy Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Daily PnL Summary<b>',
-                  '<b>Axon Energy Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Monthly PnL Summary<b>',
-                  '<b>Axon Energy Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Yearly PnL Summary<b>',
-                  '<b>Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[0] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[1] + ' Hourly PnL Comparison To Backtest<b>')
+                  '<b>'+name_adder+' Axon Energy Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Monthly PnL Summary<b>',
+                  '<b>'+name_adder+' Axon Energy Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Yearly PnL Summary<b>',
+                  '<b>'+name_adder+' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[0] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[1] + ' Hourly PnL Comparison To Backtest<b>')
     elif len(isos) == 3:
         titles = ('<b>'+name_adder+' Axon Energy Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[2] + ' Daily PnL Summary<b>',
-                  '<b>Axon Energy Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[2] + ' Monthly PnL Summary<b>',
-                  '<b>Axon Energy Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[2] + ' Yearly PnL Summary<b>',
-                  '<b>Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[0] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[1] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[2] + ' Hourly PnL Comparison To Backtest<b>')
+                  '<b>'+name_adder+' Axon Energy Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[2] + ' Monthly PnL Summary<b>',
+                  '<b>'+name_adder+' Axon Energy Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[2] + ' Yearly PnL Summary<b>',
+                  '<b>'+name_adder+' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[0] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[1] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[2] + ' Hourly PnL Comparison To Backtest<b>')
     elif len(isos) == 4:
         titles = ('<b>'+name_adder+' Axon Energy Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[2] + ' Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[3] + ' Daily PnL Summary<b>',
-                  '<b>Axon Energy Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[2] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[3] + ' Monthly PnL Summary<b>',
-                  '<b>Axon Energy Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[2] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[3] + ' Yearly PnL Summary<b>',
-                  '<b>Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[0] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[1] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[2] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[3] + ' Hourly PnL Comparison To Backtest<b>')
+                  '<b>'+name_adder+' Axon Energy Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[2] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[3] + ' Monthly PnL Summary<b>',
+                  '<b>'+name_adder+' Axon Energy Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[2] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[3] + ' Yearly PnL Summary<b>',
+                  '<b>'+name_adder+' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[0] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[1] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[2] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[3] + ' Hourly PnL Comparison To Backtest<b>')
     elif len(isos) == 5:
         titles = ('<b>'+name_adder+' Axon Energy Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[2] + ' Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[3] + ' Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[4] + ' Daily PnL Summary<b>',
-                  '<b>Axon Energy Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[2] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[3] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[4] + ' Monthly PnL Summary<b>',
-                  '<b>Axon Energy Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[2] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[3] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[4] + ' Yearly PnL Summary<b>',
-                  '<b>Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[0] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[1] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[2] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[3] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[4] + ' Hourly PnL Comparison To Backtest<b>')
+                  '<b>'+name_adder+' Axon Energy Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[2] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[3] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[4] + ' Monthly PnL Summary<b>',
+                  '<b>'+name_adder+' Axon Energy Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[2] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[3] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[4] + ' Yearly PnL Summary<b>',
+                  '<b>'+name_adder+' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[0] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[1] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[2] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[3] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[4] + ' Hourly PnL Comparison To Backtest<b>')
     elif len(isos) == 6:
         titles = ('<b>'+name_adder+' Axon Energy Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[2] + ' Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[3] + ' Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[4] + ' Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[5] + ' Daily PnL Summary<b>',
-                  '<b>Axon Energy Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[2] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[3] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[4] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[5] + ' Monthly PnL Summary<b>',
-                  '<b>Axon Energy Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[2] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[3] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' +isos[4] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[5] + ' Yearly PnL Summary<b>',
-                  '<b>Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[0] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[1] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[2] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[3] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[4] + ' Hourly PnL Comparison To Backtest<b>', '<b>'+ name_adder + ' ' + isos[5] + ' Hourly PnL Comparison To Backtest<b>')
+                  '<b>'+name_adder+' Axon Energy Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[2] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[3] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[4] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[5] + ' Monthly PnL Summary<b>',
+                  '<b>'+name_adder+' Axon Energy Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[2] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[3] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' +isos[4] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[5] + ' Yearly PnL Summary<b>',
+                  '<b>'+name_adder+' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[0] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[1] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[2] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[3] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[4] + ' Hourly PnL Comparison To Backtest<b>', '<b>'+ name_adder + ' ' + isos[5] + ' Hourly PnL Comparison To Backtest<b>')
 
 
 

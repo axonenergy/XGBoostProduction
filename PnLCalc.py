@@ -14,15 +14,15 @@ working_directory = 'X:\\Research\\'
 run_DART_PnL = True
 run_find_offer_prices = False
 lmp_filename = '2020_01_05_LMP_DATA_DICT_MASTER'
-dart_backtest_filename = 'Backtest_2020_03_19_BACKTEST_DATA_DICT_MASTER_ERCOT_EXP20_SPREAD_revisedFeats3OldGrid_'
+dart_backtest_filename = 'Backtest_2020_03_19_BACKTEST_DATA_DICT_MASTER_ERCOT_EXP20_SPREAD_revisedFeats1OldGrid_'
 # dart_backtest_filename = 'Backtest_09_11_2019_GBM_DATA_MISO_V8.0_MASTER_159F_MISO_EXP10_'
 # dart_backtest_filename = 'Backtest_09_11_2019_GBM_DATA_PJM_V8.0_MASTER_207F_PJM_EXP10_'
 # dart_backtest_filename = 'backtest_PJM_V8.0_all'
 
 dart_sd_location_filter = 'SD1000'  # Leave Blank For No Filter Otherwise Use 'SD4, SD3.5 etc' Format
 
-name_adder = '10'
-dart_inc_mean_band_peak = 0.0
+name_adder = '1'
+dart_inc_mean_band_peak = 0.9
 dart_inc_mean_band_offpeak = 1.0
 dart_inc_mean_band_offpeak =dart_inc_mean_band_peak
 

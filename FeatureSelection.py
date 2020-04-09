@@ -23,16 +23,16 @@ input_file_type = 'dict'                                                        
 hypergrid_dict_name = 'RFGridsearchDict_12092019_MISOAll_Master_Dataset_Dict_'  # Name Of Hypergrid File
 all_best_features_filename = 'FeatImport_2020_02_24_BACKTEST_DATA_DICT_MASTER_SPREAD_ONE_YEAR_SD6_PJM' # Name of Feature Importance File
 name_adder = 'ONE_YEAR_ALL_FEATS'                                                                 # Additional Identifier For The Run
-add_calculated_features = True                                                 # If True Adds Calcualted Features From A Previous Best Feature Importance Run. Will Error If Matching Non-Calculated Feature Importances Are Not Run First. Used to Determine If Calcualted Features Are Good Or Not
-do_all_feats = True                                                             # dont segregate the features into feature types
+add_calculated_features = False                                                 # If True Adds Calcualted Features From A Previous Best Feature Importance Run. Will Error If Matching Non-Calculated Feature Importances Are Not Run First. Used to Determine If Calcualted Features Are Good Or Not
+do_all_feats = False                                                             # dont segregate the features into feature types
 sd_limit = 6                                                                    # SD Limit For Outlier Removal
 gridsearch_iterations = 100                                                      # Gridsearch Iterations
 cv_folds = 4                                                                    # CV Folds For Gridsearch
 train_end_date = datetime.datetime(2020, 8, 24)                                 # Backtest Start Date (If Not Doing Cross Validation)
-train_start_date = datetime.datetime(2019, 3, 19)                                 # Backtest Start Date (If Not Doing Cross Validation)
+train_start_date = datetime.datetime(2010, 3, 19)                                 # Backtest Start Date (If Not Doing Cross Validation)
 feat_dict = {'SPR_EAD': 2,'DA_RT': 2, 'FLOAD': 8, 'FTEMP': 24, 'OUTAGE': 4}               # Number Of Top Features To Use If Reading From Dict And Adding Calculated Features
 iso_list = ['PJM']
-feat_types_list = ['SPR_EAD']                            # Feat Types To Run
+feat_types_list = ['SPR_EAD', 'DA_RT', 'FLOAD','FTEMP','OUTAGE']                            # Feat Types To Run
 run_gridsearch = False                                                          # Do A Gridsearch?
 run_feature_importances = True                                                  # Do Feature Importances?
 
@@ -150,7 +150,11 @@ def do_top_features(input_filename, save_name, iso_list, feat_dict, hypergrid_di
         train_df = master_df[master_df.index.get_level_values('Date') < train_end_date]
         train_df = master_df[master_df.index.get_level_values('Date') > train_start_date]
 
-        targets_df = train_df[[col for col in train_df.columns if 'DART' in col]]
+        if iso == 'ERCOT':
+            targets_df = train_df[[col for col in train_df.columns if 'SPREAD' in col]]
+        else:
+            targets_df = train_df[[col for col in train_df.columns if 'DART' in col]]
+
         targets_df = train_df[[col for col in targets_df.columns if iso in col]]
 
         for target in targets_df.columns:
