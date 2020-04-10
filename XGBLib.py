@@ -1311,11 +1311,26 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
 
         trades_dict[iso] = temp_trades_df
 
+
+    if bool(trades_dict) == False:
+        print('')
+        print('')
+        print('**********************************************************************************')
+        print('')
+        print('')
+        print('No Trades For Any ISO Exist for PnL Date: ' + predict_date_str_mm_dd_yyyy)
+        print('')
+        print('')
+        print('**********************************************************************************')
+        return None
+
+
     for iso, df in trades_dict.items():
         if all_trades_df.empty:
             all_trades_df=df
         else:
             all_trades_df=pd.concat([all_trades_df,df],axis=0,sort=False)
+
 
     all_trades_df.to_csv(save_directory + predict_date_str_mm_dd_yyyy + '_DAILY_PnL_' + name_adder + '.csv')
 
@@ -1367,13 +1382,10 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
         temp_monthly_df.set_index('Month', inplace=True, drop=True)
         temp_yearly_df.set_index('Year', inplace=True, drop=True)
 
-        temp_daily_df.index = temp_daily_df.index.get_level_values('Date').strftime('%m/%d/%y')
-        temp_monthly_df.index = temp_monthly_df.index.get_level_values('Month').strftime('%b%Y')
-        temp_yearly_df.index = temp_yearly_df.index.get_level_values('Year').strftime('%Y')
-
         temp_daily_df.index.names = ['Date']
         temp_monthly_df.index.names = ['Month']
         temp_yearly_df.index.names = ['Year']
+
 
         temp_daily_df = temp_daily_df.round({'Ene_$': 0, 'Con_$': 0, 'Los_$': 0, 'Tot_$': 0, 'MW': 0, '$/MW': 2})
         temp_monthly_df = temp_monthly_df.round({'Ene_$': 0, 'Con_$': 0, 'Los_$': 0, 'Tot_$': 0, 'MW': 0, '$/MW': 2})
@@ -1923,6 +1935,8 @@ def print_summary_pnl(isos,daily_actuals_dict,monthly_actuals_dict,yearly_actual
         daily_df = daily_actuals_dict[iso]
         monthly_df = monthly_actuals_dict[iso]
         yearly_df = yearly_actuals_dict[iso]
+
+
         indv_iso_compare_df = compare_df[compare_df['ISO']==iso].copy()
         indv_iso_compare_df.drop(columns='ISO',inplace=True)
         indv_iso_compare_df.sort_values(['DistProb'],inplace=True,ascending=True)
@@ -1930,16 +1944,31 @@ def print_summary_pnl(isos,daily_actuals_dict,monthly_actuals_dict,yearly_actual
         indv_iso_compare_df['Node Name'] = indv_iso_compare_df['Node Name'].astype('str').apply(lambda row: row.replace(' ', '')[0:16])
         indv_iso_compare_df.set_index('Node Name',inplace=True,drop=True)
 
+        temp_daily_df = daily_df.copy()
+        temp_monthly_df = monthly_df.copy()
+        temp_yearly_df = yearly_df.copy()
+
+        temp_daily_df = temp_daily_df.sort_index(ascending=False)
+        temp_monthly_df = temp_monthly_df.sort_index(ascending=False)
+        temp_yearly_df = temp_yearly_df.sort_index(ascending=False)
+
+        temp_daily_df.index = temp_daily_df.index.get_level_values('Date').strftime('%m/%d/%y')
+        temp_monthly_df.index = temp_monthly_df.index.get_level_values('Month').strftime('%b%Y')
+        temp_yearly_df.index = temp_yearly_df.index.get_level_values('Year').strftime('%Y')
+
+        temp_daily_df.index.names = ['Date']
+        temp_monthly_df.index.names = ['Month']
+        temp_yearly_df.index.names = ['Year']
 
         table1 = go.Table(
             header=dict(
-                values=daily_df.reset_index().columns,
+                values=temp_daily_df.reset_index().columns,
                 font=dict(size=12, color='white'),
                 align="left",
                 fill=dict(color=['#1C4E80'])
             ),
             cells=dict(
-                values=[daily_df.reset_index()[k].tolist() for k in daily_df.reset_index().columns[0:]],
+                values=[temp_daily_df.reset_index()[k].tolist() for k in temp_daily_df.reset_index().columns[0:]],
                 align="left",
                 format=[None, "$,d", "$,d", "$,d", ",d", "$.2f", "$,d"],
                 fill=dict(color=['#202020', '#F1F1F1', '#F1F1F1', '#F1F1F1', '#F1F1F1', '#F1F1F1', '#DADADA']),
@@ -1948,13 +1977,13 @@ def print_summary_pnl(isos,daily_actuals_dict,monthly_actuals_dict,yearly_actual
 
         table2 = go.Table(
             header=dict(
-                values=monthly_df.reset_index().columns,
+                values=temp_monthly_df.reset_index().columns,
                 font=dict(size=12, color='white'),
                 align="left",
                 fill=dict(color=['#1C4E80'])
             ),
             cells=dict(
-                values=[monthly_df.reset_index()[k].tolist() for k in monthly_df.reset_index().columns[0:]],
+                values=[temp_monthly_df.reset_index()[k].tolist() for k in temp_monthly_df.reset_index().columns[0:]],
                 align="left",
                 format=[None, "$,d", "$,d", "$,d", ",d", "$.2f", "$,d"],
                 fill=dict(color=['#202020', '#F1F1F1', '#F1F1F1', '#F1F1F1', '#F1F1F1', '#F1F1F1', '#DADADA']),
@@ -1963,13 +1992,13 @@ def print_summary_pnl(isos,daily_actuals_dict,monthly_actuals_dict,yearly_actual
 
         table3 = go.Table(
             header=dict(
-                values=yearly_df.reset_index().columns,
+                values=temp_yearly_df.reset_index().columns,
                 font=dict(size=12, color='white'),
                 align="left",
                 fill=dict(color=['#1C4E80'])
             ),
             cells=dict(
-                values=[yearly_df.reset_index()[k].tolist() for k in yearly_df.reset_index().columns[0:]],
+                values=[temp_yearly_df.reset_index()[k].tolist() for k in temp_yearly_df.reset_index().columns[0:]],
                 align="left",
                 format=[None, "$,d", "$,d", "$,d", ",d", "$.2f", "$,d"],
                 fill=dict(color=['#202020', '#F1F1F1', '#F1F1F1', '#F1F1F1', '#F1F1F1', '#F1F1F1', '#DADADA']),
@@ -2027,6 +2056,19 @@ def print_summary_pnl(isos,daily_actuals_dict,monthly_actuals_dict,yearly_actual
     summary_daily_pnl_df['Total','$/MW'] = (summary_daily_pnl_df['Total','Tot_$']/summary_daily_pnl_df['Total','MW']).round(2)
     summary_monthly_pnl_df['Total','$/MW'] = (summary_monthly_pnl_df['Total','Tot_$']/summary_monthly_pnl_df['Total','MW']).round(2)
     summary_yearly_pnl_df['Total','$/MW'] = (summary_yearly_pnl_df['Total','Tot_$']/summary_yearly_pnl_df['Total','MW']).round(2)
+
+
+    summary_daily_pnl_df = summary_daily_pnl_df.sort_index(ascending=False)
+    summary_monthly_pnl_df = summary_monthly_pnl_df.sort_index(ascending=False)
+    summary_yearly_pnl_df = summary_yearly_pnl_df.sort_index(ascending=False)
+
+    summary_daily_pnl_df.index = summary_daily_pnl_df.index.get_level_values('Date').strftime('%m/%d/%y')
+    summary_monthly_pnl_df.index = summary_monthly_pnl_df.index.get_level_values('Month').strftime('%b%Y')
+    summary_yearly_pnl_df.index = summary_yearly_pnl_df.index.get_level_values('Year').strftime('%Y')
+
+    summary_daily_pnl_df.index.names = ['Date']
+    summary_monthly_pnl_df.index.names = ['Month']
+    summary_yearly_pnl_df.index.names = ['Year']
 
 
     summary_table_1 = go.Table(
