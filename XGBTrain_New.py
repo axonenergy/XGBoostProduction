@@ -31,20 +31,26 @@ working_directory = 'X:\\Research\\'
 # input_file_name = '09_11_2019_GBM_DATA_MISO_V8.0_MASTER_159F'      # Use This If Reading From CSV (Old Method)
 # input_file_name = '09_11_2019_GBM_DATA_PJM_V8.0_MASTER_207F'      # Use This If Reading From CSV (Old Method)
 # input_file_type = 'csv'                                            # Use This If Reading From CSV (Old Method)
-input_file_name = '2020_03_19_BACKTEST_DATA_DICT_MASTER'               # Use This If Reading From Dictionary (New Method)
+input_file_name = '2020_04_05_BACKTEST_DATA_DICT_MASTER'               # Use This If Reading From Dictionary (New Method)
 input_file_type = 'dict'                                             # Use This If Reading From Dictionary (New Method)
 cat_vars = ['Month','Weekday']                                       # Categorial Variables
-iso = 'ERCOT'                                                          # ISO to Backtest
+iso = 'MISO'                                                          # ISO to Backtest
 
 
-all_best_features_filename = 'FeatImport_2020_03_19_BACKTEST_DATA_DICT_MASTER__SD6_ALL'  # Name of Feature Importance File
-all_best_features_filename = 'FeatImport_2020_03_19_BACKTEST_DATA_DICT_MASTER__SPREAD_SD6_ERCOT'  # Name of Feature Importance File
+all_best_features_filename = 'FeatImport_2020_04_05_BACKTEST_DATA_DICT_MASTER__SD6_ALL'  # Name of Feature Importance File
 
 name_adder = ''                                                        # Additional Identifier For The Run
+feat_dicts = {}
+feat_dicts[''] = {'SPR_EAD': 8, 'DA_RT': 8, 'FLOAD': 12, 'FTEMP': 28,'OUTAGE': 6}  # Number Of Top Features To Use If Reading From Dict
 
 
-run_reverse = False
-model_type = 'SPREAD'  # Options are DART or SPREAD
+
+run_reverse = True
+if iso == 'ERCOT':
+    model_type = 'SPREAD'  # Options are DART or SPREAD
+else:
+    model_type = 'DART'  # Options are DART or SPREAD
+
 run_gridsearch = False                                                # Do A Gridsearch?
 run_backtest = True                                                    # Do A Backtest?
 run_create_models = False
@@ -57,7 +63,7 @@ run_tier2_create_models = False
 sd_limit_range = [1000]                                       # Range Of Max SDs For Outlier Processing (Large Number = No Outlier Processing)
 model_creation_sd = 1000
 backtest_start_date = datetime.datetime(2018, 8, 24)              # Backtest Start Date (If Not Doing Cross Validation)
-num_targets = 250                                                # Number of Targets To Train (Large Number = Train All Targets In File)
+num_targets = 500                                               # Number of Targets To Train (Large Number = Train All Targets In File)
 nrounds = 5000                                                    # Max Rounds To Train
 early_stopping=10                                                 # Early Train Stopping
 exp_folds = 20                                                     # Number of Exps To Do For Each Senario (To Take Median And SD Of)
@@ -78,25 +84,25 @@ if iso == 'MISO':
     tier2_backtest_filename = 'Backtest_Exps_2020_02_24_BACKTEST_DATA_DICT_MASTER_MISO_EXP20_'
     tier2_PnL_filename = 'PnL_Results_Backtest_2020_02_24_BACKTEST_DATA_DICT_MASTER_MISO_EXP20__SD10001.25_notcapped_'
     tier2_hypergrid_name = 'Gridsearch_Tier2__Backtest_Exps_2020_02_24_BACKTEST_DATA_DICT_MASTER_PJM_EXP20__PJM_1048034_DART_Tier2Target'
-    feat_dict = {'SPR_EAD': 6, 'DA_RT': 6, 'FLOAD': 8, 'FTEMP': 28,'OUTAGE': 8}  # Number Of Top Features To Use If Reading From Dict
+    feat_dict = {'SPR_EAD': 8, 'DA_RT': 8, 'FLOAD': 12, 'FTEMP': 28,'OUTAGE': 6}  # Number Of Top Features To Use If Reading From Dict
     gridsearch_feat_dict=feat_dict
 elif iso == 'PJM':
     tier2_backtest_filename = 'Backtest_Exps_2020_02_24_BACKTEST_DATA_DICT_MASTER_PJM_EXP20_'
     tier2_PnL_filename = 'PnL_Results_Backtest_2020_02_24_BACKTEST_DATA_DICT_MASTER_PJM_EXP20__SD10000.75_notcapped_'
     tier2_hypergrid_name = 'Gridsearch_Tier2__Backtest_Exps_2020_02_24_BACKTEST_DATA_DICT_MASTER_PJM_EXP20__PJM_1048034_DART_Tier2Target'
-    feat_dict = {'SPR_EAD': 2, 'DA_RT': 2, 'FLOAD': 8, 'FTEMP': 24,'OUTAGE': 4}  # Number Of Top Features To Use If Reading From Dict
+    feat_dict = {'SPR_EAD': 2, 'DA_RT': 8, 'FLOAD': 10, 'FTEMP': 28,'OUTAGE': 4}  # Number Of Top Features To Use If Reading From Dict
     gridsearch_feat_dict=feat_dict
 elif iso == 'SPP':
     tier2_backtest_filename = 'Backtest_Exps_2020_02_24_BACKTEST_DATA_DICT_MASTER_SPP_EXP20_'
     tier2_PnL_filename = 'PnL_Results_Backtest_2020_02_24_BACKTEST_DATA_DICT_MASTER_SPP_EXP20__SD10001.0_notcapped_'
     tier2_hypergrid_name = 'Gridsearch_Tier2__Backtest_Exps_2020_02_24_BACKTEST_DATA_DICT_MASTER_PJM_EXP20__PJM_1048034_DART_Tier2Target'
-    feat_dict = {'SPR_EAD': 2, 'DA_RT': 2, 'FLOAD': 10, 'FTEMP': 28,'OUTAGE': 10}  # Number Of Top Features To Use If Reading From Dict
+    feat_dict = {'SPR_EAD': 6, 'DA_RT': 6, 'FLOAD': 8, 'FTEMP': 24,'OUTAGE': 8}  # Number Of Top Features To Use If Reading From Dict
     gridsearch_feat_dict=feat_dict
 elif iso == 'ERCOT':
     tier2_backtest_filename = 'Backtest_Exps_2020_02_24_BACKTEST_DATA_DICT_MASTER_ERCOT_EXP20_'
     tier2_PnL_filename = 'PnL_Results_Backtest_2020_02_24_BACKTEST_DATA_DICT_MASTER_ERCOT_EXP20__SD10001.0_notcapped_'
     tier2_hypergrid_name = 'Gridsearch_Tier2__Backtest_Exps_2020_02_24_BACKTEST_DATA_DICT_MASTER_PJM_EXP20__PJM_1048034_DART_Tier2Target'
-    feat_dict = {'SPR_EAD': 4, 'DA_RT': 4, 'FLOAD': 8, 'FTEMP': 24,'OUTAGE': 4}  # Number Of Top Features To Use If Reading From Dict
+    feat_dict = {'SPR_EAD': 6, 'DA_RT': 4, 'FLOAD': 8, 'FTEMP': 20,'OUTAGE': 4}  # Number Of Top Features To Use If Reading From Dict
     gridsearch_feat_dict=feat_dict
 elif iso == 'ISONE':
     tier2_backtest_filename = 'Backtest_Exps_2020_02_24_BACKTEST_DATA_DICT_MASTER_ISONE_EXP20_'
@@ -122,19 +128,15 @@ tier2_gridsearch_iterations = 100000
 
 if input_file_type.upper() == 'DICT':
     if iso=='PJM':
-        hypergrid_name = 'Gridsearch_2020_01_05_BACKTEST_DATA_DICT_MASTER_PJM_SD1000__PJM_50390_DART' #Filename of Stored Hypergrid From Gridsearch
-        hypergrid_dict_name = 'GridsearchDict_2020_01_05_BACKTEST_DATA_DICT_MASTER_PJM_SD1000_'
-        hypergrid_name = 'Gridsearch_2020_02_24_BACKTEST_DATA_DICT_MASTER_SPREAD_PJM_SD1000_revisedFeats2_PJM_50390_DART' #Filename of Stored Hypergrid From Gridsearch
-        hypergrid_dict_name = 'GridsearchDict_2020_02_24_BACKTEST_DATA_DICT_MASTER_SPREAD_PJM_SD1000_revisedFeats2'
-
-
+        hypergrid_name = 'Gridsearch_2020_04_05_BACKTEST_DATA_DICT_MASTER_PJM_SD1000_DART_revisedfeats1__PJM_50390_DART' #Filename of Stored Hypergrid From Gridsearch
+        hypergrid_dict_name = 'GridsearchDict_2020_04_05_BACKTEST_DATA_DICT_MASTER_PJM_SD1000_DART_revisedfeats1_'
     elif iso=='MISO':
-        hypergrid_name = 'Gridsearch_2020_02_24_BACKTEST_DATA_DICT_MASTER_SPREAD_MISO_SD1000_DART_revisedFeats1_MISO_AECI.ALTW_DART' #Filename of Stored Hypergrid From Gridsearch
-        hypergrid_dict_name = 'GridsearchDict_2020_02_24_BACKTEST_DATA_DICT_MASTER_SPREAD_MISO_SD1000_DART_revisedFeats1'
+        hypergrid_name = 'Gridsearch_2020_04_05_BACKTEST_DATA_DICT_MASTER_MISO_SD1000_DART___MISO_AECI.ALTW_DART' #Filename of Stored Hypergrid From Gridsearch
+        hypergrid_dict_name = 'GridsearchDict_2020_04_05_BACKTEST_DATA_DICT_MASTER_MISO_SD1000_DART__'
     elif iso == 'SPP':
-        hypergrid_name = 'Gridsearch_2020_03_19_BACKTEST_DATA_DICT_MASTER_SPP_SD1000_DART_revisedfeats1__SPP_AECC_CSWS_DART'  # Filename of Stored Hypergrid From Gridsearch
+        hypergrid_name = 'Gridsearch_2020_04_05_BACKTEST_DATA_DICT_MASTER_SPP_SD1000_DART___SPP_AECC_CSWS_DART'  # Filename of Stored Hypergrid From Gridsearch
     elif iso == 'ERCOT':
-        hypergrid_name = 'Gridsearch_2020_02_24_BACKTEST_DATA_DICT_MASTER_SPREAD_ERCOT_SD1000_SPREAD__ERCOT_AMISTAD_ALL$ERCOT_AMOCOOIL_CC1_SPREAD'  # Filename of Stored Hypergrid From Gridsearch
+        hypergrid_name = 'Gridsearch_2020_04_05_BACKTEST_DATA_DICT_MASTER_ERCOT_SD1000_SPREAD___ERCOT_HB_HOUSTON$ERCOT_DC_R_SPREAD'  # Filename of Stored Hypergrid From Gridsearch
     elif iso == 'ISONE':
         hypergrid_name = 'Gridsearch_2020_02_24_BACKTEST_DATA_DICT_MASTER_SPREAD_ISONE_SD1000_DART_revisedfeats1__ISONE_10033_DART'  # Filename of Stored Hypergrid From Gridsearch
     elif iso == 'NYISO':
@@ -154,7 +156,7 @@ def do_create_models(input_filename, save_name, iso, feat_dict, input_file_type,
     # COORDINATES MODEL TRAINING
     model_file_directory = static_directory + '\ModelFiles\\NewModelFiles\\'
     model_data_directory = static_directory + '\ModelUpdateData\\'
-    gridsearch_directory = working_directory + '\GridsearchFiles\\'
+    gridsearch_directory = static_directory + '\GridsearchFiles\\'
     featimport_directory = working_directory + '\FeatureImportanceFiles\\'
     gpu_train=False
     train_type='cpu'
@@ -257,7 +259,7 @@ def do_backtest(input_filename, save_name, num_targets, iso, feat_dict, input_fi
     # COORDINATES THE BACKTEST. SPLITS AND CLEANS DATA BEFORE SENDING IT TO XGBTRAIN
     backtest_directory = static_directory + '\BacktestFiles\\'
     model_data_directory = static_directory + '\ModelUpdateData\\'
-    gridsearch_directory = working_directory + '\GridsearchFiles\\'
+    gridsearch_directory = static_directory + '\GridsearchFiles\\'
     featimport_directory = working_directory + '\FeatureImportanceFiles\\'
 
     # Read In Input File
@@ -269,7 +271,12 @@ def do_backtest(input_filename, save_name, num_targets, iso, feat_dict, input_fi
     targets = [col for col in master_df.columns if (model_type.upper() in col)&(iso in col)]
 
 
-    targets = targets[0:num_targets]
+    # Only take every nth element of the list to get the target number of nodes
+    orig_targ_len = len(targets)
+    targ_increment = int(orig_targ_len/num_targets)
+    targ_increment = max(targ_increment,1)
+    targets = targets[0::targ_increment]
+
 
     total_num_trains = len(sd_limit_range)*cv_folds*exp_folds*len(targets)
     print('Training '+str(total_num_trains) +' Models.')
@@ -787,29 +794,33 @@ if run_gridsearch:
                   model_type=model_type)
 
 if run_backtest:
-    backtest_save_name = input_file_name + '_' + iso + '_EXP' + str(exp_folds) + '_'+model_type+ '_' + name_adder + '_'+rev
-    print('RUNNING BACKTEST: ' + backtest_save_name)
-    output_df = do_backtest(input_filename=input_file_name,
-                            save_name=backtest_save_name,
-                            num_targets=num_targets,
-                            iso = iso,
-                            feat_dict=feat_dict,
-                            input_file_type = input_file_type,
-                            cat_vars = cat_vars,
-                            start_date = backtest_start_date,
-                            sd_limit_range = sd_limit_range,
-                            exp_folds = exp_folds,
-                            cv_folds = cv_folds,
-                            hypergrid_name = hypergrid_name,
-                            hypergrid_dict_name = hypergrid_dict_name,
-                            num_grids = num_top_grids,
-                            gpu_train=gpu_train,
-                            nrounds=nrounds,
-                            early_stopping=early_stopping,
-                            static_directory=static_directory,
-                            working_directory=working_directory,
-                            model_type=model_type,
-                            run_reverse=run_reverse)
+
+    for name_adder, feat_dict in feat_dicts.items():
+        name_adder = str(name_adder)
+
+        backtest_save_name = input_file_name + '_' + iso + '_EXP' + str(exp_folds) + '_'+model_type+ '_' + name_adder + '_'+rev
+        print('RUNNING BACKTEST: ' + backtest_save_name)
+        output_df = do_backtest(input_filename=input_file_name,
+                                save_name=backtest_save_name,
+                                num_targets=num_targets,
+                                iso = iso,
+                                feat_dict=feat_dict,
+                                input_file_type = input_file_type,
+                                cat_vars = cat_vars,
+                                start_date = backtest_start_date,
+                                sd_limit_range = sd_limit_range,
+                                exp_folds = exp_folds,
+                                cv_folds = cv_folds,
+                                hypergrid_name = hypergrid_name,
+                                hypergrid_dict_name = hypergrid_dict_name,
+                                num_grids = num_top_grids,
+                                gpu_train=gpu_train,
+                                nrounds=nrounds,
+                                early_stopping=early_stopping,
+                                static_directory=static_directory,
+                                working_directory=working_directory,
+                                model_type=model_type,
+                                run_reverse=run_reverse)
 
 if run_create_models:
     backtest_save_name = input_file_name + '_' + iso + '_'+model_type

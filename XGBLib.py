@@ -10,6 +10,7 @@ import glob
 import xgboost as xgb
 from API_Lib import load_obj
 from API_Lib import process_YES_daily_price_tables
+from API_Lib import get_spreads
 from API_Lib import save_obj
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.model_selection import GroupKFold
@@ -391,14 +392,14 @@ def xgb_gridsearch(train_df, target, cv_folds, iterations, sd_limit, gpu_train, 
     #               'max_depth': [10,12,14]}
 
     # # XGBOOST TIER 1 GRID MISO
-    # param_grid = {'min_child_weight': [2],
-    #               'learning_rate': [0.007],
-    #               'reg_lambda': [5],
-    #               'reg_alpha' : [0.30], ## doesnt really change much
-    #               # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
-    #               'subsample': [0.85],
-    #               'colsample_bytree': [0.25],
-    #               'max_depth': [12]}
+    param_grid = {'min_child_weight': [2],
+                  'learning_rate': [0.005,0.007],
+                  'reg_lambda': [5],
+                  'reg_alpha' : [0.30], ## doesnt really change much
+                  # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
+                  'subsample': [0.85],
+                  'colsample_bytree': [0.15,0.2],
+                  'max_depth': [14,16]}
 
 
     # # XGBOOST TIER 1 GRID ISONE
@@ -422,25 +423,25 @@ def xgb_gridsearch(train_df, target, cv_folds, iterations, sd_limit, gpu_train, 
     #               'max_depth': [14]}
 
     # # XGBOOST TIER 1 GRID SPP
-    param_grid = {'min_child_weight': [2],
-                  'learning_rate': [0.01],
-                  'reg_lambda': [3],
-                  'reg_alpha' : [0.10],
-                  # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
-                  'subsample': [0.85],
-                  'colsample_bytree': [0.05],
-                  'max_depth': [15]}
+    # param_grid = {'min_child_weight': [2],
+    #               'learning_rate': [0.01,0.02],
+    #               'reg_lambda': [3],
+    #               'reg_alpha' : [0.10],
+    #               # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
+    #               'subsample': [0.85],
+    #               'colsample_bytree': [0.05,0.1],
+    #               'max_depth': [13,14,15]}
 
 
     # # XGBOOST TIER 1 GRID ERCOT **SPREAD**
     # param_grid = {'min_child_weight': [2],
-    #               'learning_rate': [0.009,0.01,0.02],
-    #               'reg_lambda': [2,3,4],
+    #               'learning_rate': [0.004,0.006],
+    #               'reg_lambda': [3],
     #               'reg_alpha' : [0.1],
     #               # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
-    #               'subsample': [0.6],
+    #               'subsample': [0.85],
     #               'colsample_bytree': [0.05,0.1],
-    #               'max_depth': [4]}
+    #               'max_depth': [9,11,13]}
 
 
 
@@ -468,6 +469,8 @@ def xgb_predict(input_df, target,model_directory):
     # Make sure tier 1 input data has all the right features and they are in the right order
     try:
         tier1_model = load_obj(model_directory + 'ModelFile_'+target+'_cpu_1')
+        if tier1_model is None:
+            error = tier1_model.feature_names
     except:
         print('')
         print('ERROR: No Models Exist for target: '+model_directory + 'ModelFile_'+target+'_cpu_1')
@@ -756,13 +759,13 @@ def do_xgb_prediction(predict_date_str_mm_dd_yyyy, iso, daily_trade_file_name, w
     preds_tier2_df = preds_tier2_df.round(3)
 
 
-    preds_tier1_df.to_csv(pred_save_directory + predict_date_str_mm_dd_yyyy + '_RAW_PREDS_TIER1_' + iso + '.csv', index=True)
+    preds_tier1_df.to_csv(pred_save_directory + predict_date_str_mm_dd_yyyy + '_RAW_PREDS_TIER1_'+model_type+'_' + iso + '.csv', index=True)
 
     if preds_tier2_df.empty == False:
         preds_tier2_df.set_index([preds_tier1_df.index], inplace=True, drop=True)
-        preds_tier2_df.to_csv(pred_save_directory + predict_date_str_mm_dd_yyyy + '_RAW_PREDS_TIER2_' + iso + '.csv', index=True)
+        preds_tier2_df.to_csv(pred_save_directory + predict_date_str_mm_dd_yyyy + '_RAW_PREDS_TIER2_'+model_type+'_' + iso + '.csv', index=True)
 
-    failed_locations_df.to_csv(pred_save_directory + predict_date_str_mm_dd_yyyy + '_FAILED_LOCATIONS_' + iso + '.csv')
+    failed_locations_df.to_csv(pred_save_directory + predict_date_str_mm_dd_yyyy + '_FAILED_LOCATIONS_' +model_type+'_' + iso + '.csv')
 
     return preds_tier1_df, preds_tier2_df, failed_locations_df
 
@@ -777,9 +780,9 @@ def post_process_trades(iso, predict_date_str_mm_dd_yyyy, daily_trade_file_name,
     upload_save_directory = working_directory + '\\UploadFiles\\'
     daily_trade_directory = working_directory + '\\DailyTradeFiles\\'
 
-    preds_tier1_df = pd.read_csv(pred_save_directory + predict_date_str_mm_dd_yyyy + '_RAW_PREDS_TIER1_' + iso + '.csv', index_col=['Date','HE'],parse_dates=True)
+    preds_tier1_df = pd.read_csv(pred_save_directory + predict_date_str_mm_dd_yyyy + '_RAW_PREDS_TIER1_' +model_type+'_' + iso + '.csv', index_col=['Date','HE'],parse_dates=True)
     try:
-        preds_tier2_df = pd.read_csv(pred_save_directory + predict_date_str_mm_dd_yyyy + '_RAW_PREDS_TIER2_' + iso + '.csv', index_col=['Date','HE'],parse_dates=True)
+        preds_tier2_df = pd.read_csv(pred_save_directory + predict_date_str_mm_dd_yyyy + '_RAW_PREDS_TIER2_'+model_type+'_' + iso + '.csv', index_col=['Date','HE'],parse_dates=True)
         sd_tier2_df = preds_tier2_df[[col for col in preds_tier2_df.columns if 'sd' in col]].copy()
         preds_tier2_df = preds_tier2_df[[col for col in preds_tier2_df.columns if 'pred' in col]].copy()
         preds_tier2_df.columns = [col.replace('_pred', '') for col in preds_tier2_df.columns]
@@ -914,14 +917,15 @@ def post_process_trades(iso, predict_date_str_mm_dd_yyyy, daily_trade_file_name,
     # Make DECs negative MWs
     trades_df[preds_tier1_df<0] = -trades_df
 
-    trades_df.to_csv(pred_save_directory+predict_date_str_mm_dd_yyyy + '_PREDS_FINAL_' + iso + '.csv')
+    trades_df.to_csv(pred_save_directory+predict_date_str_mm_dd_yyyy + '_PREDS_FINAL_' +model_type+'_' + iso + '.csv')
 
     yes_df, upload_df = create_trade_file(input_mw_df=trades_df,
                                           iso=iso,
                                           all_ISOs_variables_df=all_ISOs_variables_df,
-                                          working_directory=working_directory)
+                                          working_directory=working_directory,
+                                          model_type=model_type)
 
-    yes_df.to_csv(upload_save_directory+predict_date_str_mm_dd_yyyy + '_YES_FILE_' + name_adder + '_' + iso + '.csv', index=False)
+    yes_df.to_csv(upload_save_directory+predict_date_str_mm_dd_yyyy + '_YES_FILE_' + model_type+'_'+ name_adder + '_' + iso + '.csv', index=False)
     # upload_df.to_csv(upload_save_directory+predict_date_str_mm_dd_yyyy + '_UPLOAD_FILE_' + name_adder + '_'  + iso + '.csv', index=False)
 
     print('')
@@ -931,7 +935,7 @@ def post_process_trades(iso, predict_date_str_mm_dd_yyyy, daily_trade_file_name,
 
     return trades_df, yes_df, upload_df
 
-def create_trade_summary(predict_date_str_mm_dd_yyyy, isos, do_printcharts, name_adder, working_directory, static_directory):
+def create_trade_summary(predict_date_str_mm_dd_yyyy, isos, do_printcharts, name_adder, working_directory, static_directory,model_type):
     print('')
     print('Creating Final Trade Summary For Date' +predict_date_str_mm_dd_yyyy+'...')
     print('')
@@ -944,14 +948,16 @@ def create_trade_summary(predict_date_str_mm_dd_yyyy, isos, do_printcharts, name
     summary_df = pd.DataFrame({'ISO': [], 'Trades_Total': [], 'MWs/Trade': [], 'MW_INC': [], 'MW_DEC': [], 'MW_Total': []})
 
     for iso in isos:
-        yes_dfs_dict[iso] = pd.read_csv(upload_save_directory + predict_date_str_mm_dd_yyyy + '_YES_FILE_' + name_adder + '_'  + iso + '.csv')
-        failed_locations_dict[iso] = pd.read_csv(pred_save_directory + predict_date_str_mm_dd_yyyy + '_FAILED_LOCATIONS_' + iso + '.csv')
+        yes_dfs_dict[iso] = pd.read_csv(upload_save_directory + predict_date_str_mm_dd_yyyy + '_YES_FILE_' +model_type+'_' + name_adder + '_'  + iso + '.csv')
+        failed_locations_dict[iso] = pd.read_csv(pred_save_directory + predict_date_str_mm_dd_yyyy + '_FAILED_LOCATIONS_' +model_type+'_' + iso + '.csv')
+
+    date = predict_date_str_mm_dd_yyyy
 
     figures_dict = {}
     for iso, df in yes_dfs_dict.items():
         failed_locations_df = failed_locations_dict[iso]
         failed_locations_df=failed_locations_df.rename(columns={'Unnamed: 0':'FailedCount'})
-        if df.empty:
+        if len(df)==0:
             print('No Trades for ISO: ' + iso)
             figures_dict[iso] = [go.Bar(), go.Bar(), go.Table() ,go.Table() , go.Table()]
             continue
@@ -1159,15 +1165,15 @@ def create_trade_summary(predict_date_str_mm_dd_yyyy, isos, do_printcharts, name
 
     # fig.update_yaxes(title_text='MWs', tickvals=list(range(0, 170, 10)), row=1, col=1)
 
-    for col in range(len(isos)+1):
+    for col in range(len(isos)+2):
         fig.update_xaxes(tickmode='linear', row=1, col=col)
 
 
-    url = plotly.offline.plot(fig,filename=upload_save_directory + 'DailyTrades_' + predict_date_str_mm_dd_yyyy + '_' + name_adder+ '.html',auto_open=True)
+    url = plotly.offline.plot(fig,filename=upload_save_directory + 'DailyTrades_' + predict_date_str_mm_dd_yyyy + '_' + model_type+'_'+ name_adder+ '.html',auto_open=True)
 
     pass
 
-def create_trade_file(input_mw_df, iso , all_ISOs_variables_df, working_directory):
+def create_trade_file(input_mw_df, iso , all_ISOs_variables_df, working_directory, model_type):
     if iso == 'SPP': iso='SPPISO'
     if iso == 'ISONE': iso = 'NEISO'
     daily_trade_directory = working_directory + '\\DailyTradeFiles\\'
@@ -1188,39 +1194,73 @@ def create_trade_file(input_mw_df, iso , all_ISOs_variables_df, working_director
     trades_tall_df['Node ID'] = None
     trades_tall_df['Bookname'] = ''
     trades_tall_df['BidSegment'] = 1
+
     alt_names_df = pd.read_excel(daily_trade_directory+'NodeAlternateNames.xlsx')
 
-    alt_names_df['Model_Name'] = alt_names_df['Model_Name'] + '_DART'
-    alt_names_df['YES_Name'] = alt_names_df['YES_Name']
+    if model_type=='DART':
+        alt_names_df['Model_Name'] = alt_names_df['Model_Name'] + '_DART'
 
     alt_names_dict = dict(zip(alt_names_df['Model_Name'],alt_names_df['YES_Name']))
 
     inc_bid = all_ISOs_variables_df['inc_offer_price'][0]
     dec_bid = all_ISOs_variables_df['dec_offer_price'][0]
+    spread_bid = all_ISOs_variables_df['spread_offer_price'][0]
 
-    for location in trades_tall_df['Node Name'].unique():
-        trades_tall_df.loc[(trades_tall_df['Node Name']==location) & (trades_tall_df['Trade Type']=='INC'), 'Bid'] = inc_bid
-        trades_tall_df.loc[(trades_tall_df['Node Name'] == location) & (trades_tall_df['Trade Type'] == 'DEC'), 'Bid'] = dec_bid
-        trades_tall_df.loc[(trades_tall_df['Node Name'] == location), 'Node ID'] = alt_names_dict[location]
+    spread_direction_dict = {'INC':0,'DEC':1}
+
+    if model_type=='SPREAD':
+        trades_tall_df['Orig Source ID'] = trades_tall_df['Node Name'].apply(lambda row: row.split('$')[0].replace('_SPREAD',''))
+        trades_tall_df['Orig Sink ID'] = trades_tall_df['Node Name'].apply(lambda row: row.split('$')[1].replace('_SPREAD',''))
+        trades_tall_df['Bid'] = spread_bid
+
+        for location in trades_tall_df['Orig Source ID'].unique():
+            trades_tall_df.loc[(trades_tall_df['Orig Source ID'] == location) & (trades_tall_df['Trade Type']=='INC'), 'Source ID'] = alt_names_dict[location]
+            trades_tall_df.loc[(trades_tall_df['Orig Source ID'] == location) & (trades_tall_df['Trade Type'] == 'DEC'), 'Sink ID'] = alt_names_dict[location]
+
+
+        for location in trades_tall_df['Orig Sink ID'].unique():
+            trades_tall_df.loc[(trades_tall_df['Orig Sink ID'] == location) & (trades_tall_df['Trade Type'] == 'INC') , 'Sink ID'] = alt_names_dict[location]
+            trades_tall_df.loc[(trades_tall_df['Orig Sink ID'] == location) & (trades_tall_df['Trade Type'] == 'DEC'), 'Source ID'] = alt_names_dict[location]
+
+
+        trades_tall_df['Source Name'] = trades_tall_df['Source ID']
+        trades_tall_df['Sink Name'] = trades_tall_df['Sink ID']
+        trades_tall_df['Node Name']=trades_tall_df['Node Name'].apply(lambda row: row.replace('_SPREAD', ''))
+
+        trades_tall_df['Node ID'] = trades_tall_df['Node Name']
+
+    elif model_type=='DART':
+        for location in trades_tall_df['Node Name'].unique():
+            trades_tall_df.loc[(trades_tall_df['Node Name'] == location) & (trades_tall_df['Trade Type']=='INC'), 'Bid'] = inc_bid
+            trades_tall_df.loc[(trades_tall_df['Node Name'] == location) & (trades_tall_df['Trade Type'] == 'DEC'), 'Bid'] = dec_bid
+            trades_tall_df.loc[(trades_tall_df['Node Name'] == location), 'Node ID'] = alt_names_dict[location]
 
     trades_tall_df['Node Name'] = trades_tall_df['Node Name'].str.replace('_DART','').str.replace(iso+'_','').str.replace('ISONE_','').str.replace('SPP_','')
     trades_tall_df.sort_values(['Node ID','Hour'],inplace=True)
     trades_tall_df.reset_index(inplace=True,drop=True)
     trades_tall_df['MW'] = abs(trades_tall_df['MW'])
 
-    yes_df = trades_tall_df[['Node ID','Node Name','Trade Type','Bookname','iso','targetdate','portfolioname','Hour','MW','Bid']]
+    #Format upload files for DART models
+    if model_type=='DART':
+        yes_df = trades_tall_df[['Node ID','Node Name','Trade Type','Bookname','iso','targetdate','portfolioname','Hour','MW','Bid']]
 
-    if iso == 'NEISO':
-        upload_df = trades_tall_df[['targetdate', 'Node Name', 'Trade Type', 'BidSegment', 'Hour', 'MW', 'Bid', 'Node ID']]
-    elif iso == 'PJM':
-        upload_df = trades_tall_df[['targetdate', 'Node Name', 'Trade Type', 'BidSegment', 'Hour','MW','Bid']]
-    else:
-        upload_df = trades_tall_df[['targetdate', 'Node ID', 'Trade Type', 'BidSegment', 'Hour','MW','Bid']]
+        if iso == 'NEISO':
+            upload_df = trades_tall_df[['targetdate', 'Node Name', 'Trade Type', 'BidSegment', 'Hour', 'MW', 'Bid', 'Node ID']]
+        elif iso == 'PJM':
+            upload_df = trades_tall_df[['targetdate', 'Node Name', 'Trade Type', 'BidSegment', 'Hour','MW','Bid']]
+        else:
+            upload_df = trades_tall_df[['targetdate', 'Node ID', 'Trade Type', 'BidSegment', 'Hour','MW','Bid']]
+
+
+    # Format upload files for SPREAD models
+    elif model_type == 'SPREAD':
+        yes_df = trades_tall_df[['Orig Source ID','Orig Sink ID','Node Name','Node ID', 'Source ID', 'Sink ID', 'Source Name', 'Sink Name', 'Trade Type', 'Bookname', 'iso', 'targetdate', 'portfolioname', 'Hour', 'MW','Bid']]
+        upload_df = yes_df
 
 
     return yes_df, upload_df
 
-def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, static_directory, do_printcharts, backtest_pnl_filename):
+def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, static_directory, do_printcharts, backtest_pnl_filename, model_type,spread_files_name):
     print('**********************************************************************************')
     print('')
     print('Running Daily PnL For: '+predict_date_str_mm_dd_yyyy + '...')
@@ -1231,6 +1271,9 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
     yes_file_directory = working_directory + '\\UploadFiles\\'
     lmp_directory = working_directory+ '\\InputFiles\\'
     save_directory = working_directory + '\\DailyPnL\\'
+    spread_files_directory = static_directory + '\ModelUpdateData\\'
+
+
     timezone_dict = {'MISO': 'EST', 'PJM': 'EPT', 'ISONE': 'EPT', 'NYISO': 'EPT', 'ERCOT': 'CPT', 'SPP': 'CPT'}
 
     predict_date = datetime.datetime.strptime(predict_date_str_mm_dd_yyyy, '%m_%d_%Y')
@@ -1248,11 +1291,12 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
 
     for iso in isos:
         try:
-            temp_trades_df = pd.read_csv(yes_file_directory + predict_date_str_mm_dd_yyyy + '_YES_FILE_' + name_adder + '_'  + iso + '.csv')
+            temp_trades_df = pd.read_csv(yes_file_directory + predict_date_str_mm_dd_yyyy + '_YES_FILE_' + model_type+'_'+ name_adder + '_'  + iso + '.csv')
         except:
-            # No trades on this date for this iso (or file named wrong)
+            print('No trades on this date for ' +iso+' (or file named wrong)')
             trades_dict[iso]=pd.DataFrame()
             continue
+
         temp_trades_df['Node Name'] = temp_trades_df['Node Name'].astype('str')
         temp_trades_df['Node Name'] = temp_trades_df['Node Name'].str.replace('ISONE_','').str.replace('ERCOT_','').str.replace('SPP_','').str.replace('PJM_','').str.replace('MISO_','')
         temp_trades_df.set_index(['targetdate','Hour', 'Node Name'],inplace=True)
@@ -1260,6 +1304,9 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
 
         temp_lmp_df = yes_pricetable_dict[timezone_dict[iso]]
         temp_lmp_df = temp_lmp_df[[col for col in temp_lmp_df.columns if iso in col]]
+        temp_lmp_df = temp_lmp_df[[col for col in temp_lmp_df.columns if 'LAG' not in col]]
+
+
         temp_lmp_df = temp_lmp_df.stack().reset_index()
         temp_lmp_df.set_index(['Date','HourEnding'],drop=True,inplace=True)
         temp_lmp_df.columns = ['Descript','Value']
@@ -1272,6 +1319,7 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
         temp_lmp_df = temp_lmp_df.unstack(3)
         temp_lmp_df.columns = temp_lmp_df.columns.get_level_values(1)
         temp_lmp_df['TOT_DART'] = temp_lmp_df['DALMP'] - temp_lmp_df['RTLMP']
+
         try:
             temp_lmp_df['CONG_DART'] = temp_lmp_df['DACONG'] - temp_lmp_df['RTCONG']
             temp_lmp_df['LOSS_DART'] = temp_lmp_df['DALOSS'] - temp_lmp_df['RTLOSS']
@@ -1291,26 +1339,71 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
         temp_trades_df.loc[temp_trades_df['iso']=='SPPISO','iso']='SPP'
         temp_trades_df.loc[temp_trades_df['iso'] == 'NEISO', 'iso'] = 'ISONE'
 
-        temp_trades_df = pd.merge(temp_trades_df,temp_lmp_df, on=['Date','HourEnding','Node Name'])
-        temp_trades_df.set_index(['Date','HourEnding'],drop=True,inplace=True)
-        temp_trades_df['ClearedTrade'] = 1
+        if model_type == 'DART':
+            temp_trades_df = pd.merge(temp_trades_df,temp_lmp_df, on=['Date','HourEnding','Node Name'])
+            temp_trades_df.set_index(['Date', 'HourEnding'], drop=True, inplace=True)
+            temp_trades_df['ClearedTrade'] = 1
 
-        temp_trades_df.loc[(temp_trades_df['Trade Type'] == 'INC') & (temp_trades_df['Bid'] >= temp_trades_df['DALMP']), 'ClearedTrade'] = 0
-        temp_trades_df.loc[(temp_trades_df['Trade Type'] == 'DEC') & (temp_trades_df['Bid'] <= temp_trades_df['DALMP']), 'ClearedTrade'] = 0
+            temp_trades_df.loc[(temp_trades_df['Trade Type'] == 'INC') & (temp_trades_df['Bid'] >= temp_trades_df['DALMP']), 'ClearedTrade'] = 0
+            temp_trades_df.loc[(temp_trades_df['Trade Type'] == 'DEC') & (temp_trades_df['Bid'] <= temp_trades_df['DALMP']), 'ClearedTrade'] = 0
 
-        temp_trades_df['INCDEC_MULT'] = 1
-        temp_trades_df.loc[temp_trades_df['Trade Type']=='DEC','INCDEC_MULT']=-1
+            temp_trades_df['INCDEC_MULT'] = 1
 
+            temp_trades_df.loc[temp_trades_df['Trade Type'] == 'DEC', 'INCDEC_MULT'] = -1
 
-        temp_trades_df['ENERGY_PnL'] = temp_trades_df['ClearedTrade'] * temp_trades_df['MW'] * temp_trades_df['INCDEC_MULT'] * temp_trades_df['ENERGY_DART']
-        temp_trades_df['CONG_PnL'] = temp_trades_df['ClearedTrade'] * temp_trades_df['MW'] * temp_trades_df['INCDEC_MULT'] * temp_trades_df['CONG_DART']
-        temp_trades_df['LOSS_PnL'] = temp_trades_df['ClearedTrade'] * temp_trades_df['MW'] * temp_trades_df['INCDEC_MULT'] * temp_trades_df['LOSS_DART']
-        temp_trades_df['TOT_PnL'] = temp_trades_df['ClearedTrade'] * temp_trades_df['MW'] * temp_trades_df['INCDEC_MULT'] * temp_trades_df['TOT_DART']
-        temp_trades_df['SUCCESS_TRADE'] = 1
-        temp_trades_df.loc[temp_trades_df['TOT_PnL'] < 0, 'SUCCESS_TRADE'] = 0
+            temp_trades_df['ENERGY_PnL'] = temp_trades_df['ClearedTrade'] * temp_trades_df['MW'] * temp_trades_df['INCDEC_MULT'] * temp_trades_df['ENERGY_DART']
+            temp_trades_df['CONG_PnL'] = temp_trades_df['ClearedTrade'] * temp_trades_df['MW'] * temp_trades_df['INCDEC_MULT'] * temp_trades_df['CONG_DART']
+            temp_trades_df['LOSS_PnL'] = temp_trades_df['ClearedTrade'] * temp_trades_df['MW'] * temp_trades_df['INCDEC_MULT'] * temp_trades_df['LOSS_DART']
+            temp_trades_df['TOT_PnL'] = temp_trades_df['ClearedTrade'] * temp_trades_df['MW'] * temp_trades_df['INCDEC_MULT'] * temp_trades_df['TOT_DART']
+            temp_trades_df['SUCCESS_TRADE'] = 1
+            temp_trades_df.loc[temp_trades_df['TOT_PnL'] < 0, 'SUCCESS_TRADE'] = 0
 
-        trades_dict[iso] = temp_trades_df
+            trades_dict[iso] = temp_trades_df
 
+        if model_type == 'SPREAD':
+            source_lmp_df = temp_lmp_df.copy()
+            source_lmp_df.set_index(['Date', 'HourEnding','Node Name'], drop=True, inplace=True)
+            source_lmp_df.columns = [col+'_SOURCE' for col in source_lmp_df.columns]
+            source_lmp_df.reset_index(inplace=True)
+            source_lmp_df.rename(columns={'Node Name': 'Source Name'},inplace=True)
+
+            sink_lmp_df = temp_lmp_df.copy()
+            sink_lmp_df.set_index(['Date', 'HourEnding', 'Node Name'], drop=True, inplace=True)
+            sink_lmp_df.columns = [col + '_SINK' for col in sink_lmp_df.columns]
+            sink_lmp_df.reset_index(inplace=True)
+            sink_lmp_df.rename(columns={'Node Name': 'Sink Name'}, inplace=True)
+
+            source_df = temp_trades_df[['HourEnding','Date', 'Source Name']]
+            sink_df = temp_trades_df[['HourEnding', 'Date', 'Sink Name']]
+
+            source_df = pd.merge(source_df, source_lmp_df, on=['Date', 'HourEnding', 'Source Name'])
+            sink_df = pd.merge(sink_df, sink_lmp_df, on=['Date', 'HourEnding', 'Sink Name'])
+
+            temp_trades_df = pd.merge(temp_trades_df, source_df, on=['Date','HourEnding','Source Name'])
+            temp_trades_df = pd.merge(temp_trades_df, sink_df, on=['Date', 'HourEnding', 'Sink Name'])
+
+            temp_trades_df.set_index(['Date', 'HourEnding'], drop=True, inplace=True)
+
+            temp_trades_df['DALMP_SPREAD'] = temp_trades_df['DALMP_SOURCE'] - temp_trades_df['DALMP_SINK']
+
+            temp_trades_df['TOT_SPREAD'] = temp_trades_df['TOT_DART_SOURCE'] - temp_trades_df['TOT_DART_SINK']
+            temp_trades_df['ENERGY_SPREAD'] = temp_trades_df['ENERGY_DART_SOURCE'] - temp_trades_df['ENERGY_DART_SINK']
+            temp_trades_df['CONG_SPREAD'] = temp_trades_df['CONG_DART_SOURCE'] - temp_trades_df['CONG_DART_SINK']
+            temp_trades_df['LOSS_SPREAD'] = temp_trades_df['LOSS_DART_SOURCE'] - temp_trades_df['LOSS_DART_SINK']
+
+            temp_trades_df['ClearedTrade'] = 1
+
+            temp_trades_df.loc[temp_trades_df['DALMP_SPREAD'] > temp_trades_df['Bid'], 'ClearedTrade'] = 0
+
+            temp_trades_df['ENERGY_PnL'] = temp_trades_df['ClearedTrade'] * temp_trades_df['MW']  * temp_trades_df['ENERGY_SPREAD']
+            temp_trades_df['CONG_PnL'] = temp_trades_df['ClearedTrade'] * temp_trades_df['MW']  * temp_trades_df['CONG_SPREAD']
+            temp_trades_df['LOSS_PnL'] = temp_trades_df['ClearedTrade'] * temp_trades_df['MW']  * temp_trades_df['LOSS_SPREAD']
+            temp_trades_df['TOT_PnL'] = temp_trades_df['ClearedTrade'] * temp_trades_df['MW']  * temp_trades_df['TOT_SPREAD']
+            temp_trades_df['SUCCESS_TRADE'] = 1
+            temp_trades_df.loc[temp_trades_df['TOT_PnL'] < 0, 'SUCCESS_TRADE'] = 0
+            temp_trades_df = temp_trades_df.drop_duplicates()
+
+            trades_dict[iso] = temp_trades_df
 
     if bool(trades_dict) == False:
         print('')
@@ -1331,10 +1424,9 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
         else:
             all_trades_df=pd.concat([all_trades_df,df],axis=0,sort=False)
 
+    all_trades_df.to_csv(save_directory + predict_date_str_mm_dd_yyyy + '_DAILY_PnL_'+model_type+'_' + name_adder + '.csv')
 
-    all_trades_df.to_csv(save_directory + predict_date_str_mm_dd_yyyy + '_DAILY_PnL_' + name_adder + '.csv')
-
-    master_trades_df = pd.read_csv(save_directory+'2020_MASTER_PnL_'+name_adder+'.csv', index_col=['Date','HourEnding'], parse_dates=True)
+    master_trades_df = pd.read_csv(save_directory+'2020_MASTER_PnL_'+model_type+'_'+name_adder+'.csv', index_col=['Date','HourEnding'], parse_dates=True)
     master_trades_df = pd.concat([master_trades_df,all_trades_df],axis=0, sort=True)
     master_trades_df.reset_index(inplace=True)
     master_trades_df.set_index(['Date','HourEnding','Node Name'],inplace=True,drop=True)
@@ -1342,11 +1434,13 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
     master_trades_df.reset_index(inplace=True)
     master_trades_df.set_index(['Date','HourEnding'],inplace=True)
 
-    master_trades_df.to_csv(save_directory+'2020_MASTER_PnL_'+name_adder+'.csv')
+    master_trades_df.to_csv(save_directory+'2020_MASTER_PnL_'+model_type+'_'+name_adder+'.csv')
 
     backtest_start_date = predict_date - datetime.timedelta(days=60)
     backtest_end_date = predict_date + datetime.timedelta(days=30)
     actuals_start_date = predict_date - datetime.timedelta(days=30)
+
+
 
     daily_actuals_dict = {}
     monthly_actuals_dict = {}
@@ -1538,13 +1632,13 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
     iso_compare_df.set_index('ISO', inplace=True)
     iso_compare_df = iso_compare_df[['ActHR','TestHR','%DeltHR','ActMed', 'TestMed', '%DeltMed', 'ActMean', 'TestMean', '%DeltMean', 'MeanProb', 'DistProb']]
 
-    daily_writer = pd.ExcelWriter(save_directory + 'Daily_PnL_Results_'+name_adder+'.xlsx', engine='xlsxwriter')
+    daily_writer = pd.ExcelWriter(save_directory + 'Daily_PnL_Results_'+model_type+'_'+name_adder+'.xlsx', engine='xlsxwriter')
     for iso, df in daily_actuals_dict.items():
         df.to_excel(daily_writer, sheet_name=iso, index=True)
     daily_writer.save()
     daily_writer.close()
 
-    distr_writer = pd.ExcelWriter(save_directory + 'PnL_Distributions_'+name_adder+'.xlsx', engine='xlsxwriter')
+    distr_writer = pd.ExcelWriter(save_directory + 'PnL_Distributions_'+model_type+'_'+name_adder+'.xlsx', engine='xlsxwriter')
     compare_df.to_excel(distr_writer, sheet_name='Nodal', index=True)
     iso_compare_df.to_excel(distr_writer, sheet_name='ISOs', index=True)
     distr_writer.save()
@@ -1564,16 +1658,16 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
                                             iso_compare_df=iso_compare_df,
                                             name_adder=name_adder)
         url = plotly.offline.plot(summary_pnl_fig,
-                                  filename=save_directory + 'SummaryPnL_' + predict_date_str_mm_dd_yyyy + '_'+name_adder +'.html',
+                                  filename=save_directory + 'SummaryPnL_' + predict_date_str_mm_dd_yyyy + '_'+model_type+'_'+name_adder +'.html',
                                   auto_open=True)
 
         daily_pnl_fig = print_daily_pnl(trades_dict=trades_dict,
                                         isos=isos,
                                         date=predict_date_str_mm_dd_yyyy,
                                         name_adder=name_adder)
-        url = plotly.offline.plot(daily_pnl_fig,filename=save_directory + 'DailyPnL_' + predict_date_str_mm_dd_yyyy + '_'+name_adder +'.html',auto_open=True)
+        url = plotly.offline.plot(daily_pnl_fig,filename=save_directory + 'DailyPnL_' + predict_date_str_mm_dd_yyyy + '_'+model_type+'_'+name_adder +'.html',auto_open=True)
 
-    master_trades_df.to_csv(save_directory + '2020_MASTER_PnL_' + name_adder + '_BACKUP.csv')
+    master_trades_df.to_csv(save_directory + '2020_MASTER_PnL_'+model_type +'_'+ name_adder + '_BACKUP.csv')
 
     print('')
     print('Daily PnL Complete For: '+predict_date_str_mm_dd_yyyy)
@@ -2235,7 +2329,7 @@ def print_summary_pnl(isos,daily_actuals_dict,monthly_actuals_dict,yearly_actual
 
     return fig
 
-def print_var(var_dataframes_dict,predict_date_str_mm_dd_yyyy,name_adder):
+def print_var(var_dataframes_dict,predict_date_str_mm_dd_yyyy,name_adder,model_type):
     figures_dict = {}
 
     for type, df in var_dataframes_dict.items():
@@ -2261,10 +2355,10 @@ def print_var(var_dataframes_dict,predict_date_str_mm_dd_yyyy,name_adder):
               [{"type": "table"}],
               [{"type": "table"}]]
 
-    titles = ('<b>'+ name_adder + ' ' + predict_date_str_mm_dd_yyyy + ' Axon Energy 3-Year 90 Day Rolling VAR<b>',
-              '<b>'+ name_adder + ' ' + predict_date_str_mm_dd_yyyy + ' Axon Energy 1-Year VAR<b>',
-              '<b>'+ name_adder + ' ' + predict_date_str_mm_dd_yyyy + ' Axon Energy 2-Year VAR<b>',
-              '<b>'+ name_adder + ' ' + predict_date_str_mm_dd_yyyy + ' Axon Energy 3-Year VAR<b>',
+    titles = ('<b>'+model_type+' '+ name_adder + ' ' + predict_date_str_mm_dd_yyyy + ' Axon Energy 3-Year 90 Day Rolling VAR<b>',
+              '<b>'+model_type+' '+ name_adder + ' ' + predict_date_str_mm_dd_yyyy + ' Axon Energy 1-Year VAR<b>',
+              '<b>'+model_type+' '+ name_adder + ' ' + predict_date_str_mm_dd_yyyy + ' Axon Energy 2-Year VAR<b>',
+              '<b>'+model_type+' '+ name_adder + ' ' + predict_date_str_mm_dd_yyyy + ' Axon Energy 3-Year VAR<b>',
 )
 
     fig = make_subplots(
@@ -2325,6 +2419,8 @@ def create_VAR(preds_dict, VAR_ISOs, daily_trade_file_name, working_directory, s
 
         mw_df = mw_df * trade_type_df
         mw_df.columns = [iso+'_'+col  for col in mw_df.columns]
+        if model_type=='SPREAD':
+            mw_df.columns = [col.split('$')[0]+'$'+iso+'_'+col.split('$')[1] for col in mw_df.columns]
 
         # Combine VAR df and pred df
 
@@ -2430,20 +2526,20 @@ def create_VAR(preds_dict, VAR_ISOs, daily_trade_file_name, working_directory, s
 
     var_fig = print_var(var_dataframes_dict=var_dataframes_dict,
                         predict_date_str_mm_dd_yyyy=predict_date_str_mm_dd_yyyy,
-                        name_adder=name_adder)
+                        name_adder=name_adder,
+                        model_type=model_type)
 
-    var_writer = pd.ExcelWriter(save_directory + 'Daily_VAR_Report_'+predict_date_str_mm_dd_yyyy+'_'+name_adder+'.xlsx', engine='xlsxwriter')
+    var_writer = pd.ExcelWriter(save_directory + 'Daily_VAR_Report_'+predict_date_str_mm_dd_yyyy+'_'+model_type+'_'+name_adder+'.xlsx', engine='xlsxwriter')
 
     for type, df in var_dataframes_dict.items():
         df.to_excel(var_writer, sheet_name=type, index=True)
+
     var_writer.save()
     var_writer.close()
 
 
 
-
-
     url = plotly.offline.plot(var_fig,
-                              filename=save_directory + 'Daily_VAR_Report_' + predict_date_str_mm_dd_yyyy + '_'+name_adder+ '.html',
+                              filename=save_directory + 'Daily_VAR_Report_' + predict_date_str_mm_dd_yyyy + '_'+model_type+'_'+name_adder+ '.html',
                               auto_open=True)
     return

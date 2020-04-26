@@ -82,7 +82,7 @@ for row in trade_handler_df.index:
 
     if do_postprocessing:
         # Write all upload files to same Excel file
-        writer = pd.ExcelWriter(upload_directory + predict_date_str_mm_dd_yyyy + '_UPLOAD_FILES_ALL_' + name_adder + '.xlsx', engine='xlsxwriter',datetime_format='mm/dd/yy')
+        writer = pd.ExcelWriter(upload_directory + predict_date_str_mm_dd_yyyy + '_UPLOAD_FILES_ALL_' + model_type+'_'+ name_adder + '.xlsx', engine='xlsxwriter',datetime_format='mm/dd/yy')
         for iso, upload_df in upload_dfs_dict.items():
             upload_df.to_excel(writer, sheet_name=iso, index=False)
         writer.save()
@@ -95,19 +95,27 @@ for row in trade_handler_df.index:
                              do_printcharts=do_printcharts,
                              name_adder=name_adder,
                              working_directory= working_directory,
-                             static_directory=static_directory)
+                             static_directory=static_directory,
+                             model_type=model_type)
 
     if do_daily_PnL:
         daily_PnL(predict_date_str_mm_dd_yyyy=predict_date_str_mm_dd_yyyy,
                   isos=current_isos,
                   name_adder=name_adder,
-                  working_directory=root_directory,
-                  static_directory=root_directory,
+                  working_directory=working_directory,
+                  static_directory=static_directory,
                   do_printcharts=do_printcharts,
-                  backtest_pnl_filename=backtest_pnl_filename)
+                  backtest_pnl_filename=backtest_pnl_filename,
+                  model_type=model_type,
+                  spread_files_name=spread_files_name)
+
 
 
     if do_VAR:
+        if not do_postprocessing:
+            print('Postprocessing must be done in order to VAR to be run. Please edit the Tradehandler Excel sheet and re-run.')
+            exit()
+
         create_VAR(preds_dict = yes_dfs_dict,
                    VAR_ISOs=VAR_isos,
                    daily_trade_file_name=daily_trade_file_name,

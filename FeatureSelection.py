@@ -18,20 +18,22 @@ working_directory = 'X:\\Research\\'
 # COMMON PARAMETERS
 # input_file_name = '09_11_2019_GBM_DATA_MISO_V8.0_MASTER_159F'                 # Use This If Reading From CSV (Old Method)
 # input_file_type = 'csv'                                                       # Use This If Reading From CSV (Old Method)
-input_file_name = '2020_02_24_BACKTEST_DATA_DICT_MASTER_SPREAD'                        # Use This If Reading From Dictionary (New Method)
+input_file_name = '2020_04_05_BACKTEST_DATA_DICT_MASTER'                        # Use This If Reading From Dictionary (New Method)
 input_file_type = 'dict'                                                        # Use This If Reading From Dictionary
 hypergrid_dict_name = 'RFGridsearchDict_12092019_MISOAll_Master_Dataset_Dict_'  # Name Of Hypergrid File
 all_best_features_filename = 'FeatImport_2020_02_24_BACKTEST_DATA_DICT_MASTER_SPREAD_ONE_YEAR_SD6_PJM' # Name of Feature Importance File
-name_adder = 'ONE_YEAR_ALL_FEATS'                                                                 # Additional Identifier For The Run
+name_adder = ''                                                                 # Additional Identifier For The Run
 add_calculated_features = False                                                 # If True Adds Calcualted Features From A Previous Best Feature Importance Run. Will Error If Matching Non-Calculated Feature Importances Are Not Run First. Used to Determine If Calcualted Features Are Good Or Not
 do_all_feats = False                                                             # dont segregate the features into feature types
 sd_limit = 6                                                                    # SD Limit For Outlier Removal
 gridsearch_iterations = 100                                                      # Gridsearch Iterations
 cv_folds = 4                                                                    # CV Folds For Gridsearch
-train_end_date = datetime.datetime(2020, 8, 24)                                 # Backtest Start Date (If Not Doing Cross Validation)
-train_start_date = datetime.datetime(2010, 3, 19)                                 # Backtest Start Date (If Not Doing Cross Validation)
+
 feat_dict = {'SPR_EAD': 2,'DA_RT': 2, 'FLOAD': 8, 'FTEMP': 24, 'OUTAGE': 4}               # Number Of Top Features To Use If Reading From Dict And Adding Calculated Features
-iso_list = ['PJM']
+
+train_end_date = datetime.datetime(int(input_file_name.split(sep='_')[0]),int(input_file_name.split(sep='_')[1]),int(input_file_name.split(sep='_')[2]))
+vintage_dict = {'ONE_YEAR':train_end_date-datetime.timedelta(days=365*1), 'THREE_YEAR':train_end_date-datetime.timedelta(days=365*3), 'ALL_YEAR':train_end_date-datetime.timedelta(days=365*10)}
+iso_list = ['ERCOT']
 feat_types_list = ['SPR_EAD', 'DA_RT', 'FLOAD','FTEMP','OUTAGE']                            # Feat Types To Run
 run_gridsearch = False                                                          # Do A Gridsearch?
 run_feature_importances = True                                                  # Do Feature Importances?
@@ -131,7 +133,7 @@ def rf_gridsearch(train_df, feat_type, target, cv_folds, gridsearch_iterations, 
 
     return results
 
-def do_top_features(input_filename, save_name, iso_list, feat_dict, hypergrid_dict_name, feat_types_list, input_file_type, sd_limit, train_end_date, add_calculated_features, static_directory,working_directory,train_start_date):
+def do_top_features(input_filename, save_name, iso_list, feat_dict, hypergrid_dict_name, feat_types_list, input_file_type, sd_limit, train_end_date, add_calculated_features, static_directory,working_directory,vintage_dict):
     feature_importance_directory = working_directory + '\FeatureImportanceFiles\\'
     model_data_directory = static_directory + '\ModelUpdateData\\'
     gridsearch_directory = working_directory + '\GridsearchFiles\\'
@@ -139,23 +141,26 @@ def do_top_features(input_filename, save_name, iso_list, feat_dict, hypergrid_di
     # Create Empty Dict to Store Feature Importances
 
 
+
     for iso in iso_list:
-        importances_df = pd.DataFrame(index=range(0, 500, 1))
+
+        importances_df = pd.DataFrame(index=range(0, 1000, 1))
 
         # Read In Input File
         master_df = read_clean_data(input_filename=model_data_directory+input_filename,
                                     input_file_type=input_file_type,
                                     iso=iso)
 
-        train_df = master_df[master_df.index.get_level_values('Date') < train_end_date]
-        train_df = master_df[master_df.index.get_level_values('Date') > train_start_date]
-
         if iso == 'ERCOT':
-            targets_df = train_df[[col for col in train_df.columns if 'SPREAD' in col]]
+            targets_df = master_df[[col for col in master_df.columns if 'SPREAD' in col]]
         else:
-            targets_df = train_df[[col for col in train_df.columns if 'DART' in col]]
+            targets_df = master_df[[col for col in master_df.columns if 'DART' in col]]
 
-        targets_df = train_df[[col for col in targets_df.columns if iso in col]]
+        targets_df = targets_df[[col for col in targets_df.columns if iso in col]]
+
+        tot_feats = len(feat_types_list) * len(targets_df.columns) * len(vintage_dict)
+
+        counter = 0
 
         for target in targets_df.columns:
 
@@ -167,18 +172,18 @@ def do_top_features(input_filename, save_name, iso_list, feat_dict, hypergrid_di
 
                     cat_vars = ['Month', 'Weekday']
 
-                    feature_df = create_features(input_df=train_df,
+                    feature_df = create_features(input_df=master_df,
                                                  feat_dict=feat_dict,
                                                  target_name=target,
                                                  iso=iso.upper(),
                                                  cat_vars = cat_vars,
                                                  static_directory=static_directory,
                                                  all_best_features_df=all_best_features_df)
-                else: feature_df=train_df
+                else: feature_df=master_df
 
             elif input_file_type.upper() == 'CSV':
-                target_col = train_df[target]
-                feature_df = train_df[[col for col in train_df if 'DART' not in col]]
+                target_col = targets_df[target]
+                feature_df = targets_df[[col for col in targets_df if 'DART' not in col]]
                 feature_df = pd.concat([feature_df,target_col],axis=1)
 
             # Remove Outliers
@@ -190,41 +195,63 @@ def do_top_features(input_filename, save_name, iso_list, feat_dict, hypergrid_di
             # Iterate Through All Feature Types and get best features for each
             for feat_type in feat_types_list:
 
-                #Use generic hypergrid from this file (below) to run
-                params = param_grid_backtest
+                vintage_df = pd.DataFrame()
 
-                # # Read Hypergrid From Dictionary
-                # hypergrid_dict = load_obj(gridsearch_directory+hypergrid_dict_name)
-                # hypergrid_df = hypergrid_dict[iso+'_'+feat_type]
-                # params = hypergrid_df['params'].iloc[0]
+                for vintage_string, train_start_date in vintage_dict.items():
 
-                # # Read Hypergrid From file (Used If Non-Top Params Are Much Faster But Not More Accurage
-                # hypergrid_df = pd.read_csv(gridsearch_directory+'RFGridsearch_12092019_MISOAll_Master_Dataset_Dict__MISO_'+feat_type+'.csv')
-                # params = hypergrid_df['params'].iloc[0]
-                # params = literal_eval(params)
+                    train_df = feature_df[feature_df.index.get_level_values('Date') < train_end_date]
+                    train_df = train_df[train_df.index.get_level_values('Date') > train_start_date]
 
-                if do_all_feats:
-                    x_train_df = feature_df[[col for col in feature_df.columns if (('DART' not in col)&('SPREAD'not in col))]]
-                    # x_train_df = pd.get_dummies(x_train_df,columns=['Month','Weekday'])
-                elif feat_type == 'OUTAGE':
-                    x_train_df = feature_df[[col for col in feature_df.columns if(('DA_RT' not in col) & ('FLOAD' not in col) & ('FTEMP' not in col) & ('DART' not in col) & ('Weekday' not in col) & ('Month' not in col) & ('HourEnding' not in col)&('SPREAD' not in col)&('SPR_EAD' not in col))]]
-                else:
-                    x_train_df = feature_df[[col for col in feature_df.columns if feat_type in col]]
+                    #Use generic hypergrid from this file (below) to run
+                    params = param_grid_backtest
 
-                y_train_df = feature_df[target]
-                feat_names = x_train_df.columns
+                    # # Read Hypergrid From Dictionary
+                    # hypergrid_dict = load_obj(gridsearch_directory+hypergrid_dict_name)
+                    # hypergrid_df = hypergrid_dict[iso+'_'+feat_type]
+                    # params = hypergrid_df['params'].iloc[0]
 
-                # Train Feature importances for Each Feature Type In The List
-                rf = RandomForestRegressor(**params, n_jobs=-1)
+                    # # Read Hypergrid From file (Used If Non-Top Params Are Much Faster But Not More Accurage
+                    # hypergrid_df = pd.read_csv(gridsearch_directory+'RFGridsearch_12092019_MISOAll_Master_Dataset_Dict__MISO_'+feat_type+'.csv')
+                    # params = hypergrid_df['params'].iloc[0]
+                    # params = literal_eval(params)
 
-                print('Creating Importances For Target: ' +target+' ISO: '+iso+' FeatType: '+feat_type+'  NumFeats: ' +str(len(x_train_df.columns)))
+                    if do_all_feats:
+                        x_train_df = train_df[[col for col in train_df.columns if (('DART' not in col)&('SPREAD'not in col))]]
+                        # x_train_df = pd.get_dummies(x_train_df,columns=['Month','Weekday'])
+                    elif feat_type == 'OUTAGE':
+                        x_train_df = train_df[[col for col in train_df.columns if(('DA_RT' not in col) & ('FLOAD' not in col) & ('FTEMP' not in col) & ('DART' not in col) & ('Weekday' not in col) & ('Month' not in col) & ('HourEnding' not in col)&('SPREAD' not in col)&('SPR_EAD' not in col))]]
+                    else:
+                        x_train_df = train_df[[col for col in train_df.columns if feat_type in col]]
 
-                rf.fit(x_train_df, y_train_df.values.ravel())
 
-                importances = sorted(zip(map(lambda x: round(x, 4), rf.feature_importances_), feat_names), reverse=True)
+                    y_train_df = train_df[target]
+                    feat_names = x_train_df.columns
+
+                    # Train Feature importances for Each Feature Type In The List
+                    rf = RandomForestRegressor(**params, n_jobs=-1)
+
+                    print('Creating ' + vintage_string+ ' Importances For Target: ' +target+'  |  ISO: '+iso+'  |  FeatType: '+feat_type+'  |  NumFeats: ' +str(len(x_train_df.columns)) + '  |  % Complete:'+  str(round(counter/tot_feats*100,2)))
+
+                    rf.fit(x_train_df, y_train_df.values.ravel())
+
+                    counter +=1
+
+                    if vintage_df.empty:
+                        vintage_df = pd.DataFrame(rf.feature_importances_, index=feat_names)
+                        vintage_df.columns = [vintage_string]
+                    else:
+                        temp_df = pd.DataFrame(rf.feature_importances_, index=feat_names)
+                        temp_df.columns = [vintage_string]
+                        vintage_df = pd.concat([vintage_df, temp_df], axis=1)
+
+                vintage_df['Average'] = vintage_df.mean(axis=1)
+
+                importances = sorted(zip(map(lambda x: round(x, 4), vintage_df['Average']), vintage_df.index), reverse=True)
                 importances_df[iso+'_'+feat_type+'_'+target] = pd.Series(importances)
-                importances_df.to_csv(feature_importance_directory+'FeatImport_' + save_name + '_SD'+ str(sd_limit)+'_'+iso+'.csv',index=False)
+                importances_df.to_csv(feature_importance_directory+'FeatImport_' + save_name + '_SD'+ str(sd_limit)+'_'+iso + '.csv',index=False)
 
+def combine_feature_vintages(filenames_dict):
+    pass
 
 
 ######################################################################################################
@@ -302,6 +329,6 @@ if run_feature_importances:
                     add_calculated_features=add_calculated_features,
                     static_directory=static_directory,
                     working_directory=working_directory,
-                    train_start_date=train_start_date)
+                    vintage_dict=vintage_dict)
 
 

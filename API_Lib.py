@@ -37,7 +37,7 @@ def load_obj(file_name):
         print('File Does Not Exist')
 
 
-def get_spreads(input_dict, spread_locs_df=None, daily_pred=False):
+def get_spreads(input_dict, spread_locs_df=None, daily_pred=False, PnL=False):
     df = pd.DataFrame(columns=['Spread','Corr'])
 
     # Get EST frame
@@ -81,8 +81,13 @@ def get_spreads(input_dict, spread_locs_df=None, daily_pred=False):
             print('Remaining Nodes in ' + iso + ':' + str(len([col for col in input_df.columns if iso in col])))
 
     # Load the DARTs used in the initial model update datapull so that 10,000,0000,00000000 spreads arent calced
+
     if daily_pred==True:
-        input_df = input_df[spread_locs_df.columns]
+        try:
+            input_df = input_df[spread_locs_df.columns]
+        except:
+            print('YES Pricetable is missing a nodes in the model. Make sure that the YES LMP collection is updated')
+            exit()
 
 
     # Construct spreads from least correlated DARTs
@@ -97,16 +102,84 @@ def get_spreads(input_dict, spread_locs_df=None, daily_pred=False):
                     spread_df[(source_name+'$'+sink_name+'_SPREAD').replace('_DART','')] = temp_df[source_name]-temp_df[sink_name]
         input_dict[timezone]=spread_df
 
-
     if daily_pred:
         # Lag spreads using 16-40 function
-        input_dict = lag_data16_40(input_dict=input_dict,
-                                   col_type='SPREAD',
-                                   return_only_lagged=True)
+        if PnL==False:
+            input_dict = lag_data16_40(input_dict=input_dict,
+                                       col_type='SPREAD',
+                                       return_only_lagged=True)
+        else:
+            input_dict = lag_data16_40(input_dict=input_dict,
+                                       col_type='SPREAD',
+                                       return_only_lagged=False)
     else:
         input_dict = lag_data16_40(input_dict=input_dict,
                                    col_type='SPREAD',
                                    return_only_lagged=False)
+
+    return input_dict, input_df
+
+
+def get_iso_spreads(input_dict, spread_locs_df=None, daily_pred=False, PnL=False):
+    df = pd.DataFrame(columns=['Spread','Corr'])
+
+    # Get EST frame
+    orig_df = input_dict['EST']
+    orig_df = orig_df.astype('float')
+
+    # Run correlations on each ISO and drop all but top X DARTs - highly negative correlated
+    input_df = orig_df[[col for col in orig_df.columns if (('DART' in col) & ('LAG' not in col))]].copy()
+
+    # Load the DARTs used in the original spread datapull
+
+    input_df = input_df[spread_locs_df.columns]
+
+    if daily_pred == False:
+        # Get least correlated DARTs to construct spreads out of
+        corr_cutoff_perc = 0.35
+
+        temp_df = input_df.dropna(axis=0)
+        correlated_features = set()
+        print('Running Corr Matrix Inter-ISO')
+        corr_matrix = temp_df.corr()
+        orig_cols = max(len(temp_df.columns), 0.00001)
+        for i in range(len(corr_matrix.columns)):
+            for j in range(i):
+                if corr_matrix.iloc[i, j] > corr_cutoff_perc:
+                     colname = corr_matrix.columns[i]
+                     correlated_features.add(colname)
+        input_df.drop(columns=correlated_features, inplace=True)
+        print(' Dropped ' + str(len(correlated_features)) + ' (' + str(round(100 * len(correlated_features) / orig_cols, 0)) + '%) correlated (>' + str(corr_cutoff_perc) + '%'') DART locations.')
+
+        print('Remaining Nodes:' + str(len([col for col in input_df.columns])))
+
+
+    # Construct spreads from least correlated DARTs
+
+    for timezone, spread_df in input_dict.items():
+        for source_col_num in range(len(input_df.columns)):
+            source_name = input_df.columns[source_col_num]
+            for sink_col_num in range(source_col_num+1,len(input_df.columns),1):
+                sink_name = input_df.columns[sink_col_num]
+                spread_df[(source_name+'$'+sink_name+'_ISOXFER').replace('_DART','')] = input_df[source_name]-input_df[sink_name]
+
+        input_dict[timezone]=spread_df
+
+    if daily_pred:
+        # Lag spreads using 16-40 function
+        if PnL==False:
+            input_dict = lag_data16_40(input_dict=input_dict,
+                                       col_type='ISOXFER',
+                                       return_only_lagged=True)
+        else:
+            input_dict = lag_data16_40(input_dict=input_dict,
+                                       col_type='ISOXFER',
+                                       return_only_lagged=False)
+    else:
+        input_dict = lag_data16_40(input_dict=input_dict,
+                                   col_type='ISOXFER',
+                                   return_only_lagged=False)
+
 
     return input_dict, input_df
 
@@ -321,12 +394,14 @@ def lag_data16_40(input_dict, col_type='DART', return_only_lagged = False):
         temp_df.loc[temp_df['HourEnding']<=8, 'Date'] = temp_df['Date'] + datetime.timedelta(days=1)
         temp_df.loc[temp_df['HourEnding']> 8, 'Date'] = temp_df['Date'] + datetime.timedelta(days=2)
         temp_df.set_index(['Date', 'HourEnding'],inplace=True, drop=-True)
-        temp_df.columns = [col.replace('DART','DA_RT').replace('_SPREAD','_SPR_EAD')+'_LAG' for col in temp_df.columns]
+        temp_df.columns = [col.replace('DART','DA_RT').replace('_SPREAD','_SPR_EAD').replace('_ISOXFER','_SPR_EAD')+'_LAG' for col in temp_df.columns]
 
         if return_only_lagged:
             input_dict[timezone] = temp_df.sort_values(by=['Date', 'HourEnding'], ascending=True)
         else:
-            output_df = dataframe.join(temp_df, how='inner', rsuffix='DELETE').sort_values(by=['Date','HourEnding'],ascending=True)
+            output_df = dataframe.join(temp_df, how='outer', rsuffix='DELETE').sort_values(by=['Date','HourEnding'],ascending=True)
+            output_df = output_df[[col for col in output_df.columns if 'DELETE' not in col]]
+            output_df = output_df[[col for col in output_df.columns if 'ISOXFER' not in col]]
             input_dict[timezone] = output_df
 
     return input_dict
@@ -488,7 +563,11 @@ def format_pricetable_df(pricetable_df, date, dart_only,node_alt_names_dict):
     pricetable_df['ISO'] = pricetable_df['ISO'].replace('SPPISO', 'SPP')
     pricetable_df['ISO'] = pricetable_df['ISO'].replace('PJMISO', 'PJM')
     pricetable_df['Node'] = pricetable_df['ISO'] + '_' + pricetable_df['Node']
-    pricetable_df['Node'] = pricetable_df['Node'].apply(lambda node: node_alt_names_dict[node])
+    try:
+        pricetable_df['Node'] = pricetable_df['Node'].apply(lambda node: node_alt_names_dict[node])
+    except:
+        print('NodeAlternateNames file needs to be updated. Node in pricetable does not have an alternate name on file!')
+        exit()
     pricetable_df['Node'] = pricetable_df['Node'] + '_'+pricetable_df['Stat']
     pricetable_df = pricetable_df.drop(columns=['ISO','Stat'])
     pricetable_df.set_index('Node',inplace=True)
@@ -2108,11 +2187,16 @@ def get_ISO_api_data(start_date, end_date, previous_data_dict_name, concat_old_d
 
     save_obj(output_dict_dataframes, input_files_directory+dict_save_name+'_DICT_RAW')
 
+    output_dict_dataframes=load_obj(input_files_directory+'2020_03_27_BACKTEST_DATA_DICT_RAW')
+
     post_process_dict = post_process_backtest_data(input_dict=output_dict_dataframes,
                                                    static_directory=static_directory)
 
-    # Get Spreads
+    #Get Spreads
     spread_dict, spread_locs_df = get_spreads(input_dict=post_process_dict)
+    spread_dict, iso_spread_locs_df = get_iso_spreads(input_dict=spread_dict, spread_locs_df=spread_locs_df)
+
+    # COMBINE ISO AND REGULAR SPREAD DICTS and save
     save_obj(spread_locs_df.head(48),input_files_directory + dict_save_name+'_SPREAD_DART_LOCS')
 
 
@@ -2292,26 +2376,36 @@ def get_daily_input_data(predict_date_str_mm_dd_yyyy, working_directory, static_
     file_name = predict_date_str_mm_dd_yyyy + '_DAILY_INPUT_YES_PRICE_TABLE_T-XDAY'
     print('Processing YES PriceTable File: ' + file_name)
 
-    try:
-        yes_pricetable_dict = process_YES_daily_price_tables(predict_date=predict_date,
-                                                             input_timezone = 'CPT',
-                                                             working_directory=working_directory,
-                                                             dart_only=True)
-    except:
-        print('ERROR: YES PriceTable File Error. Check Start and End Dates In YES File Download')
-        exit()
+    #try:
+    yes_pricetable_dict = process_YES_daily_price_tables(predict_date=predict_date,
+                                                         input_timezone = 'CPT',
+                                                         working_directory=working_directory,
+                                                         dart_only=True)
+    # except:
+    #     print('ERROR: YES PriceTable File Error. Check Start and End Dates In YES File Download')
+    #     exit()
 
     spread_locs_df = load_obj(spread_files_directory+ spread_files_name)
 
     spreads_dict, input_df = get_spreads(input_dict=yes_pricetable_dict.copy(),
                                          spread_locs_df=spread_locs_df,
-                                         daily_pred=True)
+                                         daily_pred=True,
+                                         PnL=True)
 
+
+    spreads_dict, iso_input_df = get_iso_spreads(input_dict=spreads_dict.copy(),
+                                                 spread_locs_df=input_df,
+                                                 daily_pred=True,
+                                                 PnL=True)
+
+    for timezone, spread_df in spreads_dict.items():
+        spreads_dict[timezone] = spread_df[[col for col in spread_df.columns if 'SPR_EAD' in col]]
 
 
     ### LAG DART DATA
     yes_pricetable_dict = lag_data16_40(input_dict=yes_pricetable_dict.copy(),
                                         return_only_lagged=True)
+
 
 
     ### CONCAT ALL DATA INTO ONE DICTIONARY
@@ -2450,6 +2544,8 @@ def create_max_min_limits(input_dict):
     max_min_df['DART?'] = 'NO'
     max_min_df.loc[(max_min_df['FeatureName'].str.contains('DA_RT')),'Action']='Ignore'
     max_min_df.loc[(max_min_df['FeatureName'].str.contains('DART')), 'Action'] = 'Ignore'
+    max_min_df.loc[(max_min_df['FeatureName'].str.contains('SPREAD')), 'Action'] = 'Ignore'
+    max_min_df.loc[(max_min_df['FeatureName'].str.contains('SPR_EAD')), 'Action'] = 'Ignore'
     max_min_df.loc[(max_min_df['FeatureName'].str.contains('MISO_')), 'ISO'] = 'MISO'
     max_min_df.loc[(max_min_df['FeatureName'].str.contains('PJM_')), 'ISO'] = 'PJM'
     max_min_df.loc[(max_min_df['FeatureName'].str.contains('SPP_')), 'ISO'] = 'SPP'
