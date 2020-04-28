@@ -1270,20 +1270,51 @@ def create_trade_file(input_mw_df, iso , all_ISOs_variables_df, working_director
 
     #Format upload files for DART models
     if model_type=='DART':
-        yes_df = trades_tall_df[['Node ID','Node Name','Trade Type','Bookname','iso','targetdate','portfolioname','Hour','MW','Bid']]
+        yes_df = trades_tall_df[['Node ID','Node Name','Trade Type','Bookname','iso','targetdate','portfolioname','Hour','MW','Bid']].copy()
 
         if iso == 'NEISO':
-            upload_df = trades_tall_df[['targetdate', 'Node Name', 'Trade Type', 'BidSegment', 'Hour', 'MW', 'Bid', 'Node ID']]
+            upload_df = trades_tall_df[['targetdate', 'Node Name', 'Trade Type', 'BidSegment', 'Hour', 'MW', 'Bid', 'Node ID']].copy()
         elif iso == 'PJM':
-            upload_df = trades_tall_df[['targetdate', 'Node Name', 'Trade Type', 'BidSegment', 'Hour','MW','Bid']]
+            upload_df = trades_tall_df[['targetdate', 'Node Name', 'Trade Type', 'BidSegment', 'Hour','MW','Bid']].copy()
         else:
-            upload_df = trades_tall_df[['targetdate', 'Node ID', 'Trade Type', 'BidSegment', 'Hour','MW','Bid']]
+            upload_df = trades_tall_df[['targetdate', 'Node ID', 'Trade Type', 'BidSegment', 'Hour','MW','Bid']].copy()
 
 
     # Format upload files for SPREAD models
     elif model_type == 'SPREAD':
-        yes_df = trades_tall_df[['Orig Source ID','Orig Sink ID','Node Name','Node ID', 'Source ID', 'Sink ID', 'Source Name', 'Sink Name', 'Trade Type', 'Bookname', 'iso', 'targetdate', 'portfolioname', 'Hour', 'MW','Bid']]
-        upload_df = yes_df
+
+        trades_tall_df['BidSegment']=2
+
+        if iso == 'ERCOT':    ### Actual spread
+            yes_df = trades_tall_df[['Orig Source ID','Orig Sink ID','Node Name','Node ID', 'Source ID', 'Sink ID', 'Source Name', 'Sink Name', 'Trade Type', 'Bookname', 'iso', 'targetdate', 'portfolioname', 'Hour', 'MW','Bid','BidSegment']].copy()
+            upload_df = yes_df
+
+        else: ### Syntehtic Spread
+
+            sources_df = trades_tall_df[['Source ID','Source Name','Trade Type','Bookname','iso','targetdate','portfolioname','Hour','MW','Bid','BidSegment']].copy()
+            sinks_df = trades_tall_df[['Sink ID', 'Sink Name', 'Trade Type', 'Bookname', 'iso', 'targetdate', 'portfolioname', 'Hour','MW', 'Bid','BidSegment']].copy()
+            sources_df['Trade Type'] = 'INC'
+            sinks_df['Trade Type'] = 'DEC'
+
+            sources_df['Bid'] = -9999  ### Synthetic spreads must clear
+            sinks_df['Bid'] = 9999  ### Synthetic spreads must clear
+
+            sources_df.rename(columns={'Source ID':'Node ID', 'Source Name':'Node Name'},inplace=True)
+            sinks_df.rename(columns={'Sink ID': 'Node ID', 'Sink Name': 'Node Name'}, inplace=True)
+            yes_df = pd.concat([sources_df, sinks_df], axis=0)
+
+            yes_df = yes_df.groupby(['Node ID', 'Node Name', 'Trade Type', 'Bookname', 'iso', 'targetdate', 'portfolioname', 'Hour','Bid', 'BidSegment']).sum()
+            yes_df.reset_index(inplace=True)
+
+            if iso == 'NEISO':
+                upload_df = yes_df[['targetdate', 'Node Name', 'Trade Type', 'BidSegment', 'Hour', 'MW', 'Bid', 'Node ID']].copy()
+            elif iso == 'PJM':
+                upload_df = yes_df[['targetdate', 'Node Name', 'Trade Type', 'BidSegment', 'Hour', 'MW', 'Bid']].copy()
+            else:
+                upload_df = yes_df[['targetdate', 'Node ID', 'Trade Type', 'BidSegment', 'Hour', 'MW', 'Bid']].copy()
+
+            yes_df.drop(columns=['BidSegment'],inplace=True)
+
 
 
     return yes_df, upload_df
