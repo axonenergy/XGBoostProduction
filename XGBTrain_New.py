@@ -34,22 +34,24 @@ working_directory = 'X:\\Research\\'
 input_file_name = '2020_04_05_BACKTEST_DATA_DICT_MASTER'               # Use This If Reading From Dictionary (New Method)
 input_file_type = 'dict'                                             # Use This If Reading From Dictionary (New Method)
 cat_vars = ['Month','Weekday']                                       # Categorial Variables
-iso = 'MISO'                                                          # ISO to Backtest
+iso = 'ISONE'                                                          # ISO to Backtest
 
 
 all_best_features_filename = 'FeatImport_2020_04_05_BACKTEST_DATA_DICT_MASTER__SD6_ALL'  # Name of Feature Importance File
 
-name_adder = ''                                                        # Additional Identifier For The Run
+name_adder = 'SPREAD'                                                        # Additional Identifier For The Run
 feat_dicts = {}
-feat_dicts[''] = {'SPR_EAD': 8, 'DA_RT': 8, 'FLOAD': 12, 'FTEMP': 28,'OUTAGE': 6}  # Number Of Top Features To Use If Reading From Dict
+feat_dicts[''] = {'SPR_EAD': 4, 'DA_RT': 4, 'FLOAD': 12, 'FTEMP': 12,'OUTAGE': 6}  # Number Of Top Features To Use If Reading From Dict
 
 
 
-run_reverse = True
-if iso == 'ERCOT':
-    model_type = 'SPREAD'  # Options are DART or SPREAD
-else:
-    model_type = 'DART'  # Options are DART or SPREAD
+run_reverse = False
+# if iso == 'ERCOT':
+#     model_type = 'SPREAD'  # Options are DART or SPREAD
+# else:
+#     model_type = 'DART'  # Options are DART or SPREAD
+
+model_type = 'SPREAD'  # Options are DART or SPREAD
 
 run_gridsearch = False                                                # Do A Gridsearch?
 run_backtest = True                                                    # Do A Backtest?
@@ -80,37 +82,28 @@ gridsearch_cv_folds = 4                                                       # 
 
 hypergrid_dict_name=''
 
+
+###Tier2 Parameters
 if iso == 'MISO':
     tier2_backtest_filename = 'Backtest_Exps_2020_02_24_BACKTEST_DATA_DICT_MASTER_MISO_EXP20_'
     tier2_PnL_filename = 'PnL_Results_Backtest_2020_02_24_BACKTEST_DATA_DICT_MASTER_MISO_EXP20__SD10001.25_notcapped_'
     tier2_hypergrid_name = 'Gridsearch_Tier2__Backtest_Exps_2020_02_24_BACKTEST_DATA_DICT_MASTER_PJM_EXP20__PJM_1048034_DART_Tier2Target'
-    feat_dict = {'SPR_EAD': 8, 'DA_RT': 8, 'FLOAD': 12, 'FTEMP': 28,'OUTAGE': 6}  # Number Of Top Features To Use If Reading From Dict
-    gridsearch_feat_dict=feat_dict
 elif iso == 'PJM':
     tier2_backtest_filename = 'Backtest_Exps_2020_02_24_BACKTEST_DATA_DICT_MASTER_PJM_EXP20_'
     tier2_PnL_filename = 'PnL_Results_Backtest_2020_02_24_BACKTEST_DATA_DICT_MASTER_PJM_EXP20__SD10000.75_notcapped_'
     tier2_hypergrid_name = 'Gridsearch_Tier2__Backtest_Exps_2020_02_24_BACKTEST_DATA_DICT_MASTER_PJM_EXP20__PJM_1048034_DART_Tier2Target'
-    feat_dict = {'SPR_EAD': 2, 'DA_RT': 8, 'FLOAD': 10, 'FTEMP': 28,'OUTAGE': 4}  # Number Of Top Features To Use If Reading From Dict
-    gridsearch_feat_dict=feat_dict
 elif iso == 'SPP':
     tier2_backtest_filename = 'Backtest_Exps_2020_02_24_BACKTEST_DATA_DICT_MASTER_SPP_EXP20_'
     tier2_PnL_filename = 'PnL_Results_Backtest_2020_02_24_BACKTEST_DATA_DICT_MASTER_SPP_EXP20__SD10001.0_notcapped_'
     tier2_hypergrid_name = 'Gridsearch_Tier2__Backtest_Exps_2020_02_24_BACKTEST_DATA_DICT_MASTER_PJM_EXP20__PJM_1048034_DART_Tier2Target'
-    feat_dict = {'SPR_EAD': 6, 'DA_RT': 6, 'FLOAD': 8, 'FTEMP': 24,'OUTAGE': 8}  # Number Of Top Features To Use If Reading From Dict
-    gridsearch_feat_dict=feat_dict
 elif iso == 'ERCOT':
     tier2_backtest_filename = 'Backtest_Exps_2020_02_24_BACKTEST_DATA_DICT_MASTER_ERCOT_EXP20_'
     tier2_PnL_filename = 'PnL_Results_Backtest_2020_02_24_BACKTEST_DATA_DICT_MASTER_ERCOT_EXP20__SD10001.0_notcapped_'
     tier2_hypergrid_name = 'Gridsearch_Tier2__Backtest_Exps_2020_02_24_BACKTEST_DATA_DICT_MASTER_PJM_EXP20__PJM_1048034_DART_Tier2Target'
-    feat_dict = {'SPR_EAD': 6, 'DA_RT': 4, 'FLOAD': 8, 'FTEMP': 20,'OUTAGE': 4}  # Number Of Top Features To Use If Reading From Dict
-    gridsearch_feat_dict=feat_dict
 elif iso == 'ISONE':
     tier2_backtest_filename = 'Backtest_Exps_2020_02_24_BACKTEST_DATA_DICT_MASTER_ISONE_EXP20_'
     tier2_PnL_filename = 'PnL_Results_Backtest_2020_02_24_BACKTEST_DATA_DICT_MASTER_ISONE_EXP20__SD10001.25_notcapped_'
     tier2_hypergrid_name = 'Gridsearch_Tier2__Backtest_Exps_2020_02_24_BACKTEST_DATA_DICT_MASTER_PJM_EXP20__PJM_1048034_DART_Tier2Target'
-    feat_dict = {'SPR_EAD': 2, 'DA_RT': 2, 'FLOAD': 10, 'FTEMP': 16,'OUTAGE': 8}  # Number Of Top Features To Use If Reading From Dict
-    gridsearch_feat_dict=feat_dict
-
 
 tier2_cat_vars = []
 tier2_dart_sd_location_filter = 'SD1000'
@@ -128,22 +121,60 @@ tier2_gridsearch_iterations = 100000
 
 if input_file_type.upper() == 'DICT':
     if iso=='PJM':
-        hypergrid_name = 'Gridsearch_2020_04_05_BACKTEST_DATA_DICT_MASTER_PJM_SD1000_DART_revisedfeats1__PJM_50390_DART' #Filename of Stored Hypergrid From Gridsearch
-        hypergrid_dict_name = 'GridsearchDict_2020_04_05_BACKTEST_DATA_DICT_MASTER_PJM_SD1000_DART_revisedfeats1_'
+        if model_type=='DART':
+            hypergrid_name = 'Gridsearch_2020_04_05_BACKTEST_DATA_DICT_MASTER_PJM_SD1000_DART_revisedfeats1__PJM_50390_DART' #Filename of Stored Hypergrid From Gridsearch
+            hypergrid_dict_name = 'GridsearchDict_2020_04_05_BACKTEST_DATA_DICT_MASTER_PJM_SD1000_DART_revisedfeats1_'
+            feat_dict = {'SPR_EAD': 2, 'DA_RT': 2, 'FLOAD': 8, 'FTEMP': 24,'OUTAGE': 4}
+        elif model_type=='SPREAD':
+            hypergrid_name = 'Gridsearch_2020_04_05_BACKTEST_DATA_DICT_MASTER_PJM_SD1000_SPREAD___PJM_1048034$PJM_1048035_SPREAD'  # Filename of Stored Hypergrid From Gridsearch
+            feat_dict = {'SPR_EAD': 6, 'DA_RT': 8, 'FLOAD': 8, 'FTEMP': 28, 'OUTAGE': 6}
+
     elif iso=='MISO':
-        hypergrid_name = 'Gridsearch_2020_04_05_BACKTEST_DATA_DICT_MASTER_MISO_SD1000_DART___MISO_AECI.ALTW_DART' #Filename of Stored Hypergrid From Gridsearch
-        hypergrid_dict_name = 'GridsearchDict_2020_04_05_BACKTEST_DATA_DICT_MASTER_MISO_SD1000_DART__'
+        if model_type == 'DART':
+            hypergrid_name = 'Gridsearch_2020_04_05_BACKTEST_DATA_DICT_MASTER_MISO_SD1000_DART___MISO_AECI.ALTW_DART' #Filename of Stored Hypergrid From Gridsearch
+            hypergrid_dict_name = 'GridsearchDict_2020_04_05_BACKTEST_DATA_DICT_MASTER_MISO_SD1000_DART__'
+            feat_dict = {'SPR_EAD': 6, 'DA_RT': 6, 'FLOAD': 8, 'FTEMP': 28, 'OUTAGE': 8}
+        elif model_type == 'SPREAD':
+            hypergrid_name = 'Gridsearch_2020_04_05_BACKTEST_DATA_DICT_MASTER_MISO_SD1000_SPREAD___MISO_AECI.ALTW$MISO_AECI.AMMO_SPREAD'  # Filename of Stored Hypergrid From Gridsearch
+            feat_dict = {'SPR_EAD': 8, 'DA_RT': 6, 'FLOAD': 14, 'FTEMP': 24, 'OUTAGE': 4}
+
     elif iso == 'SPP':
-        hypergrid_name = 'Gridsearch_2020_04_05_BACKTEST_DATA_DICT_MASTER_SPP_SD1000_DART___SPP_AECC_CSWS_DART'  # Filename of Stored Hypergrid From Gridsearch
+        if model_type == 'DART':
+            hypergrid_name = 'Gridsearch_2020_04_05_BACKTEST_DATA_DICT_MASTER_SPP_SD1000_DART___SPP_AECC_CSWS_DART'  # Filename of Stored Hypergrid From Gridsearch
+            feat_dict = {'SPR_EAD': 2, 'DA_RT': 2, 'FLOAD': 10, 'FTEMP': 28, 'OUTAGE': 10}
+        elif model_type == 'SPREAD':
+            hypergrid_name = ''  # Filename of Stored Hypergrid From Gridsearch
+            feat_dict = {'SPR_EAD': 0, 'DA_RT': 0, 'FLOAD': 0, 'FTEMP': 0, 'OUTAGE': 0}
+
     elif iso == 'ERCOT':
-        hypergrid_name = 'Gridsearch_2020_04_05_BACKTEST_DATA_DICT_MASTER_ERCOT_SD1000_SPREAD___ERCOT_HB_HOUSTON$ERCOT_DC_R_SPREAD'  # Filename of Stored Hypergrid From Gridsearch
+        if model_type == 'DART':
+            hypergrid_name = 'Gridsearch_2020_01_05_BACKTEST_DATA_DICT_MASTER_ERCOT_SD1000__ERCOT_AMISTAD_ALL_DART'  # Filename of Stored Hypergrid From Gridsearch
+            feat_dict = {'SPR_EAD': 4, 'DA_RT': 4, 'FLOAD': 8, 'FTEMP': 24, 'OUTAGE': 4}
+        elif model_type == 'SPREAD':
+            hypergrid_name = 'Gridsearch_2020_04_05_BACKTEST_DATA_DICT_MASTER_ERCOT_SD1000_SPREAD___ERCOT_HB_HOUSTON$ERCOT_DC_R_SPREAD'  # Filename of Stored Hypergrid From Gridsearch
+            feat_dict = {'SPR_EAD': 4, 'DA_RT': 4, 'FLOAD': 8, 'FTEMP': 24, 'OUTAGE': 4}
+
     elif iso == 'ISONE':
-        hypergrid_name = 'Gridsearch_2020_02_24_BACKTEST_DATA_DICT_MASTER_SPREAD_ISONE_SD1000_DART_revisedfeats1__ISONE_10033_DART'  # Filename of Stored Hypergrid From Gridsearch
+        if model_type == 'DART':
+            hypergrid_name = 'Gridsearch_2020_02_24_BACKTEST_DATA_DICT_MASTER_SPREAD_ISONE_SD1000_DART_revisedfeats1__ISONE_10033_DART'  # Filename of Stored Hypergrid From Gridsearch
+            feat_dict = {'SPR_EAD': 2, 'DA_RT': 2, 'FLOAD': 10, 'FTEMP': 16, 'OUTAGE': 8}
+        elif model_type == 'SPREAD':
+            hypergrid_name = 'Gridsearch_2020_04_05_BACKTEST_DATA_DICT_MASTER_ISONE_SD1000_SPREAD_SPREAD__ISONE_10033$ISONE_10037_SPREAD'  # Filename of Stored Hypergrid From Gridsearch
+            feat_dict = {'SPR_EAD': 4, 'DA_RT': 4, 'FLOAD': 12, 'FTEMP': 12, 'OUTAGE': 6}
+
     elif iso == 'NYISO':
-        hypergrid_name = 'Gridsearch_12092019_Master_Nodes_Dataset_Dict_SD6_NYISO_61752_DART'  # Filename of Stored Hypergrid From Gridsearch
+        if model_type == 'DART':
+            hypergrid_name = 'Gridsearch_12092019_Master_Nodes_Dataset_Dict_SD6_NYISO_61752_DART'  # Filename of Stored Hypergrid From Gridsearch
+            feat_dict = {'SPR_EAD': 8, 'DA_RT': 8, 'FLOAD': 12, 'FTEMP': 28, 'OUTAGE': 6}
+        elif model_type == 'SPREAD':
+            hypergrid_name = ''  # Filename of Stored Hypergrid From Gridsearch
+            feat_dict = {'SPR_EAD': 8, 'DA_RT': 8, 'FLOAD': 12, 'FTEMP': 28, 'OUTAGE': 6}
+
     else:
         print('Correct Hypergrid Missing')
         exit()
+
+gridsearch_feat_dict=feat_dict
 
 if input_file_type.upper() == 'CSV':
     if iso=='PJM': hypergrid_name = 'Gridsearch_09_11_2019_GBM_DATA_PJM_V8.0_MASTER_207F_RGrid' #Filename of Stored Hypergrid From Gridsearch
@@ -440,12 +471,12 @@ def do_gridsearch(input_filename, save_name, iso, feat_dict, input_file_type, ca
         'PJM': ['PJM_50390_DART'],
         'MISO':['MISO_AECI.ALTW_DART']}
     elif model_type.upper() =='SPREAD':
-        target_dict = {'ISONE':[''],
+        target_dict = {'ISONE':['ISONE_10033$ISONE_10037_SPREAD'],
         'NYISO':[''],
         'ERCOT':['ERCOT_AMISTAD_ALL$ERCOT_AMOCOOIL_CC1_SPREAD'],
-        'SPP': [''],
-        'PJM': [''],
-        'MISO':['']}
+        'SPP': ['SPP_AECC_CSWS$SPP_AECC_FULTON_SPREAD'],
+        'PJM': ['PJM_1048034$PJM_1048035_SPREAD'],
+        'MISO':['MISO_AECI.ALTW$MISO_AECI.AMMO_SPREAD']}
 
 
     targets = target_dict[iso]

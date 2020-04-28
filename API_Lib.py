@@ -267,6 +267,9 @@ def preprocess_data(input_dict, static_directory):
     print(removed_cols)
     input_df = input_df.drop(columns=removed_cols)
 
+    ###drop nodes that are invalid for bidding
+    drop_nodes_list = ['PJM_32417727_DART', 'PJM_32417735_DART']
+    input_df = input_df.drop(columns=drop_nodes_list, errors='ignore')
 
     ### drop duplicate days (from timechanges)
     input_df = input_df.loc[~input_df.index.duplicated(keep='first')]
@@ -2253,6 +2256,7 @@ def post_process_backtest_data(static_directory,dict_filename=None, input_dict=N
         input_dict = load_obj(input_files_directory+dict_filename)
     else:
         input_dict = input_dict
+
 
     # Preprocess Data (Remove Bad and Missing Data
     input_dict = preprocess_data(input_dict=input_dict,

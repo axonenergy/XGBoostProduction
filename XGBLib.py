@@ -381,7 +381,7 @@ def xgb_gridsearch(train_df, target, cv_folds, iterations, sd_limit, gpu_train, 
     skf = GroupKFold(n_splits=cv_folds)
 
 
-    #XGBOOST TIER 1 GRID PJM
+    #XGBOOST TIER 1 GRID PJM ***DART***
     # param_grid = {'min_child_weight': [2],
     #               'learning_rate': [0.01],
     #               'reg_lambda': [3],
@@ -391,18 +391,18 @@ def xgb_gridsearch(train_df, target, cv_folds, iterations, sd_limit, gpu_train, 
     #               'colsample_bytree': [0.25,0.30,0.35],
     #               'max_depth': [10,12,14]}
 
-    # # XGBOOST TIER 1 GRID MISO
-    param_grid = {'min_child_weight': [2],
-                  'learning_rate': [0.005,0.007],
-                  'reg_lambda': [5],
-                  'reg_alpha' : [0.30], ## doesnt really change much
-                  # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
-                  'subsample': [0.85],
-                  'colsample_bytree': [0.15,0.2],
-                  'max_depth': [14,16]}
+    # # XGBOOST TIER 1 GRID MISO ***DART***
+    # param_grid = {'min_child_weight': [2],
+    #               'learning_rate': [0.005,0.007],
+    #               'reg_lambda': [5],
+    #               'reg_alpha' : [0.30], ## doesnt really change much
+    #               # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
+    #               'subsample': [0.85],
+    #               'colsample_bytree': [0.15,0.2],
+    #               'max_depth': [14,16]}
 
 
-    # # XGBOOST TIER 1 GRID ISONE
+    # # XGBOOST TIER 1 GRID ISONE ***DART***
     # param_grid = {'min_child_weight': [2],
     #               'learning_rate': [0.03],
     #               'reg_lambda': [3],
@@ -412,7 +412,7 @@ def xgb_gridsearch(train_df, target, cv_folds, iterations, sd_limit, gpu_train, 
     #               'colsample_bytree': [0.05],
     #               'max_depth': [8]}
     #
-    # # XGBOOST TIER 1 GRID NYISO
+    # # XGBOOST TIER 1 GRID NYISO ***DART***
     # param_grid = {'min_child_weight': [2],
     #               'learning_rate': [0.1],
     #               'reg_lambda': [3],
@@ -422,7 +422,7 @@ def xgb_gridsearch(train_df, target, cv_folds, iterations, sd_limit, gpu_train, 
     #               # 'colsample_bytree': [0.55],
     #               'max_depth': [14]}
 
-    # # XGBOOST TIER 1 GRID SPP
+    # # XGBOOST TIER 1 GRID SPP ***DART***
     # param_grid = {'min_child_weight': [2],
     #               'learning_rate': [0.01,0.02],
     #               'reg_lambda': [3],
@@ -443,7 +443,35 @@ def xgb_gridsearch(train_df, target, cv_folds, iterations, sd_limit, gpu_train, 
     #               'colsample_bytree': [0.05,0.1],
     #               'max_depth': [9,11,13]}
 
+    # # XGBOOST TIER 1 GRID MISO ***SPREAD***
+    # param_grid = {'min_child_weight': [2],
+    #               'learning_rate': [0.01],
+    #               'reg_lambda': [5],
+    #               'reg_alpha' : [0.30], ## doesnt really change much
+    #               # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
+    #               'subsample': [0.95],
+    #               'colsample_bytree': [0.15],
+    #               'max_depth': [10]}
 
+    #XGBOOST TIER 1 GRID PJM ****SPREAD****
+    # param_grid = {'min_child_weight': [2],
+    #               'learning_rate': [0.01],
+    #               'reg_lambda': [3],
+    #               'reg_alpha' : [0.1],
+    #               # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
+    #               'subsample': [0.95],
+    #               'colsample_bytree': [0.1],
+    #               'max_depth': [12]}
+
+    # # XGBOOST TIER 1 GRID ISONE ***SPREAD***
+    param_grid = {'min_child_weight': [2],
+                  'learning_rate': [0.01],
+                  'reg_lambda': [3],
+                  'reg_alpha' : [0.10],
+                  # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
+                  'subsample': [0.95],
+                  'colsample_bytree': [0.1],
+                  'max_depth': [10]}
 
     random_search = RandomizedSearchCV(estimator=model,
                                        param_distributions=param_grid,
@@ -1111,29 +1139,29 @@ def create_trade_summary(predict_date_str_mm_dd_yyyy, isos, do_printcharts, name
 
 
     if len(isos)==1:
-        titles = ('<b>'+name_adder+' Axon Energy GBM Trades ' + date+'<b>','<b>'+name_adder+' '+isos[0] + ' GBM Trades ' + date+'<b>',
+        titles = ('<b>'+model_type+' '+name_adder+' Axon Energy GBM Trades ' + date+'<b>','<b>'+model_type+' '+name_adder+' '+isos[0] + ' GBM Trades ' + date+'<b>',
                    None,None,
                    '<b>'+isos[0] + ' Failed Locations<b>')
     elif len(isos)==2:
-        titles = ('<b>'+name_adder+' Axon Energy GBM Trades ' + date+'<b>','<b>'+name_adder+' '+isos[0] + ' GBM Trades ' + date+'<b>','<b>'+name_adder+' '+isos[1] + ' GBM Trades ' + date+'<b>',
+        titles = ('<b>'+model_type+' '+name_adder+' Axon Energy GBM Trades ' + date+'<b>','<b>'+model_type+' '+name_adder+' '+isos[0] + ' GBM Trades ' + date+'<b>','<b>'+model_type+' '+name_adder+' '+isos[1] + ' GBM Trades ' + date+'<b>',
                    None,None, None,
                    '<b>'+isos[0] + ' Failed Locations<b>','<b>'+ isos[1] + ' Failed Locations<b>')
     elif len(isos) == 3:
-        titles = ('<b>'+name_adder+' Axon Energy GBM Trades ' + date+'<b>','<b>'+name_adder+' '+isos[0] + ' GBM Trades ' + date+'<b>','<b>'+name_adder+' '+ isos[1] + ' GBM Trades ' + date+'<b>','<b>'+name_adder+' '+isos[2] + ' GBM Trades ' + date+'<b>',
+        titles = ('<b>'+model_type+' '+name_adder+' Axon Energy GBM Trades ' + date+'<b>','<b>'+model_type+' '+name_adder+' '+isos[0] + ' GBM Trades ' + date+'<b>','<b>'+model_type+' '+name_adder+' '+ isos[1] + ' GBM Trades ' + date+'<b>','<b>'+model_type+' '+name_adder+' '+isos[2] + ' GBM Trades ' + date+'<b>',
                    None,None, None, None,
-                   '<b>'+isos[0] + ' Failed Locations<b>', '<b>'+name_adder+' '+isos[1] + ' Failed Locations<b>','<b>'+name_adder+' '+ isos[2] + ' Failed Locations<b>')
+                   '<b>'+isos[0] + ' Failed Locations<b>', '<b>'+model_type+' '+name_adder+' '+isos[1] + ' Failed Locations<b>','<b>'+model_type+' '+name_adder+' '+ isos[2] + ' Failed Locations<b>')
     elif len(isos) == 4:
-        titles = ('<b>'+name_adder+' Axon Energy GBM Trades ' + date+'<b>','<b>'+name_adder+' '+isos[0] + ' GBM Trades ' + date+'<b>','<b>'+name_adder+' '+ isos[1] + ' GBM Trades ' + date+'<b>','<b>'+name_adder+' '+ isos[2] + ' GBM Trades ' + date+'<b>','<b>'+name_adder+' '+isos[3] + ' GBM Trades ' + date+'<b>',
+        titles = ('<b>'+model_type+' '+name_adder+' Axon Energy GBM Trades ' + date+'<b>','<b>'+model_type+' '+name_adder+' '+isos[0] + ' GBM Trades ' + date+'<b>','<b>'+model_type+' '+name_adder+' '+ isos[1] + ' GBM Trades ' + date+'<b>','<b>'+model_type+' '+name_adder+' '+ isos[2] + ' GBM Trades ' + date+'<b>','<b>'+model_type+' '+name_adder+' '+isos[3] + ' GBM Trades ' + date+'<b>',
                    None,None, None, None, None,
-                   '<b>'+isos[0] + ' Failed Locations<b>','<b>'+name_adder+' '+isos[1] + ' Failed Locations<b>','<b>'+name_adder+' '+isos[2] + ' Failed Locations<b>', '<b>'+name_adder+' '+isos[3] + ' Failed Locations<b>')
+                   '<b>'+isos[0] + ' Failed Locations<b>','<b>'+model_type+' '+name_adder+' '+isos[1] + ' Failed Locations<b>','<b>'+model_type+' '+name_adder+' '+isos[2] + ' Failed Locations<b>', '<b>'+model_type+' '+name_adder+' '+isos[3] + ' Failed Locations<b>')
     elif len(isos) == 5:
-        titles = ('<b>'+name_adder+' Axon Energy GBM Trades ' + date+'<b>','<b>'+name_adder+' '+isos[0] + ' GBM Trades ' + date+'<b>','<b>'+name_adder+' '+isos[1] + ' GBM Trades ' + date+'<b>', '<b>'+name_adder+' '+isos[2] + ' GBM Trades ' + date+'<b>','<b>'+name_adder+' '+isos[3] + ' GBM Trades ' + date+'<b>','<b>'+name_adder+' '+isos[4] + ' GBM Trades ' + date+'<b>',
+        titles = ('<b>'+model_type+' '+name_adder+' Axon Energy GBM Trades ' + date+'<b>','<b>'+model_type+' '+name_adder+' '+isos[0] + ' GBM Trades ' + date+'<b>','<b>'+model_type+' '+name_adder+' '+isos[1] + ' GBM Trades ' + date+'<b>', '<b>'+model_type+' '+name_adder+' '+isos[2] + ' GBM Trades ' + date+'<b>','<b>'+model_type+' '+name_adder+' '+isos[3] + ' GBM Trades ' + date+'<b>','<b>'+model_type+' '+name_adder+' '+isos[4] + ' GBM Trades ' + date+'<b>',
                    None,None, None, None, None,None,
-                  '<b>' + isos[0] + ' Failed Locations<b>','<b>'+name_adder+' '+ isos[1] + ' Failed Locations<b>', '<b>'+name_adder+' '+isos[2] + ' Failed Locations<b>','<b>'+name_adder+' '+isos[3] + ' Failed Locations<b>','<b>'+name_adder+' '+isos[4] + ' Failed Locations<b>')
+                  '<b>' + isos[0] + ' Failed Locations<b>','<b>'+model_type+' '+name_adder+' '+ isos[1] + ' Failed Locations<b>', '<b>'+model_type+' '+name_adder+' '+isos[2] + ' Failed Locations<b>','<b>'+model_type+' '+name_adder+' '+isos[3] + ' Failed Locations<b>','<b>'+model_type+' '+name_adder+' '+isos[4] + ' Failed Locations<b>')
     elif len(isos) == 6:
-        titles = ('<b>'+name_adder+' Axon Energy GBM Trades ' + date+'<b>','<b>'+name_adder+' '+isos[0] + ' GBM Trades ' + date+'<b>', '<b>'+name_adder+' '+isos[1] + ' GBM Trades ' + date+'<b>','<b>'+name_adder+' '+ isos[2] + ' GBM Trades ' + date+'<b>','<b>'+name_adder+' '+isos[3] + ' GBM Trades ' + date+'<b>','<b>'+name_adder+' '+isos[4] + ' GBM Trades ' + date+'<b>','<b>'+name_adder+' '+isos[5] + ' GBM Trades ' + date+'<b>',
+        titles = ('<b>'+model_type+' '+name_adder+' Axon Energy GBM Trades ' + date+'<b>','<b>'+model_type+' '+name_adder+' '+isos[0] + ' GBM Trades ' + date+'<b>', '<b>'+model_type+' '+name_adder+' '+isos[1] + ' GBM Trades ' + date+'<b>','<b>'+model_type+' '+name_adder+' '+ isos[2] + ' GBM Trades ' + date+'<b>','<b>'+model_type+' '+name_adder+' '+isos[3] + ' GBM Trades ' + date+'<b>','<b>'+model_type+' '+name_adder+' '+isos[4] + ' GBM Trades ' + date+'<b>','<b>'+model_type+' '+name_adder+' '+isos[5] + ' GBM Trades ' + date+'<b>',
                    None,None, None, None, None,None,None,
-                   '<b>'+isos[0] + ' Failed Locations<b>', '<b>'+name_adder+' '+isos[1] + ' Failed Locations<b>','<b>'+name_adder+' '+ isos[2] + ' Failed Locations<b>','<b>'+name_adder+' '+isos[3] + ' Failed Locations<b>','<b>'+name_adder+' '+isos[4] + ' Failed Locations<b>','<b>'+name_adder+' '+isos[5] + ' Failed Locations<b>')
+                   '<b>'+isos[0] + ' Failed Locations<b>', '<b>'+model_type+' '+name_adder+' '+isos[1] + ' Failed Locations<b>','<b>'+model_type+' '+name_adder+' '+ isos[2] + ' Failed Locations<b>','<b>'+model_type+' '+name_adder+' '+isos[3] + ' Failed Locations<b>','<b>'+model_type+' '+name_adder+' '+isos[4] + ' Failed Locations<b>','<b>'+model_type+' '+name_adder+' '+isos[5] + ' Failed Locations<b>')
 
 
     fig = make_subplots(
@@ -1165,7 +1193,7 @@ def create_trade_summary(predict_date_str_mm_dd_yyyy, isos, do_printcharts, name
 
     # fig.update_yaxes(title_text='MWs', tickvals=list(range(0, 170, 10)), row=1, col=1)
 
-    for col in range(len(isos)+2):
+    for col in range(len(isos)+3):
         fig.update_xaxes(tickmode='linear', row=1, col=col)
 
 
@@ -1656,7 +1684,8 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
                                             yearly_actuals_dict=yearly_actuals_dict,
                                             compare_df=compare_df,
                                             iso_compare_df=iso_compare_df,
-                                            name_adder=name_adder)
+                                            name_adder=name_adder,
+                                            model_type=model_type)
         url = plotly.offline.plot(summary_pnl_fig,
                                   filename=save_directory + 'SummaryPnL_' + predict_date_str_mm_dd_yyyy + '_'+model_type+'_'+name_adder +'.html',
                                   auto_open=True)
@@ -1664,7 +1693,8 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
         daily_pnl_fig = print_daily_pnl(trades_dict=trades_dict,
                                         isos=isos,
                                         date=predict_date_str_mm_dd_yyyy,
-                                        name_adder=name_adder)
+                                        name_adder=name_adder,
+                                        model_type=model_type)
         url = plotly.offline.plot(daily_pnl_fig,filename=save_directory + 'DailyPnL_' + predict_date_str_mm_dd_yyyy + '_'+model_type+'_'+name_adder +'.html',auto_open=True)
 
     master_trades_df.to_csv(save_directory + '2020_MASTER_PnL_'+model_type +'_'+ name_adder + '_BACKUP.csv')
@@ -1677,7 +1707,7 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
 
     return trades_dict
 
-def print_daily_pnl(trades_dict,isos,date,name_adder):
+def print_daily_pnl(trades_dict,isos,date,name_adder, model_type):
     figures_dict = {}
     hit_rate_df = pd.DataFrame({'ISO':[],'Inc_Trds': [], 'Inc_HR': [], 'Dec_Trds': [], 'Dec_HR': [], 'Tot_Trds': [], 'Tot_HR': []})
     summary_df = pd.DataFrame({'ISO':[],'Inc_$': [], 'Dec_$': [], 'Ene_$': [], 'Con_$': [], 'Los_$': [], 'Tot_$': [], 'MW': [], '$/MW': []})
@@ -1935,47 +1965,47 @@ def print_daily_pnl(trades_dict,isos,date,name_adder):
     specs_dict = {'1': specs1, '2': specs2, '3': specs3, '4': specs4, '5': specs5, '6': specs6}
 
     if len(isos) == 1:
-        titles = ('<b>'+name_adder+' Axon Energy Daily PnL Summary ' + date + '<b>', '<b>' + name_adder + ' ' + isos[0] + ' PnL ' + date + '<b>',
+        titles = ('<b>'+model_type+' '+name_adder+' Axon Energy Daily PnL Summary ' + date + '<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[0] + ' PnL ' + date + '<b>',
                   '<b>Daily PnL By ISO', None,
-                  '<b>Daily Hit Rate Summary ' + date + '<b>', '<b>' + name_adder + ' ' + isos[0] + ' Nodal Results<b>')
+                  '<b>Daily Hit Rate Summary ' + date + '<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[0] + ' Nodal Results<b>')
     elif len(isos) == 2:
-        titles = ('<b>'+name_adder+' Axon Energy Daily PnL Summary ' + date + '<b>', '<b>' + name_adder + ' ' + isos[0] + ' PnL ' + date + '<b>',
-                  '<b>' + name_adder + ' ' + isos[1] + ' PnL ' + date + '<b>',
+        titles = ('<b>'+model_type+' '+name_adder+' Axon Energy Daily PnL Summary ' + date + '<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[0] + ' PnL ' + date + '<b>',
+                  '<b>' +model_type+' '+ name_adder + ' ' + isos[1] + ' PnL ' + date + '<b>',
                   '<b>Daily PnL By ISO', None, None,
-                  '<b>Daily Hit Rate Summary ' + date + '<b>', '<b>' + name_adder + ' ' + isos[0] + ' Nodal Results<b>',
-                  '<b>' + name_adder + ' ' + isos[1] + ' Nodal Results<b>')
+                  '<b>Daily Hit Rate Summary ' + date + '<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[0] + ' Nodal Results<b>',
+                  '<b>' +model_type+' '+ name_adder + ' ' + isos[1] + ' Nodal Results<b>')
     elif len(isos) == 3:
-        titles = ('<b>'+name_adder+' Axon Energy Daily PnL Summary ' + date + '<b>', '<b>' + name_adder + ' ' + isos[0] + ' PnL ' + date + '<b>',
-                  '<b>' + name_adder + ' ' + isos[1] + ' PnL ' + date + '<b>', '<b>' + name_adder + ' ' + isos[2] + ' PnL ' + date + '<b>',
+        titles = ('<b>'+model_type+' '+name_adder+' Axon Energy Daily PnL Summary ' + date + '<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[0] + ' PnL ' + date + '<b>',
+                  '<b>' +model_type+' '+ name_adder + ' ' + isos[1] + ' PnL ' + date + '<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[2] + ' PnL ' + date + '<b>',
                   '<b>Daily PnL By ISO', None, None, None,
-                  '<b>Daily Hit Rate Summary ' + date + '<b>', '<b>' + name_adder + ' ' + isos[0] + ' Nodal Results<b>',
-                  '<b>' + isos[1] + ' Nodal Results<b>', '<b>' + name_adder + ' ' + isos[2] + ' Nodal Results<b>')
+                  '<b>Daily Hit Rate Summary ' + date + '<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[0] + ' Nodal Results<b>',
+                  '<b>' + isos[1] + ' Nodal Results<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[2] + ' Nodal Results<b>')
     elif len(isos) == 4:
-        titles = ('<b>'+name_adder+' Axon Energy Daily PnL Summary ' + date + '<b>', '<b>' + name_adder + ' ' + isos[0] + ' PnL ' + date + '<b>',
-                  '<b>' + name_adder + ' ' + isos[1] + ' PnL ' + date + '<b>', '<b>' + name_adder + ' ' + isos[2] + ' PnL ' + date + '<b>',
-                  '<b>' + name_adder + ' ' + isos[3] + ' PnL ' + date + '<b>',
+        titles = ('<b>'+model_type+' '+name_adder+' Axon Energy Daily PnL Summary ' + date + '<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[0] + ' PnL ' + date + '<b>',
+                  '<b>' +model_type+' '+ name_adder + ' ' + isos[1] + ' PnL ' + date + '<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[2] + ' PnL ' + date + '<b>',
+                  '<b>' +model_type+' '+ name_adder + ' ' + isos[3] + ' PnL ' + date + '<b>',
                   '<b>Daily PnL By ISO', None, None, None, None,
-                  '<b>Daily Hit Rate Summary ' + date + '<b>', '<b>' + name_adder + ' ' + isos[0] + ' Nodal Results<b>',
-                  '<b>' + name_adder + ' ' + isos[1] + ' Nodal Results<b>', '<b>' + name_adder + ' ' + isos[2] + ' Nodal Results<b>',
-                  '<b>' + name_adder + ' ' + isos[3] + ' Nodal Resultss<b>')
+                  '<b>Daily Hit Rate Summary ' + date + '<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[0] + ' Nodal Results<b>',
+                  '<b>' +model_type+' '+ name_adder + ' ' + isos[1] + ' Nodal Results<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[2] + ' Nodal Results<b>',
+                  '<b>' +model_type+' '+ name_adder + ' ' + isos[3] + ' Nodal Resultss<b>')
     elif len(isos) == 5:
-        titles = ('<b>'+name_adder+' Axon Energy Daily PnL Summary ' + date + '<b>', '<b>' + name_adder + ' ' + isos[0] + ' PnL ' + date + '<b>',
-                  '<b>' + name_adder + ' ' + isos[1] + ' PnL ' + date + '<b>', '<b>' + name_adder + ' ' + isos[2] + ' PnL ' + date + '<b>',
-                  '<b>' + name_adder + ' ' + isos[3] + ' PnL ' + date + '<b>', '<b>' + name_adder + ' ' + isos[4] + ' PnL ' + date + '<b>',
+        titles = ('<b>'+model_type+' '+name_adder+' Axon Energy Daily PnL Summary ' + date + '<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[0] + ' PnL ' + date + '<b>',
+                  '<b>' +model_type+' '+ name_adder + ' ' + isos[1] + ' PnL ' + date + '<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[2] + ' PnL ' + date + '<b>',
+                  '<b>' +model_type+' '+ name_adder + ' ' + isos[3] + ' PnL ' + date + '<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[4] + ' PnL ' + date + '<b>',
                   '<b>Daily PnL By ISO', None, None, None, None, None,
                   '<b>Daily Hit Rate Summary ' + date + '<b>', '<b>' + name_adder + ' ' + isos[0] + ' Nodal Results<b>',
-                  '<b>' + name_adder + ' ' + isos[1] + ' Nodal Results<b>', '<b>' + name_adder + ' ' +isos[2] + ' Nodal Results<b>',
-                  '<b>' + name_adder + ' ' +isos[3] + ' Nodal Results<b>', '<b>' + name_adder + ' ' + isos[4] + ' Nodal Results<b>')
+                  '<b>' +model_type+' '+ name_adder + ' ' + isos[1] + ' Nodal Results<b>', '<b>' +model_type+' '+ name_adder + ' ' +isos[2] + ' Nodal Results<b>',
+                  '<b>' +model_type+' '+ name_adder + ' ' +isos[3] + ' Nodal Results<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[4] + ' Nodal Results<b>')
     elif len(isos) == 6:
-        titles = ('<b>'+name_adder+' Axon Energy Daily PnL Summary ' + date + '<b>', '<b>' + name_adder + ' ' + isos[0] + ' PnL ' + date + '<b>',
-                  '<b>' + name_adder + ' ' + isos[1] + ' PnL ' + date + '<b>', '<b>' + name_adder + ' ' + isos[2] + ' PnL ' + date + '<b>',
-                  '<b>' + name_adder + ' ' + isos[3] + ' PnL ' + date + '<b>', '<b>' + name_adder + ' ' + isos[4] + ' PnL ' + date + '<b>',
-                  '<b>' + name_adder + ' ' + isos[5] + ' PnL ' + date + '<b>',
+        titles = ('<b>'+model_type+' '+name_adder+' Axon Energy Daily PnL Summary ' + date + '<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[0] + ' PnL ' + date + '<b>',
+                  '<b>' +model_type+' '+ name_adder + ' ' + isos[1] + ' PnL ' + date + '<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[2] + ' PnL ' + date + '<b>',
+                  '<b>' +model_type+' '+ name_adder + ' ' + isos[3] + ' PnL ' + date + '<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[4] + ' PnL ' + date + '<b>',
+                  '<b>' +model_type+' '+ name_adder + ' ' + isos[5] + ' PnL ' + date + '<b>',
                   '<b>Daily PnL By ISO', None, None, None, None, None, None,
                   '<b>Daily Hit Rate Summary ' + date + '<b>', '<b>' + name_adder + ' ' + isos[0] + ' Nodal Results<b>',
-                  '<b>' + name_adder + ' ' + isos[1] + ' Nodal Results<b>', '<b>' + name_adder + ' ' + isos[2] + ' Nodal Results<b>',
-                  '<b>' + name_adder + ' ' + isos[3] + ' Nodal Results<b>', '<b>' + name_adder + ' ' + isos[4] + ' Nodal Results<b>',
-                  '<b>' + name_adder + ' ' + isos[5] + ' Nodal Results<b>')
+                  '<b>' +model_type+' '+ name_adder + ' ' + isos[1] + ' Nodal Results<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[2] + ' Nodal Results<b>',
+                  '<b>' +model_type+' '+ name_adder + ' ' + isos[3] + ' Nodal Results<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[4] + ' Nodal Results<b>',
+                  '<b>' +model_type+' '+ name_adder + ' ' + isos[5] + ' Nodal Results<b>')
 
     fig = make_subplots(
         rows=3, cols=len(isos) + 1,
@@ -2019,7 +2049,7 @@ def print_daily_pnl(trades_dict,isos,date,name_adder):
 
     return fig
 
-def print_summary_pnl(isos,daily_actuals_dict,monthly_actuals_dict,yearly_actuals_dict,compare_df,iso_compare_df,name_adder):
+def print_summary_pnl(isos,daily_actuals_dict,monthly_actuals_dict,yearly_actuals_dict,compare_df,iso_compare_df,name_adder, model_type):
     figures_dict = {}
     summary_daily_pnl_df = pd.DataFrame()
     summary_monthly_pnl_df = pd.DataFrame()
@@ -2262,35 +2292,35 @@ def print_summary_pnl(isos,daily_actuals_dict,monthly_actuals_dict,yearly_actual
     specs_dict = {'1': specs1, '2': specs2, '3': specs3, '4': specs4, '5': specs5, '6': specs6}
 
     if len(isos) == 1:
-        titles = ('<b>'+name_adder+' Axon Energy Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Daily PnL Summary<b>',
-                  '<b>'+name_adder+' Axon Energy Monthly PnL Summary<b>', '<b>' + name_adder + ' ' +isos[0] + ' Monthly PnL Summary<b>',
-                  '<b>'+name_adder+' Axon Energy Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Yearly PnL Summary<b>',
-                  '<b>'+name_adder+' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[0] + ' Hourly PnL Comparison To Backtest<b>')
+        titles = ('<b>'+model_type+' '+name_adder+' Axon Energy Daily PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[0] + ' Daily PnL Summary<b>',
+                  '<b>'+model_type+' '+name_adder+' Axon Energy Monthly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' +isos[0] + ' Monthly PnL Summary<b>',
+                  '<b>'+model_type+' '+name_adder+' Axon Energy Yearly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[0] + ' Yearly PnL Summary<b>',
+                  '<b>'+model_type+' '+name_adder+' Hourly PnL Comparison To Backtest<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[0] + ' Hourly PnL Comparison To Backtest<b>')
     elif len(isos) == 2:
-        titles = ('<b>'+name_adder+' Axon Energy Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Daily PnL Summary<b>',
-                  '<b>'+name_adder+' Axon Energy Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Monthly PnL Summary<b>',
-                  '<b>'+name_adder+' Axon Energy Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Yearly PnL Summary<b>',
-                  '<b>'+name_adder+' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[0] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[1] + ' Hourly PnL Comparison To Backtest<b>')
+        titles = ('<b>'+model_type+' '+name_adder+' Axon Energy Daily PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[0] + ' Daily PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[1] + ' Daily PnL Summary<b>',
+                  '<b>'+model_type+' '+name_adder+' Axon Energy Monthly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[0] + ' Monthly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[1] + ' Monthly PnL Summary<b>',
+                  '<b>'+model_type+' '+name_adder+' Axon Energy Yearly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[0] + ' Yearly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[1] + ' Yearly PnL Summary<b>',
+                  '<b>'+model_type+' '+name_adder+' Hourly PnL Comparison To Backtest<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[0] + ' Hourly PnL Comparison To Backtest<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[1] + ' Hourly PnL Comparison To Backtest<b>')
     elif len(isos) == 3:
-        titles = ('<b>'+name_adder+' Axon Energy Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[2] + ' Daily PnL Summary<b>',
-                  '<b>'+name_adder+' Axon Energy Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[2] + ' Monthly PnL Summary<b>',
-                  '<b>'+name_adder+' Axon Energy Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[2] + ' Yearly PnL Summary<b>',
-                  '<b>'+name_adder+' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[0] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[1] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[2] + ' Hourly PnL Comparison To Backtest<b>')
+        titles = ('<b>'+model_type+' '+name_adder+' Axon Energy Daily PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[0] + ' Daily PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[1] + ' Daily PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[2] + ' Daily PnL Summary<b>',
+                  '<b>'+model_type+' '+name_adder+' Axon Energy Monthly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[0] + ' Monthly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[1] + ' Monthly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[2] + ' Monthly PnL Summary<b>',
+                  '<b>'+model_type+' '+name_adder+' Axon Energy Yearly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[0] + ' Yearly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[1] + ' Yearly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[2] + ' Yearly PnL Summary<b>',
+                  '<b>'+model_type+' '+name_adder+' Hourly PnL Comparison To Backtest<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[0] + ' Hourly PnL Comparison To Backtest<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[1] + ' Hourly PnL Comparison To Backtest<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[2] + ' Hourly PnL Comparison To Backtest<b>')
     elif len(isos) == 4:
-        titles = ('<b>'+name_adder+' Axon Energy Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[2] + ' Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[3] + ' Daily PnL Summary<b>',
-                  '<b>'+name_adder+' Axon Energy Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[2] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[3] + ' Monthly PnL Summary<b>',
-                  '<b>'+name_adder+' Axon Energy Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[2] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[3] + ' Yearly PnL Summary<b>',
-                  '<b>'+name_adder+' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[0] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[1] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[2] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[3] + ' Hourly PnL Comparison To Backtest<b>')
+        titles = ('<b>'+model_type+' '+name_adder+' Axon Energy Daily PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[0] + ' Daily PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[1] + ' Daily PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[2] + ' Daily PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[3] + ' Daily PnL Summary<b>',
+                  '<b>'+model_type+' '+name_adder+' Axon Energy Monthly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[0] + ' Monthly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[1] + ' Monthly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[2] + ' Monthly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[3] + ' Monthly PnL Summary<b>',
+                  '<b>'+model_type+' '+name_adder+' Axon Energy Yearly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[0] + ' Yearly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[1] + ' Yearly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[2] + ' Yearly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[3] + ' Yearly PnL Summary<b>',
+                  '<b>'+model_type+' '+name_adder+' Hourly PnL Comparison To Backtest<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[0] + ' Hourly PnL Comparison To Backtest<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[1] + ' Hourly PnL Comparison To Backtest<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[2] + ' Hourly PnL Comparison To Backtest<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[3] + ' Hourly PnL Comparison To Backtest<b>')
     elif len(isos) == 5:
-        titles = ('<b>'+name_adder+' Axon Energy Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[2] + ' Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[3] + ' Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[4] + ' Daily PnL Summary<b>',
-                  '<b>'+name_adder+' Axon Energy Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[2] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[3] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[4] + ' Monthly PnL Summary<b>',
-                  '<b>'+name_adder+' Axon Energy Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[2] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[3] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[4] + ' Yearly PnL Summary<b>',
-                  '<b>'+name_adder+' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[0] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[1] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[2] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[3] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[4] + ' Hourly PnL Comparison To Backtest<b>')
+        titles = ('<b>'+model_type+' '+name_adder+' Axon Energy Daily PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[0] + ' Daily PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[1] + ' Daily PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[2] + ' Daily PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[3] + ' Daily PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[4] + ' Daily PnL Summary<b>',
+                  '<b>'+model_type+' '+name_adder+' Axon Energy Monthly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[0] + ' Monthly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[1] + ' Monthly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[2] + ' Monthly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[3] + ' Monthly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[4] + ' Monthly PnL Summary<b>',
+                  '<b>'+model_type+' '+name_adder+' Axon Energy Yearly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[0] + ' Yearly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[1] + ' Yearly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[2] + ' Yearly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[3] + ' Yearly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[4] + ' Yearly PnL Summary<b>',
+                  '<b>'+model_type+' '+name_adder+' Hourly PnL Comparison To Backtest<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[0] + ' Hourly PnL Comparison To Backtest<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[1] + ' Hourly PnL Comparison To Backtest<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[2] + ' Hourly PnL Comparison To Backtest<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[3] + ' Hourly PnL Comparison To Backtest<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[4] + ' Hourly PnL Comparison To Backtest<b>')
     elif len(isos) == 6:
-        titles = ('<b>'+name_adder+' Axon Energy Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[2] + ' Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[3] + ' Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[4] + ' Daily PnL Summary<b>', '<b>' + name_adder + ' ' + isos[5] + ' Daily PnL Summary<b>',
-                  '<b>'+name_adder+' Axon Energy Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[2] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[3] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[4] + ' Monthly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[5] + ' Monthly PnL Summary<b>',
-                  '<b>'+name_adder+' Axon Energy Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[0] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[1] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[2] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[3] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' +isos[4] + ' Yearly PnL Summary<b>', '<b>' + name_adder + ' ' + isos[5] + ' Yearly PnL Summary<b>',
-                  '<b>'+name_adder+' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[0] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[1] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[2] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[3] + ' Hourly PnL Comparison To Backtest<b>', '<b>' + name_adder + ' ' + isos[4] + ' Hourly PnL Comparison To Backtest<b>', '<b>'+ name_adder + ' ' + isos[5] + ' Hourly PnL Comparison To Backtest<b>')
+        titles = ('<b>'+model_type+' '+name_adder+' Axon Energy Daily PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[0] + ' Daily PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[1] + ' Daily PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[2] + ' Daily PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[3] + ' Daily PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[4] + ' Daily PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[5] + ' Daily PnL Summary<b>',
+                  '<b>'+model_type+' '+name_adder+' Axon Energy Monthly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[0] + ' Monthly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[1] + ' Monthly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[2] + ' Monthly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[3] + ' Monthly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[4] + ' Monthly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[5] + ' Monthly PnL Summary<b>',
+                  '<b>'+model_type+' '+name_adder+' Axon Energy Yearly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[0] + ' Yearly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[1] + ' Yearly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[2] + ' Yearly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[3] + ' Yearly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' +isos[4] + ' Yearly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[5] + ' Yearly PnL Summary<b>',
+                  '<b>'+model_type+' '+name_adder+' Hourly PnL Comparison To Backtest<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[0] + ' Hourly PnL Comparison To Backtest<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[1] + ' Hourly PnL Comparison To Backtest<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[2] + ' Hourly PnL Comparison To Backtest<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[3] + ' Hourly PnL Comparison To Backtest<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[4] + ' Hourly PnL Comparison To Backtest<b>', '<b>'+model_type+' '+ name_adder + ' ' + isos[5] + ' Hourly PnL Comparison To Backtest<b>')
 
 
 
