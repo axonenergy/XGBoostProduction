@@ -1285,7 +1285,7 @@ def create_trade_file(input_mw_df, iso , all_ISOs_variables_df, working_director
 
         trades_tall_df['BidSegment']=2
 
-        if iso == 'ERCOT':    ### Actual spread
+        if iso == 'ERCOT':  ### Actual spread
             yes_df = trades_tall_df[['Orig Source ID','Orig Sink ID','Node Name','Node ID', 'Source ID', 'Sink ID', 'Source Name', 'Sink Name', 'Trade Type', 'Bookname', 'iso', 'targetdate', 'portfolioname', 'Hour', 'MW','Bid','BidSegment']].copy()
             upload_df = yes_df
 
@@ -1303,8 +1303,25 @@ def create_trade_file(input_mw_df, iso , all_ISOs_variables_df, working_director
             sinks_df.rename(columns={'Sink ID': 'Node ID', 'Sink Name': 'Node Name'}, inplace=True)
             yes_df = pd.concat([sources_df, sinks_df], axis=0)
 
+
+            ### Sum duplicate trades
             yes_df = yes_df.groupby(['Node ID', 'Node Name', 'Trade Type', 'Bookname', 'iso', 'targetdate', 'portfolioname', 'Hour','Bid', 'BidSegment']).sum()
             yes_df.reset_index(inplace=True)
+
+            ## Net out trades in same hour
+            yes_df.loc[yes_df['Trade Type']=='DEC','MW'] = yes_df['MW']*-1
+            yes_df.drop(columns=['Trade Type','Bid'],inplace=True)
+            yes_df = yes_df.groupby(['Node ID', 'Node Name', 'Bookname', 'iso', 'targetdate', 'portfolioname', 'Hour','BidSegment']).sum()
+            yes_df.reset_index(inplace=True)
+
+            yes_df.loc[yes_df['MW'] < 0,'Bid'] = 9999
+            yes_df.loc[yes_df['MW'] > 0, 'Bid'] = -9999
+
+            yes_df.loc[yes_df['MW'] < 0,'Trade Type'] = 'DEC'
+            yes_df.loc[yes_df['MW'] > 0, 'Trade Type'] = 'INC'
+
+            yes_df['MW'] = abs(yes_df['MW'])
+
 
             if iso == 'NEISO':
                 upload_df = yes_df[['targetdate', 'Node Name', 'Trade Type', 'BidSegment', 'Hour', 'MW', 'Bid', 'Node ID']].copy()
@@ -1410,59 +1427,84 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
 
             temp_trades_df.loc[temp_trades_df['Trade Type'] == 'DEC', 'INCDEC_MULT'] = -1
 
-            temp_trades_df['ENERGY_PnL'] = temp_trades_df['ClearedTrade'] * temp_trades_df['MW'] * temp_trades_df['INCDEC_MULT'] * temp_trades_df['ENERGY_DART']
-            temp_trades_df['CONG_PnL'] = temp_trades_df['ClearedTrade'] * temp_trades_df['MW'] * temp_trades_df['INCDEC_MULT'] * temp_trades_df['CONG_DART']
-            temp_trades_df['LOSS_PnL'] = temp_trades_df['ClearedTrade'] * temp_trades_df['MW'] * temp_trades_df['INCDEC_MULT'] * temp_trades_df['LOSS_DART']
-            temp_trades_df['TOT_PnL'] = temp_trades_df['ClearedTrade'] * temp_trades_df['MW'] * temp_trades_df['INCDEC_MULT'] * temp_trades_df['TOT_DART']
+
+            temp_trades_df['MW'] = temp_trades_df['ClearedTrade'] * temp_trades_df['MW']
+            temp_trades_df['ENERGY_PnL'] = temp_trades_df['MW'] * temp_trades_df['INCDEC_MULT'] * temp_trades_df['ENERGY_DART']
+            temp_trades_df['CONG_PnL'] = temp_trades_df['MW'] * temp_trades_df['INCDEC_MULT'] * temp_trades_df['CONG_DART']
+            temp_trades_df['LOSS_PnL'] = temp_trades_df['MW'] * temp_trades_df['INCDEC_MULT'] * temp_trades_df['LOSS_DART']
+            temp_trades_df['TOT_PnL'] = temp_trades_df['MW'] * temp_trades_df['INCDEC_MULT'] * temp_trades_df['TOT_DART']
             temp_trades_df['SUCCESS_TRADE'] = 1
             temp_trades_df.loc[temp_trades_df['TOT_PnL'] < 0, 'SUCCESS_TRADE'] = 0
 
             trades_dict[iso] = temp_trades_df
 
         if model_type == 'SPREAD':
-            source_lmp_df = temp_lmp_df.copy()
-            source_lmp_df.set_index(['Date', 'HourEnding','Node Name'], drop=True, inplace=True)
-            source_lmp_df.columns = [col+'_SOURCE' for col in source_lmp_df.columns]
-            source_lmp_df.reset_index(inplace=True)
-            source_lmp_df.rename(columns={'Node Name': 'Source Name'},inplace=True)
 
-            sink_lmp_df = temp_lmp_df.copy()
-            sink_lmp_df.set_index(['Date', 'HourEnding', 'Node Name'], drop=True, inplace=True)
-            sink_lmp_df.columns = [col + '_SINK' for col in sink_lmp_df.columns]
-            sink_lmp_df.reset_index(inplace=True)
-            sink_lmp_df.rename(columns={'Node Name': 'Sink Name'}, inplace=True)
+            if iso == 'ERCOT':
+                source_lmp_df = temp_lmp_df.copy()
+                source_lmp_df.set_index(['Date', 'HourEnding','Node Name'], drop=True, inplace=True)
+                source_lmp_df.columns = [col+'_SOURCE' for col in source_lmp_df.columns]
+                source_lmp_df.reset_index(inplace=True)
+                source_lmp_df.rename(columns={'Node Name': 'Source Name'},inplace=True)
 
-            source_df = temp_trades_df[['HourEnding','Date', 'Source Name']]
-            sink_df = temp_trades_df[['HourEnding', 'Date', 'Sink Name']]
+                sink_lmp_df = temp_lmp_df.copy()
+                sink_lmp_df.set_index(['Date', 'HourEnding', 'Node Name'], drop=True, inplace=True)
+                sink_lmp_df.columns = [col + '_SINK' for col in sink_lmp_df.columns]
+                sink_lmp_df.reset_index(inplace=True)
+                sink_lmp_df.rename(columns={'Node Name': 'Sink Name'}, inplace=True)
 
-            source_df = pd.merge(source_df, source_lmp_df, on=['Date', 'HourEnding', 'Source Name'])
-            sink_df = pd.merge(sink_df, sink_lmp_df, on=['Date', 'HourEnding', 'Sink Name'])
+                source_df = temp_trades_df[['HourEnding','Date', 'Source Name']]
+                sink_df = temp_trades_df[['HourEnding', 'Date', 'Sink Name']]
 
-            temp_trades_df = pd.merge(temp_trades_df, source_df, on=['Date','HourEnding','Source Name'])
-            temp_trades_df = pd.merge(temp_trades_df, sink_df, on=['Date', 'HourEnding', 'Sink Name'])
+                source_df = pd.merge(source_df, source_lmp_df, on=['Date', 'HourEnding', 'Source Name'])
+                sink_df = pd.merge(sink_df, sink_lmp_df, on=['Date', 'HourEnding', 'Sink Name'])
 
-            temp_trades_df.set_index(['Date', 'HourEnding'], drop=True, inplace=True)
+                temp_trades_df = pd.merge(temp_trades_df, source_df, on=['Date','HourEnding','Source Name'])
+                temp_trades_df = pd.merge(temp_trades_df, sink_df, on=['Date', 'HourEnding', 'Sink Name'])
 
-            temp_trades_df['DALMP_SPREAD'] = temp_trades_df['DALMP_SOURCE'] - temp_trades_df['DALMP_SINK']
+                temp_trades_df.set_index(['Date', 'HourEnding'], drop=True, inplace=True)
 
-            temp_trades_df['TOT_SPREAD'] = temp_trades_df['TOT_DART_SOURCE'] - temp_trades_df['TOT_DART_SINK']
-            temp_trades_df['ENERGY_SPREAD'] = temp_trades_df['ENERGY_DART_SOURCE'] - temp_trades_df['ENERGY_DART_SINK']
-            temp_trades_df['CONG_SPREAD'] = temp_trades_df['CONG_DART_SOURCE'] - temp_trades_df['CONG_DART_SINK']
-            temp_trades_df['LOSS_SPREAD'] = temp_trades_df['LOSS_DART_SOURCE'] - temp_trades_df['LOSS_DART_SINK']
+                temp_trades_df['DALMP_SPREAD'] = temp_trades_df['DALMP_SOURCE'] - temp_trades_df['DALMP_SINK']
+                temp_trades_df['TOT_SPREAD'] = temp_trades_df['TOT_DART_SOURCE'] - temp_trades_df['TOT_DART_SINK']
+                temp_trades_df['ENERGY_SPREAD'] = temp_trades_df['ENERGY_DART_SOURCE'] - temp_trades_df['ENERGY_DART_SINK']
+                temp_trades_df['CONG_SPREAD'] = temp_trades_df['CONG_DART_SOURCE'] - temp_trades_df['CONG_DART_SINK']
+                temp_trades_df['LOSS_SPREAD'] = temp_trades_df['LOSS_DART_SOURCE'] - temp_trades_df['LOSS_DART_SINK']
 
-            temp_trades_df['ClearedTrade'] = 1
+                temp_trades_df['ClearedTrade'] = 1
 
-            temp_trades_df.loc[temp_trades_df['DALMP_SPREAD'] > temp_trades_df['Bid'], 'ClearedTrade'] = 0
+                temp_trades_df.loc[temp_trades_df['DALMP_SPREAD'] > temp_trades_df['Bid'], 'ClearedTrade'] = 0
 
-            temp_trades_df['ENERGY_PnL'] = temp_trades_df['ClearedTrade'] * temp_trades_df['MW']  * temp_trades_df['ENERGY_SPREAD']
-            temp_trades_df['CONG_PnL'] = temp_trades_df['ClearedTrade'] * temp_trades_df['MW']  * temp_trades_df['CONG_SPREAD']
-            temp_trades_df['LOSS_PnL'] = temp_trades_df['ClearedTrade'] * temp_trades_df['MW']  * temp_trades_df['LOSS_SPREAD']
-            temp_trades_df['TOT_PnL'] = temp_trades_df['ClearedTrade'] * temp_trades_df['MW']  * temp_trades_df['TOT_SPREAD']
-            temp_trades_df['SUCCESS_TRADE'] = 1
-            temp_trades_df.loc[temp_trades_df['TOT_PnL'] < 0, 'SUCCESS_TRADE'] = 0
-            temp_trades_df = temp_trades_df.drop_duplicates()
+                temp_trades_df['ENERGY_PnL'] = temp_trades_df['ClearedTrade'] * temp_trades_df['MW'] * temp_trades_df['ENERGY_SPREAD']
+                temp_trades_df['CONG_PnL'] = temp_trades_df['ClearedTrade'] * temp_trades_df['MW'] * temp_trades_df['CONG_SPREAD']
+                temp_trades_df['LOSS_PnL'] = temp_trades_df['ClearedTrade'] * temp_trades_df['MW'] * temp_trades_df['LOSS_SPREAD']
+                temp_trades_df['TOT_PnL'] = temp_trades_df['ClearedTrade'] * temp_trades_df['MW'] * temp_trades_df['TOT_SPREAD']
+                temp_trades_df['SUCCESS_TRADE'] = 1
+                temp_trades_df.loc[temp_trades_df['TOT_PnL'] < 0, 'SUCCESS_TRADE'] = 0
+                temp_trades_df = temp_trades_df.drop_duplicates()
 
-            trades_dict[iso] = temp_trades_df
+                trades_dict[iso] = temp_trades_df
+
+            else: #SYntethic spread ISOs
+                temp_trades_df = pd.merge(temp_trades_df, temp_lmp_df, on=['Date', 'HourEnding', 'Node Name'])
+                temp_trades_df.set_index(['Date', 'HourEnding'], drop=True, inplace=True)
+                temp_trades_df['ClearedTrade'] = 1
+
+                temp_trades_df.loc[(temp_trades_df['Trade Type'] == 'INC') & (temp_trades_df['Bid'] >= temp_trades_df['DALMP']), 'ClearedTrade'] = 0
+                temp_trades_df.loc[(temp_trades_df['Trade Type'] == 'DEC') & (temp_trades_df['Bid'] <= temp_trades_df['DALMP']), 'ClearedTrade'] = 0
+
+                temp_trades_df['INCDEC_MULT'] = 1
+
+                temp_trades_df.loc[temp_trades_df['Trade Type'] == 'DEC', 'INCDEC_MULT'] = -1
+
+                temp_trades_df['MW'] = temp_trades_df['ClearedTrade'] * temp_trades_df['MW']
+                temp_trades_df['ENERGY_PnL'] = temp_trades_df['MW'] * temp_trades_df['INCDEC_MULT'] * temp_trades_df['ENERGY_DART']
+                temp_trades_df['CONG_PnL'] = temp_trades_df['MW'] * temp_trades_df['INCDEC_MULT'] * temp_trades_df['CONG_DART']
+                temp_trades_df['LOSS_PnL'] = temp_trades_df['MW'] * temp_trades_df['INCDEC_MULT'] * temp_trades_df['LOSS_DART']
+                temp_trades_df['TOT_PnL'] = temp_trades_df['MW'] * temp_trades_df['INCDEC_MULT'] * temp_trades_df['TOT_DART']
+                temp_trades_df['SUCCESS_TRADE'] = 1
+                temp_trades_df.loc[temp_trades_df['TOT_PnL'] < 0, 'SUCCESS_TRADE'] = 0
+
+                trades_dict[iso] = temp_trades_df
 
     if bool(trades_dict) == False:
         print('')
@@ -1508,6 +1550,7 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
     for iso in master_trades_df['iso'].unique():
         temp_master_trades_df = master_trades_df[master_trades_df['iso']==iso]
         temp_master_trades_df = temp_master_trades_df.rename(columns={'ENERGY_PnL': 'Ene_$', 'CONG_PnL': 'Con_$', 'LOSS_PnL': 'Los_$', 'TOT_PnL': 'Tot_$'})
+
         temp_daily_df = temp_master_trades_df.groupby(pd.Grouper(freq='D',level='Date')).sum()
         temp_monthly_df = temp_master_trades_df.groupby(pd.Grouper(freq='M',level='Date')).sum()
         temp_yearly_df = temp_master_trades_df.groupby(pd.Grouper(freq='Y',level='Date')).sum()
@@ -2072,7 +2115,7 @@ def print_daily_pnl(trades_dict,isos,date,name_adder, model_type):
             color="black")
     )
 
-    for col in range(len(isos) + 1):
+    for col in range(len(isos) + 2):
         fig.update_xaxes(tickmode='linear', row=1, col=col)
         fig.update_yaxes(tickformat="$", row=1, col=col)
         fig.update_yaxes(tickformat="$", row=2, col=col)
@@ -2462,6 +2505,7 @@ def create_VAR(preds_dict, VAR_ISOs, daily_trade_file_name, working_directory, s
     VAR_dict = load_obj(VAR_files_directory+VAR_file_name)
     timezone_dict = {'MISO': 'EST', 'PJM': 'EPT', 'ISONE': 'EPT', 'NYISO': 'EPT', 'ERCOT': 'CPT', 'SPP': 'CPT'}
 
+
     for iso in VAR_ISOs:
         VAR_df = VAR_dict[timezone_dict[iso]]
         VAR_df = VAR_df[[col for col in VAR_df.columns if iso in col]]
@@ -2480,8 +2524,10 @@ def create_VAR(preds_dict, VAR_ISOs, daily_trade_file_name, working_directory, s
 
         mw_df = mw_df * trade_type_df
         mw_df.columns = [iso+'_'+col  for col in mw_df.columns]
+
         if model_type=='SPREAD':
-            mw_df.columns = [col.split('$')[0]+'$'+iso+'_'+col.split('$')[1] for col in mw_df.columns]
+            if iso == 'ERCOT':
+                mw_df.columns = [col.split('$')[0]+'$'+iso+'_'+col.split('$')[1] for col in mw_df.columns]
 
         # Combine VAR df and pred df
 

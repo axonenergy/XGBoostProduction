@@ -14,7 +14,7 @@ working_directory = 'X:\\Research\\'
 run_DART_PnL = True
 run_find_offer_prices = False
 lmp_filename = '2020_01_05_LMP_DATA_DICT_MASTER'
-dart_backtest_filename = 'Backtest_2020_04_05_BACKTEST_DATA_DICT_MASTER_SPP_EXP5_SPREAD_11_'
+dart_backtest_filename = 'Backtest_2020_04_05_BACKTEST_DATA_DICT_MASTER_SPP_EXP20_SPREAD__'
 # dart_backtest_filename = 'Backtest_09_11_2019_GBM_DATA_MISO_V8.0_MASTER_159F_MISO_EXP10_'
 # dart_backtest_filename = 'Backtest_09_11_2019_GBM_DATA_PJM_V8.0_MASTER_207F_PJM_EXP10_'
 # dart_backtest_filename = 'backtest_PJM_V8.0_all'
@@ -195,8 +195,8 @@ def calc_hourly_pnl(backtest_filename, sd_band, inc_mean_band_peak, dec_mean_ban
         scaled_mw_df = pd.DataFrame()
         orig_target_mws = target_mws
         for day in mw_df.index.get_level_values('Date').unique():
-            day_mw_df = mw_df.loc[mw_df.index.get_level_values('Date')==day]
-            day_pred_df = pred_df.loc[pred_df.index.get_level_values('Date')==day]
+            day_mw_df = mw_df.loc[mw_df.index.get_level_values('Date')==day].copy()
+            day_pred_df = pred_df.loc[pred_df.index.get_level_values('Date')==day].copy()
             print(day)
             target_mws = orig_target_mws
 
