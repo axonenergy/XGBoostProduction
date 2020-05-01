@@ -1262,8 +1262,8 @@ def create_trade_file(input_mw_df, iso , all_ISOs_variables_df, working_director
     if model_type=='SPREAD':
         spread_bid = all_ISOs_variables_df['spread_offer_price'][0]
 
-        trades_tall_df['Orig Source ID'] = trades_tall_df['Node Name'].apply(lambda row: row.split('$')[0].replace('_SPREAD',''))
-        trades_tall_df['Orig Sink ID'] = trades_tall_df['Node Name'].apply(lambda row: row.split('$')[1].replace('_SPREAD',''))
+        trades_tall_df['Orig Sink ID'] = trades_tall_df['Node Name'].apply(lambda row: row.split('$')[0].replace('_SPREAD',''))
+        trades_tall_df['Orig Source ID'] = trades_tall_df['Node Name'].apply(lambda row: row.split('$')[1].replace('_SPREAD',''))
         trades_tall_df['Bid'] = spread_bid
 
         for location in trades_tall_df['Orig Source ID'].unique():
