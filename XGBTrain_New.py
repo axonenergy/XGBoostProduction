@@ -34,18 +34,18 @@ working_directory = 'X:\\Research\\'
 input_file_name = '2020_04_05_BACKTEST_DATA_DICT_MASTER'               # Use This If Reading From Dictionary (New Method)
 input_file_type = 'dict'                                             # Use This If Reading From Dictionary (New Method)
 cat_vars = ['Month','Weekday']                                       # Categorial Variables
-iso = 'ISONE'                                                          # ISO to Backtest
+iso = 'PJM'                                                          # ISO to Backtest
 
 
 all_best_features_filename = 'FeatImport_2020_04_05_BACKTEST_DATA_DICT_MASTER__SD6_ALL'  # Name of Feature Importance File
 
-name_adder = 'SPREAD'                                                        # Additional Identifier For The Run
-feat_dicts = {}
-feat_dicts[''] = {'SPR_EAD': 4, 'DA_RT': 4, 'FLOAD': 12, 'FTEMP': 12,'OUTAGE': 6}  # Number Of Top Features To Use If Reading From Dict
+name_adder = ''                                                        # Additional Identifier For The Run
+# feat_dicts = {}
+# feat_dicts[''] = {'SPR_EAD': 4, 'DA_RT': 4, 'FLOAD': 12, 'FTEMP': 12,'OUTAGE': 6}  # Number Of Top Features To Use If Reading From Dict
 
 
 
-run_reverse = False
+run_reverse = True
 # if iso == 'ERCOT':
 #     model_type = 'SPREAD'  # Options are DART or SPREAD
 # else:
@@ -54,8 +54,8 @@ run_reverse = False
 model_type = 'SPREAD'  # Options are DART or SPREAD
 
 run_gridsearch = False                                                # Do A Gridsearch?
-run_backtest = True                                                    # Do A Backtest?
-run_create_models = False
+run_backtest = False                                                    # Do A Backtest?
+run_create_models = True
 
 run_tier2_backtest =False
 run_tier2_gridsearch = False
@@ -143,8 +143,8 @@ if input_file_type.upper() == 'DICT':
             hypergrid_name = 'Gridsearch_2020_04_05_BACKTEST_DATA_DICT_MASTER_SPP_SD1000_DART___SPP_AECC_CSWS_DART'  # Filename of Stored Hypergrid From Gridsearch
             feat_dict = {'SPR_EAD': 2, 'DA_RT': 2, 'FLOAD': 10, 'FTEMP': 28, 'OUTAGE': 10}
         elif model_type == 'SPREAD':
-            hypergrid_name = ''  # Filename of Stored Hypergrid From Gridsearch
-            feat_dict = {'SPR_EAD': 0, 'DA_RT': 0, 'FLOAD': 0, 'FTEMP': 0, 'OUTAGE': 0}
+            hypergrid_name = 'Gridsearch_2020_04_05_BACKTEST_DATA_DICT_MASTER_SPP_SD1000_SPREAD___SPP_AECC_CSWS$SPP_AECC_FULTON_SPREAD'  # Filename of Stored Hypergrid From Gridsearch
+            feat_dict = {'SPR_EAD': 6, 'DA_RT': 8, 'FLOAD': 8, 'FTEMP': 24, 'OUTAGE': 8}
 
     elif iso == 'ERCOT':
         if model_type == 'DART':
@@ -826,32 +826,32 @@ if run_gridsearch:
 
 if run_backtest:
 
-    for name_adder, feat_dict in feat_dicts.items():
-        name_adder = str(name_adder)
+    # for name_adder, feat_dict in feat_dicts.items():
+    #     name_adder = str(name_adder)
 
-        backtest_save_name = input_file_name + '_' + iso + '_EXP' + str(exp_folds) + '_'+model_type+ '_' + name_adder + '_'+rev
-        print('RUNNING BACKTEST: ' + backtest_save_name)
-        output_df = do_backtest(input_filename=input_file_name,
-                                save_name=backtest_save_name,
-                                num_targets=num_targets,
-                                iso = iso,
-                                feat_dict=feat_dict,
-                                input_file_type = input_file_type,
-                                cat_vars = cat_vars,
-                                start_date = backtest_start_date,
-                                sd_limit_range = sd_limit_range,
-                                exp_folds = exp_folds,
-                                cv_folds = cv_folds,
-                                hypergrid_name = hypergrid_name,
-                                hypergrid_dict_name = hypergrid_dict_name,
-                                num_grids = num_top_grids,
-                                gpu_train=gpu_train,
-                                nrounds=nrounds,
-                                early_stopping=early_stopping,
-                                static_directory=static_directory,
-                                working_directory=working_directory,
-                                model_type=model_type,
-                                run_reverse=run_reverse)
+    backtest_save_name = input_file_name + '_' + iso + '_EXP' + str(exp_folds) + '_'+model_type+ '_' + name_adder + '_'+rev
+    print('RUNNING BACKTEST: ' + backtest_save_name)
+    output_df = do_backtest(input_filename=input_file_name,
+                            save_name=backtest_save_name,
+                            num_targets=num_targets,
+                            iso = iso,
+                            feat_dict=feat_dict,
+                            input_file_type = input_file_type,
+                            cat_vars = cat_vars,
+                            start_date = backtest_start_date,
+                            sd_limit_range = sd_limit_range,
+                            exp_folds = exp_folds,
+                            cv_folds = cv_folds,
+                            hypergrid_name = hypergrid_name,
+                            hypergrid_dict_name = hypergrid_dict_name,
+                            num_grids = num_top_grids,
+                            gpu_train=gpu_train,
+                            nrounds=nrounds,
+                            early_stopping=early_stopping,
+                            static_directory=static_directory,
+                            working_directory=working_directory,
+                            model_type=model_type,
+                            run_reverse=run_reverse)
 
 if run_create_models:
     backtest_save_name = input_file_name + '_' + iso + '_'+model_type
