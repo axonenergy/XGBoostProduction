@@ -23,7 +23,7 @@ pd.set_option('display.width', 5000)
 pd.set_option('max_row', 100)
 
 
-def create_features(input_df, feat_dict, iso, all_best_features_df, cat_vars, static_directory,target_name='', daily_pred=False):
+def create_features(input_df, iso, cat_vars, static_directory,target_name='', daily_pred=False, feat_dict=None, all_best_features_df=None):
     temp_data_directory = static_directory + '\ModelUpdateData\\Temperature_files\\'
 
     top_feats = pd.DataFrame()
@@ -659,6 +659,9 @@ def do_xgb_prediction(predict_date_str_mm_dd_yyyy, iso, daily_trade_file_name, w
     input_df.fillna(method='bfill',inplace=True)
 
 
+    input_df = input_df.apply(pd.to_numeric, errors='coerce')
+
+
     # Drop or ignore features which exceed max or min limits
     for feature_type in feature_error_limits_df['FeatureName']:
         feature_type_df = feature_error_limits_df[feature_error_limits_df['FeatureName']==feature_type]
@@ -674,7 +677,7 @@ def do_xgb_prediction(predict_date_str_mm_dd_yyyy, iso, daily_trade_file_name, w
                         print('**********************************')
                         print('          SELECT ACTION!          ')
                         print('**********************************')
-                        print('Drop ' + feature + ' due to max limit breech of ' + str(round(input_df[feature].max(),1))+' (limit is set at '+str(max_limit)+')???')
+                        print('Drop ' + feature + ' due to max limit breech of ' + str(round(input_df[feature].max(),2))+' (limit is set at '+str(max_limit)+')???')
                         print('If feature is dropped (Y) all locations which use this feature will not be predicted.')
                         print('If feature is not dropped (N) then the data which exceeded the historic max/min limits will be used.')
                         y_n=input('Enter Y to drop feature or N to keep feature and press ENTER.')
@@ -685,14 +688,14 @@ def do_xgb_prediction(predict_date_str_mm_dd_yyyy, iso, daily_trade_file_name, w
                             print(feature+ ' max error limit ignored.')
                         continue
                     elif action == 'Ignore':
-                        print('Ignored ' + feature + ' max limit breech of ' + str(round(input_df[feature].max(),1))+ '. Feature used anyways.')
+                        print('Ignored ' + feature + ' max limit breech of ' + str(round(input_df[feature].max(),2))+ '. Feature used anyways. (limit is set at '+str(round(max_limit,2))+')')
 
                 if input_df[feature].min() < min_limit:
                     if action == 'Delete':
                         print('**********************************')
                         print('          SELECT ACTION!          ')
                         print('**********************************')
-                        print('Drop ' + feature + ' due to min limit breech of ' + str(round(input_df[feature].max(),1))+' (limit is set at '+str(min_limit)+')???')
+                        print('Drop ' + feature + ' due to min limit breech of ' + str(round(input_df[feature].max(),2))+' (limit is set at '+str(min_limit)+')???')
                         print('If feature is dropped (Y) all locations which use this feature will not be predicted.')
                         print('If feature is not dropped (N) then the data which exceeded the historic max/min limits will be used.')
                         y_n=input('Enter Y to drop feature or N to keep feature and press ENTER.')
@@ -703,33 +706,13 @@ def do_xgb_prediction(predict_date_str_mm_dd_yyyy, iso, daily_trade_file_name, w
                             print(feature+ ' min error limit ignored.')
                         continue
                     elif action == 'Ignore':
-                        print('Ignored ' + feature + ' min limit breech of ' + str(round(input_df[feature].min(),1))+ '. Feature used anyways.')
+                        print('Ignored ' + feature + ' min limit breech of ' + str(round(input_df[feature].min(),2))+ '. Feature used anyways. (limit is set at '+str(round(min_limit,2))+')')
 
-    # Grab the number of targets per target type for each ISO (only takes the top one)
-    try:
-        if model_type=='DART':
-            feat_dict = {'SPR_EAD': all_ISOs_variables_df['SPR_EAD_feats_dart'][0],'DA_RT': all_ISOs_variables_df['DA_RT_feats_dart'][0], 'FLOAD': all_ISOs_variables_df['FLOAD_feats_dart'][0],
-                         'FTEMP': all_ISOs_variables_df['FTEMP_feats_dart'][0], 'OUTAGE': all_ISOs_variables_df['OUTAGE_feats_dart'][0]}
-            all_best_features_filename = all_ISOs_variables_df['all_best_features_filename_dart'][0]
-
-        elif (model_type=='SPREAD') or (model_type=='SYN_SPREAD'):
-            feat_dict = {'SPR_EAD': all_ISOs_variables_df['SPR_EAD_feats_spread'][0],'DA_RT': all_ISOs_variables_df['DA_RT_feats_spread'][0], 'FLOAD': all_ISOs_variables_df['FLOAD_feats_spread'][0],
-                         'FTEMP': all_ISOs_variables_df['FTEMP_feats_spread'][0], 'OUTAGE': all_ISOs_variables_df['OUTAGE_feats_spread'][0]}
-            all_best_features_filename = all_ISOs_variables_df['all_best_features_filename_spread'][0]
-    except:
-        print('#################################################################################')
-        print('No Locations Turned On For Selected ISO. Check Daily Train Variables Excel Sheet.')
-        print('#################################################################################')
-
-
-    all_best_features_df = pd.read_csv(feat_import_files_directory+all_best_features_filename + ".csv", dtype=np.str)
 
     # Create all the features
     print('Creating Features...')
     location_input_df = create_features(input_df=input_df,
-                                        feat_dict=feat_dict,
                                         iso=iso,
-                                        all_best_features_df=all_best_features_df,
                                         cat_vars=cat_vars,
                                         static_directory=static_directory,
                                         daily_pred=True)
@@ -827,8 +810,11 @@ def post_process_trades(iso, predict_date_str_mm_dd_yyyy, daily_trade_file_name,
     all_locations_variables_df = all_locations_variables_df[all_locations_variables_df['ISO']==iso]
     all_locations_variables_df = all_locations_variables_df[all_locations_variables_df['active_trading_location'] == 1]
     all_locations_variables_df.reset_index(inplace=True,drop=True)
+
     all_ISOs_variables_df = pd.read_excel(trade_variables, 'ISOs')
     all_ISOs_variables_df = all_ISOs_variables_df[all_ISOs_variables_df['ISO'] == iso]
+    all_ISOs_variables_df = all_ISOs_variables_df[all_ISOs_variables_df['model_type'] == model_type]
+
     all_ISOs_variables_df.reset_index(inplace=True, drop=True)
     sd_tier1_df = preds_tier1_df[[col for col in preds_tier1_df.columns if 'sd' in col]].copy()
     preds_tier1_df = preds_tier1_df[[col for col in preds_tier1_df.columns if 'pred' in col]].copy()
@@ -889,6 +875,7 @@ def post_process_trades(iso, predict_date_str_mm_dd_yyyy, daily_trade_file_name,
     #     target_mws = target_mws/2
 
     max_trade_mws = all_ISOs_variables_df['max_trade_size_mws'][0]
+
     max_hourly_inc_mws = all_ISOs_variables_df['max_hourly_inc_mws'][0]
     max_hourly_dec_mws = all_ISOs_variables_df['max_hourly_dec_mws'][0]
     min_trade_mws = min(max_hourly_dec_mws / top_hourly_locs, max_hourly_inc_mws / top_hourly_locs)
@@ -1257,10 +1244,9 @@ def create_trade_file(input_mw_df, iso , all_ISOs_variables_df, working_director
     inc_bid = all_ISOs_variables_df['inc_offer_price'][0]
     dec_bid = all_ISOs_variables_df['dec_offer_price'][0]
 
-    spread_direction_dict = {'INC':0,'DEC':1}
 
     if model_type=='SPREAD':
-        spread_bid = all_ISOs_variables_df['spread_offer_price'][0]
+        spread_bid = inc_bid
 
         trades_tall_df['Orig Sink ID'] = trades_tall_df['Node Name'].apply(lambda row: row.split('$')[0].replace('_SPREAD',''))
         trades_tall_df['Orig Source ID'] = trades_tall_df['Node Name'].apply(lambda row: row.split('$')[1].replace('_SPREAD',''))
@@ -1326,8 +1312,8 @@ def create_trade_file(input_mw_df, iso , all_ISOs_variables_df, working_director
             sources_df['Trade Type'] = 'INC'
             sinks_df['Trade Type'] = 'DEC'
 
-            sources_df['Bid'] = -9999  ### Synthetic spreads must clear
-            sinks_df['Bid'] = 9999  ### Synthetic spreads must clear
+            sources_df['Bid'] = inc_bid  ### Synthetic spreads must clear
+            sinks_df['Bid'] = dec_bid  ### Synthetic spreads must clear
 
             sources_df.rename(columns={'Source ID':'Node ID', 'Source Name':'Node Name'},inplace=True)
             sinks_df.rename(columns={'Sink ID': 'Node ID', 'Sink Name': 'Node Name'}, inplace=True)
@@ -1344,8 +1330,8 @@ def create_trade_file(input_mw_df, iso , all_ISOs_variables_df, working_director
             yes_df = yes_df.groupby(['Node ID', 'Node Name', 'Bookname', 'iso', 'targetdate', 'portfolioname', 'Hour','BidSegment']).sum()
             yes_df.reset_index(inplace=True)
 
-            yes_df.loc[yes_df['MW'] < 0,'Bid'] = 9999
-            yes_df.loc[yes_df['MW'] > 0, 'Bid'] = -9999
+            yes_df.loc[yes_df['MW'] < 0,'Bid'] = dec_bid
+            yes_df.loc[yes_df['MW'] > 0, 'Bid'] = inc_bid
 
             yes_df.loc[yes_df['MW'] < 0,'Trade Type'] = 'DEC'
             yes_df.loc[yes_df['MW'] > 0, 'Trade Type'] = 'INC'
@@ -1794,13 +1780,13 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
     iso_compare_df.set_index('ISO', inplace=True)
     iso_compare_df = iso_compare_df[['ActHR','TestHR','%DeltHR','ActMed', 'TestMed', '%DeltMed', 'ActMean', 'TestMean', '%DeltMean', 'MeanProb', 'DistProb']]
 
-    daily_writer = pd.ExcelWriter(save_directory + 'Daily_PnL_Results_'+model_type+'_'+name_adder+'.xlsx', engine='xlsxwriter')
+    daily_writer = pd.ExcelWriter(save_directory + 'Daily_PnL_Results_'+model_type+'_'+name_adder+'.xlsx', engine='openpyxl')
     for iso, df in daily_actuals_dict.items():
         df.to_excel(daily_writer, sheet_name=iso, index=True)
     daily_writer.save()
     daily_writer.close()
 
-    distr_writer = pd.ExcelWriter(save_directory + 'PnL_Distributions_'+model_type+'_'+name_adder+'.xlsx', engine='xlsxwriter')
+    distr_writer = pd.ExcelWriter(save_directory + 'PnL_Distributions_'+model_type+'_'+name_adder+'.xlsx', engine='openpyxl')
     compare_df.to_excel(distr_writer, sheet_name='Nodal', index=True)
     iso_compare_df.to_excel(distr_writer, sheet_name='ISOs', index=True)
     distr_writer.save()
@@ -2334,6 +2320,8 @@ def print_summary_pnl(isos,daily_actuals_dict,monthly_actuals_dict,yearly_actual
     summary_monthly_pnl_df.index.names = ['Month']
     summary_yearly_pnl_df.index.names = ['Year']
 
+    summary_daily_pnl_df = summary_daily_pnl_df.head(21)
+
 
     summary_table_1 = go.Table(
         columnwidth= [130]+[110]*(3*(len(isos)+1)),
@@ -2431,6 +2419,7 @@ def print_summary_pnl(isos,daily_actuals_dict,monthly_actuals_dict,yearly_actual
 
     specs_dict = {'1': specs1, '2': specs2, '3': specs3, '4': specs4, '5': specs5, '6': specs6}
 
+
     if len(isos) == 1:
         titles = ('<b>'+model_type+' '+name_adder+' Axon Energy Daily PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[0] + ' Daily PnL Summary<b>',
                   '<b>'+model_type+' '+name_adder+' Axon Energy Monthly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' +isos[0] + ' Monthly PnL Summary<b>',
@@ -2461,6 +2450,7 @@ def print_summary_pnl(isos,daily_actuals_dict,monthly_actuals_dict,yearly_actual
                   '<b>'+model_type+' '+name_adder+' Axon Energy Monthly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[0] + ' Monthly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[1] + ' Monthly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[2] + ' Monthly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[3] + ' Monthly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[4] + ' Monthly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[5] + ' Monthly PnL Summary<b>',
                   '<b>'+model_type+' '+name_adder+' Axon Energy Yearly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[0] + ' Yearly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[1] + ' Yearly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[2] + ' Yearly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[3] + ' Yearly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' +isos[4] + ' Yearly PnL Summary<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[5] + ' Yearly PnL Summary<b>',
                   '<b>'+model_type+' '+name_adder+' Hourly PnL Comparison To Backtest<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[0] + ' Hourly PnL Comparison To Backtest<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[1] + ' Hourly PnL Comparison To Backtest<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[2] + ' Hourly PnL Comparison To Backtest<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[3] + ' Hourly PnL Comparison To Backtest<b>', '<b>' +model_type+' '+ name_adder + ' ' + isos[4] + ' Hourly PnL Comparison To Backtest<b>', '<b>'+model_type+' '+ name_adder + ' ' + isos[5] + ' Hourly PnL Comparison To Backtest<b>')
+
 
 
     fig = make_subplots(
@@ -2554,18 +2544,13 @@ def print_var(var_dataframes_dict,predict_date_str_mm_dd_yyyy,name_adder,model_t
 
     return fig
 
-def create_VAR(preds_dict, VAR_ISOs, daily_trade_file_name, working_directory, static_directory, model_type,predict_date_str_mm_dd_yyyy,name_adder):
-    daily_trade_directory = working_directory + '\\DailyTradeFiles\\'
+def create_VAR(preds_dict, VAR_ISOs, historic_var_file_name, working_directory, static_directory, model_type,predict_date_str_mm_dd_yyyy,name_adder):
     VAR_files_directory = static_directory + '\ModelUpdateData\\'
     save_directory = working_directory + '\\DailyPnL\\'
     iso_daily_PnL = pd.DataFrame()
 
     # Find correct VAR file
-    trade_variables = pd.ExcelFile(daily_trade_directory + daily_trade_file_name + '.xlsx')
-    all_ISOs_variables_df = pd.read_excel(trade_variables, 'ISOs')
-    all_ISOs_variables_df.reset_index(inplace=True, drop=True)
-    VAR_file_name = all_ISOs_variables_df['VAR_file'][0]
-    VAR_dict = load_obj(VAR_files_directory+VAR_file_name)
+    VAR_dict = load_obj(VAR_files_directory+historic_var_file_name)
     timezone_dict = {'MISO': 'EST', 'PJM': 'EPT', 'ISONE': 'EPT', 'NYISO': 'EPT', 'ERCOT': 'CPT', 'SPP': 'CPT'}
 
 
@@ -2699,7 +2684,7 @@ def create_VAR(preds_dict, VAR_ISOs, daily_trade_file_name, working_directory, s
                         name_adder=name_adder,
                         model_type=model_type)
 
-    var_writer = pd.ExcelWriter(save_directory + 'Daily_VAR_Report_'+predict_date_str_mm_dd_yyyy+'_'+model_type+'_'+name_adder+'.xlsx', engine='xlsxwriter')
+    var_writer = pd.ExcelWriter(save_directory + 'Daily_VAR_Report_'+predict_date_str_mm_dd_yyyy+'_'+model_type+'_'+name_adder+'.xlsx', engine='openpyxl')
 
     for type, df in var_dataframes_dict.items():
         df.to_excel(var_writer, sheet_name=type, index=True)

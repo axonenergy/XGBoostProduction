@@ -36,19 +36,20 @@ for row in trade_handler_df.index:
     do_data_pull = trade_handler_df['DataPull'][row]
     do_prediction = trade_handler_df['Prediction'][row]
     do_postprocessing = trade_handler_df['PostProcessing_YESFiles'][row]
-    do_tradesummary = trade_handler_df['TradeSummary'][row]
     do_printcharts = trade_handler_df['PrintCharts'][row]
     do_daily_PnL = trade_handler_df['DailyPnL'][row]
-    do_settlement_PnL = trade_handler_df['SettlementPnL'][row]
     do_VAR = trade_handler_df['VAR'][row]
-    VAR_isos = trade_handler_df['VAR_ISOs'][row]
-    VAR_isos = VAR_isos.replace(' ','').split(',')
     working_directory = trade_handler_df['WorkingDirectory'][row]
     static_directory = trade_handler_df['StaticDirectory'][row]
+    model_date = trade_handler_df['ModelDate'][row]
     daily_trade_file_name = trade_handler_df['TradeVariablesFileName'][row]
-    spread_files_name = trade_handler_df['SpreadFilesName'][row]
     name_adder = trade_handler_df['PaperTrade?'][row]
-    backtest_pnl_filename = trade_handler_df['BacktestPnLFilename'][row]
+
+
+    # Get model_date file names
+    backtest_pnl_filename = model_date + '_HOURLY_BACKTEST_PnL'
+    spread_files_name = model_date + '_BACKTEST_DATA_SPREAD_DART_LOCS'
+    historic_var_file_name = model_date + '_VAR_DART_DICT'
 
 
     yes_dfs_dict = {}
@@ -89,7 +90,7 @@ for row in trade_handler_df.index:
         writer.close()
 
 
-    if do_tradesummary:
+    if do_printcharts and do_postprocessing:
         create_trade_summary(predict_date_str_mm_dd_yyyy=predict_date_str_mm_dd_yyyy,
                              isos=current_isos,
                              do_printcharts=do_printcharts,
@@ -97,6 +98,20 @@ for row in trade_handler_df.index:
                              working_directory= working_directory,
                              static_directory=static_directory,
                              model_type=model_type)
+
+    if do_VAR:
+        if not do_postprocessing:
+            print('Postprocessing must be done in order to VAR to be run. Please edit the Tradehandler Excel sheet and re-run.')
+            exit()
+
+        create_VAR(preds_dict = yes_dfs_dict,
+                   VAR_ISOs=current_isos,
+                   historic_var_file_name=historic_var_file_name,
+                   working_directory=working_directory,
+                   static_directory=static_directory,
+                   model_type=model_type,
+                   predict_date_str_mm_dd_yyyy=predict_date_str_mm_dd_yyyy,
+                   name_adder=name_adder)
 
     if do_daily_PnL:
         daily_PnL(predict_date_str_mm_dd_yyyy=predict_date_str_mm_dd_yyyy,
@@ -111,22 +126,10 @@ for row in trade_handler_df.index:
 
 
 
-    if do_VAR:
-        if not do_postprocessing:
-            print('Postprocessing must be done in order to VAR to be run. Please edit the Tradehandler Excel sheet and re-run.')
-            exit()
 
-        create_VAR(preds_dict = yes_dfs_dict,
-                   VAR_ISOs=VAR_isos,
-                   daily_trade_file_name=daily_trade_file_name,
-                   working_directory=working_directory,
-                   static_directory=static_directory,
-                   model_type=model_type,
-                   predict_date_str_mm_dd_yyyy=predict_date_str_mm_dd_yyyy,
-                   name_adder=name_adder)
 
-    print('')
-    print('**********************************************************************************')
-    print('')
-    print('$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ submit trades get rich $$$$$$$$$$$$$$$$$$$$$$$$$$$$$')
-    print('')
+print('')
+print('**********************************************************************************')
+print('')
+print('$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ submit trades get rich $$$$$$$$$$$$$$$$$$$$$$$$$$$$$')
+print('')

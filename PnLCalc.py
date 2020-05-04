@@ -440,7 +440,7 @@ def do_dart_PnL(backtest_filename, save, sd_band, inc_mean_band_peak, dec_mean_b
 
     if save:
         print('Writing File...')
-        writer = pd.ExcelWriter(save_directory+'PnL_Results_'+save_name+'.xlsx', engine='xlsxwriter')
+        writer = pd.ExcelWriter(save_directory+'PnL_Results_'+save_name+'.xlsx', engine='openpyxl')
         hourly_summary_PnL.to_excel(writer, sheet_name='Hourly_Summary', index=False)
         daily_summary_PnL.to_excel(writer, sheet_name='Daily_Summary', index=False)
         monthly_dol_mw_df.round(2).to_excel(writer, sheet_name='Monthly_$_MWHr')
@@ -495,7 +495,7 @@ def do_DART_backtest_compare(compare_old_filename,compare_new_filename,compare_f
     hourly_summary_only_total['Node'] = ['New', 'Old', 'Delta']
 
     print('Writing File...')
-    writer = pd.ExcelWriter(save_directory+'PnL_Compare_' + compare_filename + '.xlsx', engine='xlsxwriter')
+    writer = pd.ExcelWriter(save_directory+'PnL_Compare_' + compare_filename + '.xlsx', engine='openpyxl')
     hourly_summary_only_total.to_excel(writer, sheet_name='Hourly_Summary_Delta', index=False)
     old_hourly_summary_PnL.to_excel(writer, sheet_name='Hourly_Summary_Old', index=False)
     new_hourly_summary_PnL.to_excel(writer, sheet_name='Hourly_Summary_New', index=False)
