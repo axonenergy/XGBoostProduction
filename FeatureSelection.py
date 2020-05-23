@@ -18,7 +18,7 @@ working_directory = 'X:\\Research\\'
 # COMMON PARAMETERS
 # input_file_name = '09_11_2019_GBM_DATA_MISO_V8.0_MASTER_159F'                 # Use This If Reading From CSV (Old Method)
 # input_file_type = 'csv'                                                       # Use This If Reading From CSV (Old Method)
-input_file_name = '2020_04_05_BACKTEST_DATA_DICT_MASTER'                        # Use This If Reading From Dictionary (New Method)
+input_file_name = '2020_05_04_BACKTEST_DATA_DICT_MASTER_tempcorr'                        # Use This If Reading From Dictionary (New Method)
 input_file_type = 'dict'                                                        # Use This If Reading From Dictionary
 hypergrid_dict_name = 'RFGridsearchDict_12092019_MISOAll_Master_Dataset_Dict_'  # Name Of Hypergrid File
 all_best_features_filename = 'FeatImport_2020_02_24_BACKTEST_DATA_DICT_MASTER_SPREAD_ONE_YEAR_SD6_PJM' # Name of Feature Importance File
@@ -33,8 +33,11 @@ feat_dict = {'SPR_EAD': 2,'DA_RT': 2, 'FLOAD': 8, 'FTEMP': 24, 'OUTAGE': 4}     
 
 train_end_date = datetime.datetime(int(input_file_name.split(sep='_')[0]),int(input_file_name.split(sep='_')[1]),int(input_file_name.split(sep='_')[2]))
 vintage_dict = {'ONE_YEAR':train_end_date-datetime.timedelta(days=365*1), 'THREE_YEAR':train_end_date-datetime.timedelta(days=365*3), 'ALL_YEAR':train_end_date-datetime.timedelta(days=365*10)}
-iso_list = ['ERCOT']
-feat_types_list = ['SPR_EAD', 'DA_RT', 'FLOAD','FTEMP','OUTAGE']                            # Feat Types To Run
+
+iso_list = ['PJM']
+model_type = 'SPREAD'
+
+feat_types_list = ['SPR_EAD', 'DA_RT','LMP', 'FLOAD','FTEMP','OUTAGE','GAS_PRICE']                            # Feat Types To Run
 run_gridsearch = False                                                          # Do A Gridsearch?
 run_feature_importances = True                                                  # Do Feature Importances?
 
@@ -133,7 +136,7 @@ def rf_gridsearch(train_df, feat_type, target, cv_folds, gridsearch_iterations, 
 
     return results
 
-def do_top_features(input_filename, save_name, iso_list, feat_dict, hypergrid_dict_name, feat_types_list, input_file_type, sd_limit, train_end_date, add_calculated_features, static_directory,working_directory,vintage_dict):
+def do_top_features(input_filename, save_name, iso_list, feat_dict, hypergrid_dict_name, feat_types_list, input_file_type, sd_limit, train_end_date, add_calculated_features, static_directory,working_directory,vintage_dict, model_type):
     feature_importance_directory = working_directory + '\FeatureImportanceFiles\\'
     model_data_directory = static_directory + '\ModelUpdateData\\'
     gridsearch_directory = working_directory + '\GridsearchFiles\\'
@@ -151,10 +154,8 @@ def do_top_features(input_filename, save_name, iso_list, feat_dict, hypergrid_di
                                     input_file_type=input_file_type,
                                     iso=iso)
 
-        if iso == 'ERCOT':
-            targets_df = master_df[[col for col in master_df.columns if 'SPREAD' in col]]
-        else:
-            targets_df = master_df[[col for col in master_df.columns if 'DART' in col]]
+
+        targets_df = master_df[[col for col in master_df.columns if model_type in col]]
 
         targets_df = targets_df[[col for col in targets_df.columns if iso in col]]
 
@@ -215,11 +216,15 @@ def do_top_features(input_filename, save_name, iso_list, feat_dict, hypergrid_di
                     # params = hypergrid_df['params'].iloc[0]
                     # params = literal_eval(params)
 
+                    #Not lagged - need to remove
+                    train_df = train_df.drop(columns=[col for col in train_df.columns if 'RTLMP' in col])
+                    train_df = train_df.drop(columns=[col for col in train_df.columns if 'DALMP' in col])
+
                     if do_all_feats:
                         x_train_df = train_df[[col for col in train_df.columns if (('DART' not in col)&('SPREAD'not in col))]]
                         # x_train_df = pd.get_dummies(x_train_df,columns=['Month','Weekday'])
                     elif feat_type == 'OUTAGE':
-                        x_train_df = train_df[[col for col in train_df.columns if(('DA_RT' not in col) & ('FLOAD' not in col) & ('FTEMP' not in col) & ('DART' not in col) & ('Weekday' not in col) & ('Month' not in col) & ('HourEnding' not in col)&('SPREAD' not in col)&('SPR_EAD' not in col))]]
+                        x_train_df = train_df[[col for col in train_df.columns if(('DA_RT' not in col) & ('FLOAD' not in col) & ('FTEMP' not in col) & ('DART' not in col) & ('Weekday' not in col) & ('Month' not in col) & ('HourEnding' not in col)&('SPREAD' not in col)&('SPR_EAD' not in col)&('DA_LMP' not in col)&('RT_LMP' not in col))]]
                     else:
                         x_train_df = train_df[[col for col in train_df.columns if feat_type in col]]
 
@@ -299,7 +304,7 @@ fit_params_dict = {'FLOAD':param_grid_FLOAD,
                    'FTEMP':param_grid_FTEMP,
                    'OUTAGE':param_grid_OUTAGE}
 
-save_name = input_file_name+'_'+name_adder
+save_name = input_file_name+'_'+name_adder+'_'+model_type
 
 if run_gridsearch:
     do_rf_gridsearch(input_filename=input_file_name,
@@ -329,6 +334,7 @@ if run_feature_importances:
                     add_calculated_features=add_calculated_features,
                     static_directory=static_directory,
                     working_directory=working_directory,
-                    vintage_dict=vintage_dict)
+                    vintage_dict=vintage_dict,
+                    model_type=model_type)
 
 

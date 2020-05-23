@@ -97,7 +97,10 @@ def create_features(input_df, iso, cat_vars, static_directory,target_name='', da
         daily_df = input_df.reset_index()
         daily_count_df = daily_df.groupby(['Date']).count()
         remove_dates = daily_count_df[daily_count_df['HE'] < 24].index.values
-        input_df = input_df.drop(remove_dates, level='Date')
+        try:
+            input_df = input_df.drop(remove_dates, level='Date')
+        except:
+            pass
 
     ### Add second day dart lag
     lagged_df = input_df[[col for col in input_df if 'DART_LAG' in col]].reset_index()
@@ -186,6 +189,7 @@ def create_features(input_df, iso, cat_vars, static_directory,target_name='', da
     print('Num Features Without Categoricals: ' + str(len(output_df.columns) - 1))
     # Add Categoricals
     output_df = pd.get_dummies(output_df, columns=cat_vars)
+
 
     return output_df
 
@@ -387,19 +391,19 @@ def xgb_gridsearch(train_df, target, cv_folds, iterations, sd_limit, gpu_train, 
     #               'reg_lambda': [3],
     #               'reg_alpha' : [0.1],
     #               # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
-    #               'subsample': [0.90],
-    #               'colsample_bytree': [0.25,0.30,0.35],
-    #               'max_depth': [10,12,14]}
+    #               'subsample': [0.85,0.90,0.95],
+    #               'colsample_bytree': [0.15,0.2,0.25],
+    #               'max_depth': [12,14,16]}
 
     # # XGBOOST TIER 1 GRID MISO ***DART***
     # param_grid = {'min_child_weight': [2],
-    #               'learning_rate': [0.005,0.007],
+    #               'learning_rate': [0.007],
     #               'reg_lambda': [5],
     #               'reg_alpha' : [0.30], ## doesnt really change much
     #               # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
-    #               'subsample': [0.85],
-    #               'colsample_bytree': [0.15,0.2],
-    #               'max_depth': [14,16]}
+    #               'subsample': [0.8,0.85,0.9],
+    #               'colsample_bytree': [0.15,0.2,0.25],
+    #               'max_depth': [12,14,16]}
 
 
     # # XGBOOST TIER 1 GRID ISONE ***DART***
@@ -408,40 +412,31 @@ def xgb_gridsearch(train_df, target, cv_folds, iterations, sd_limit, gpu_train, 
     #               'reg_lambda': [3],
     #               'reg_alpha' : [0.10],
     #               # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
-    #               'subsample': [0.95],
-    #               'colsample_bytree': [0.05],
-    #               'max_depth': [8]}
+    #               'subsample': [0.85,0.9,0.95],
+    #               'colsample_bytree': [0.05,0.1,0.15],
+    #               'max_depth': [6,8,10]}
     #
-    # # XGBOOST TIER 1 GRID NYISO ***DART***
-    # param_grid = {'min_child_weight': [2],
-    #               'learning_rate': [0.1],
-    #               'reg_lambda': [3],
-    #               'reg_alpha' : [0.10],
-    #               # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
-    #               'subsample': [0.8,0.85,0.9,0.95],
-    #               # 'colsample_bytree': [0.55],
-    #               'max_depth': [14]}
 
     # # XGBOOST TIER 1 GRID SPP ***DART***
-    # param_grid = {'min_child_weight': [2],
-    #               'learning_rate': [0.01,0.02],
-    #               'reg_lambda': [3],
-    #               'reg_alpha' : [0.10],
-    #               # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
-    #               'subsample': [0.85],
-    #               'colsample_bytree': [0.05,0.1],
-    #               'max_depth': [13,14,15]}
+    param_grid = {'min_child_weight': [2],
+                  'learning_rate': [0.01],
+                  'reg_lambda': [3],
+                  'reg_alpha' : [0.10],
+                  # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
+                  'subsample': [0.8,0.85,0.9],
+                  'colsample_bytree': [0.05,0.1,0.15],
+                  'max_depth': [13,15,17]}
 
 
     # # XGBOOST TIER 1 GRID ERCOT **SPREAD**
     # param_grid = {'min_child_weight': [2],
-    #               'learning_rate': [0.004,0.006],
+    #               'learning_rate': [0.0009],
     #               'reg_lambda': [3],
     #               'reg_alpha' : [0.1],
     #               # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
-    #               'subsample': [0.85],
-    #               'colsample_bytree': [0.05,0.1],
-    #               'max_depth': [9,11,13]}
+    #               'subsample': [0.8,0.85,0.9],
+    #               'colsample_bytree': [0.05,0.1,0.15],
+    #               'max_depth': [6,8,10]}
 
     # # XGBOOST TIER 1 GRID MISO ***SPREAD***
     # param_grid = {'min_child_weight': [2],
@@ -449,9 +444,19 @@ def xgb_gridsearch(train_df, target, cv_folds, iterations, sd_limit, gpu_train, 
     #               'reg_lambda': [5],
     #               'reg_alpha' : [0.30], ## doesnt really change much
     #               # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
-    #               'subsample': [0.95],
-    #               'colsample_bytree': [0.15],
-    #               'max_depth': [10]}
+    #               'subsample': [0.85,0.9,0.95],
+    #               'colsample_bytree': [0.1,0.15,0.2],
+    #               'max_depth': [8,10,12]}
+
+    # # XGBOOST TIER 1 GRID SPP ***SPREAD***
+    # param_grid = {'min_child_weight': [2],
+    #               'learning_rate': [0.01],
+    #               'reg_lambda': [5],
+    #               'reg_alpha' : [0.30], ## doesnt really change much
+    #               # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
+    #               'subsample': [0.85,0.9,0.95],
+    #               'colsample_bytree': [0.05,0.1,0.15],
+    #               'max_depth': [9,11,13]}
 
     #XGBOOST TIER 1 GRID PJM ****SPREAD****
     # param_grid = {'min_child_weight': [2],
@@ -459,19 +464,19 @@ def xgb_gridsearch(train_df, target, cv_folds, iterations, sd_limit, gpu_train, 
     #               'reg_lambda': [3],
     #               'reg_alpha' : [0.1],
     #               # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
-    #               'subsample': [0.95],
-    #               'colsample_bytree': [0.1],
-    #               'max_depth': [12]}
+    #               'subsample': [0.85,0.9,0.95],
+    #               'colsample_bytree': [0.05,0.1,0.15],
+    #               'max_depth': [12,14,16]}
 
     # # XGBOOST TIER 1 GRID ISONE ***SPREAD***
-    param_grid = {'min_child_weight': [2],
-                  'learning_rate': [0.01],
-                  'reg_lambda': [3],
-                  'reg_alpha' : [0.10],
-                  # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
-                  'subsample': [0.95],
-                  'colsample_bytree': [0.1],
-                  'max_depth': [10]}
+    # param_grid = {'min_child_weight': [2],
+    #               'learning_rate': [0.01],
+    #               'reg_lambda': [3],
+    #               'reg_alpha' : [0.10],
+    #               # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
+    #               'subsample': [0.85,0.9,0.95],
+    #               'colsample_bytree': [0.05,0.1,0.15],
+    #               'max_depth': [8,10,12]}
 
     random_search = RandomizedSearchCV(estimator=model,
                                        param_distributions=param_grid,
@@ -592,7 +597,7 @@ def do_xgb_prediction(predict_date_str_mm_dd_yyyy, iso, daily_trade_file_name, w
     input_file_directory = working_directory + '\InputFiles\\'
     daily_trade_files_directory = working_directory + '\DailyTradeFiles\\'
     feat_import_files_directory = working_directory + '\FeatureImportanceFiles\\'
-    model_directory = static_directory + '\ModelFiles\\'
+    model_directory = static_directory + '\ModelFiles\\NewModelFiles\\'
 
     print('')
     print('**********************************************************************************')
@@ -1458,8 +1463,8 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
             temp_trades_df.set_index(['Date', 'HourEnding'], drop=True, inplace=True)
             temp_trades_df['ClearedTrade'] = 1
 
-            temp_trades_df.loc[(temp_trades_df['Trade Type'] == 'INC') & (temp_trades_df['Bid'] >= temp_trades_df['DALMP']), 'ClearedTrade'] = 0
-            temp_trades_df.loc[(temp_trades_df['Trade Type'] == 'DEC') & (temp_trades_df['Bid'] <= temp_trades_df['DALMP']), 'ClearedTrade'] = 0
+            temp_trades_df.loc[(temp_trades_df['Trade Type'] == 'INC') & (temp_trades_df['Bid'] > temp_trades_df['DALMP']), 'ClearedTrade'] = 0
+            temp_trades_df.loc[(temp_trades_df['Trade Type'] == 'DEC') & (temp_trades_df['Bid'] < temp_trades_df['DALMP']), 'ClearedTrade'] = 0
 
             temp_trades_df['INCDEC_MULT'] = 1
 

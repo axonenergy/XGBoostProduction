@@ -14,7 +14,7 @@ working_directory = 'X:\\Research\\'
 run_DART_PnL = True
 run_find_offer_prices = False
 lmp_filename = '2020_01_05_LMP_DATA_DICT_MASTER'
-dart_backtest_filename = 'Backtest_2020_04_05_BACKTEST_DATA_DICT_MASTER_SPP_EXP20_SPREAD__'
+dart_backtest_filename = 'Backtest_2020_05_04_BACKTEST_DATA_DICT_MASTER_ERCOT_EXP20_SPREAD__'
 # dart_backtest_filename = 'Backtest_09_11_2019_GBM_DATA_MISO_V8.0_MASTER_159F_MISO_EXP10_'
 # dart_backtest_filename = 'Backtest_09_11_2019_GBM_DATA_PJM_V8.0_MASTER_207F_PJM_EXP10_'
 # dart_backtest_filename = 'backtest_PJM_V8.0_all'
@@ -166,6 +166,22 @@ def calc_hourly_pnl(backtest_filename, sd_band, inc_mean_band_peak, dec_mean_ban
                 act_df.drop(columns=[location], inplace=True)
 
     # Apply Filters
+
+    # Use this snippet to take the abs value of the preds when ranking
+    pred_df = pred_df.mask(abs(pred_df).rank(axis=1, method='min', ascending=False) > top_hourly_locs, 0)
+
+
+    # Use this snippet to not take the abs value of the inc and dec ranks when ranking (results in more spreads per hour)
+    # dec_preds_tier1_df = pred_df.mask(pred_df.rank(axis=1, method='min', ascending=True) > top_hourly_locs, 0)
+    # inc_preds_tier1_df = pred_df.mask(pred_df.rank(axis=1, method='min', ascending=False) > top_hourly_locs, 0)
+    #
+    # pred_df = pd.concat([dec_preds_tier1_df,inc_preds_tier1_df])
+    #
+    # pred_df.reset_index(inplace=True)
+    # pred_df = pred_df.groupby(['Date','HE']).sum()
+    # pred_df = pred_df.sort_values(by=['Date','HE'])
+
+
     for col in pred_df.columns:
         # SD Filter
         pred_df.loc[abs(pred_df[col]) < (sd_df[col] * sd_band), col] = 0
@@ -179,8 +195,7 @@ def calc_hourly_pnl(backtest_filename, sd_band, inc_mean_band_peak, dec_mean_ban
                 pred_df.loc[(pred_df[col] > 0) & (pred_df.index.get_level_values('HE')==hour) & (pred_df[col] < inc_mean_band_peak), col] = 0
                 pred_df.loc[(pred_df[col] < 0) & (pred_df.index.get_level_values('HE') ==hour) & (pred_df[col] > -dec_mean_band_peak), col] = 0
 
-    # Only take top preds from the row (scaled by median/sd)
-    pred_df = pred_df.mask(abs(pred_df).rank(axis=1, method='min', ascending=False) > top_hourly_locs, 0)
+
 
 
     # MW Volumne

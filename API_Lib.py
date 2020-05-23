@@ -37,8 +37,10 @@ def load_obj(file_name):
         print('File Does Not Exist')
 
 
-def get_spreads(input_dict, spread_locs_df=None, daily_pred=False, PnL=False):
+def get_spreads(input_dict, static_directory, spread_locs_df=None, daily_pred=False, PnL=False):
     df = pd.DataFrame(columns=['Spread','Corr'])
+    input_files_directory = static_directory + '\ModelUpdateData\\'
+    utc_spread_locs_df = pd.read_csv(input_files_directory + 'PJM_UTC_Locs.csv')
 
     # Get EST frame
     orig_df = input_dict['EST']
@@ -46,9 +48,9 @@ def get_spreads(input_dict, spread_locs_df=None, daily_pred=False, PnL=False):
 
     # Run correlations on each ISO and drop all but top X DARTs - highly negative correlated
 
-    iso_dict_dart = {'NYISO': 0.90,  # .90 ###Correlation cutoffs by ISO
-                     'PJM': 0.64,  # .64
-                     'MISO': 0.61,  # .61
+    iso_dict_dart = {'PJM': 0.90,  # .90 ###Correlation cutoffs by ISO
+                     'NYISO': 0.90,  # .64  PJM not used - takes UTC required locations instead
+                     'MISO': 0.62,  # .61
                      'ERCOT': 0.95,  # .95
                      'SPP': 0.77,  # .77
                      'ISONE': 0.925}  # .925
@@ -61,24 +63,42 @@ def get_spreads(input_dict, spread_locs_df=None, daily_pred=False, PnL=False):
         # Get least correlated DARTs to construct spreads out of
 
         for iso, perc in iso_dict_dart.items():
-
             temp_df = input_df[[col for col in input_df.columns if col.split('_')[0]==iso]].copy()
             temp_df.dropna(axis=0, inplace=True)
             correlated_features = set()
             print('Running Corr Matrix ' + iso)
-            corr_matrix = temp_df.corr()
             orig_cols = max(len(temp_df.columns), 0.00001)
-            for i in range(len(corr_matrix.columns)):
-                for j in range(i):
-                    if corr_matrix.iloc[i, j] > perc:
-                         colname = corr_matrix.columns[i]
-                         correlated_features.add(colname)
+
+            if iso != 'PJM':
+                corr_matrix = temp_df.corr()
+                for i in range(len(corr_matrix.columns)):
+                    for j in range(i):
+                        if corr_matrix.iloc[i, j] > perc:
+                            colname = corr_matrix.columns[i]
+                            correlated_features.add(colname)
+            else:
+                utc_spread_locs_df = utc_spread_locs_df[utc_spread_locs_df['ISO']==iso]
+                orig_df = temp_df
+                temp_df = temp_df[[col for col in temp_df.columns if col in set(utc_spread_locs_df['ModelName'])]]
+                other_locs_to_drop = set(orig_df.columns)-set(temp_df.columns)
+                input_df.drop(columns=other_locs_to_drop, inplace=True)
+
+                corr_matrix = temp_df.corr()
+                for i in range(len(corr_matrix.columns)):
+                    for j in range(i):
+                        if corr_matrix.iloc[i, j] > perc:
+                             colname = corr_matrix.columns[i]
+                             if colname not in ['PJM_51217_DART','PJM_51288_DART']:  #Make sure east and west hub are included
+                                correlated_features.add(colname)
+
             input_df.drop(columns=correlated_features, inplace=True)
+
             print(iso + ' Dropped ' + str(len(correlated_features)) + ' (' + str(
                 round(100 * len(correlated_features) / orig_cols, 0)) + '%) correlated (>' + str(perc) + '%'') DART locations.')
 
         for iso, perc in iso_dict_dart.items():
             print('Remaining Nodes in ' + iso + ':' + str(len([col for col in input_df.columns if iso in col])))
+
 
     # Load the DARTs used in the initial model update datapull so that 10,000,0000,00000000 spreads arent calced
 
@@ -93,8 +113,10 @@ def get_spreads(input_dict, spread_locs_df=None, daily_pred=False, PnL=False):
     # Construct spreads from least correlated DARTs
 
     for timezone, spread_df in input_dict.items():
+        spread_df = spread_df[~spread_df.index.duplicated()].copy()
         for iso, perc in iso_dict_dart.items():
             temp_df = input_df[[col for col in input_df.columns if col.split('_')[0]==iso]].copy()
+            temp_df = temp_df[~temp_df.index.duplicated()]
             for source_col_num in range(len(temp_df.columns)):
                 source_name = temp_df.columns[source_col_num]
                 for sink_col_num in range(source_col_num+1,len(temp_df.columns),1):
@@ -136,7 +158,7 @@ def get_iso_spreads(input_dict, spread_locs_df=None, daily_pred=False, PnL=False
 
     if daily_pred == False:
         # Get least correlated DARTs to construct spreads out of
-        corr_cutoff_perc = 0.35
+        corr_cutoff_perc = 0.37
 
         temp_df = input_df.dropna(axis=0)
         correlated_features = set()
@@ -268,7 +290,7 @@ def preprocess_data(input_dict, static_directory):
     input_df = input_df.drop(columns=removed_cols)
 
     ###drop nodes that are invalid for bidding
-    drop_nodes_list = ['PJM_32417727_DART', 'PJM_32417735_DART']
+    drop_nodes_list = ['PJM_32417727_DART', 'PJM_32417735_DART', 'PJM_32417729_DART']
     input_df = input_df.drop(columns=drop_nodes_list, errors='ignore')
 
     ### drop duplicate days (from timechanges)
@@ -303,9 +325,10 @@ def preprocess_data(input_dict, static_directory):
     return input_dict
 
 
-def drop_correlated_data(input_dict):
+def drop_correlated_data(input_dict, static_directory):
     input_df = input_dict['EST']
     input_df = input_df.astype('float')
+    input_files_directory = static_directory +  '\ModelUpdateData\\'
 
     ### drop correlated temperature points
     temp_df = input_df[[col for col in input_df.columns if 'FTEMP' in col]]
@@ -323,12 +346,12 @@ def drop_correlated_data(input_dict):
         round(100 * len(correlated_features) / orig_cols, 0)) + '%) correlated (>97.5%) TEMPERATURE locations.')
 
     ### drop correlated load points
-    iso_dict_load = {'NYISO': 0.98,   ###Correlation cutoffs by ISO
-                     'PJM': 0.98,
-                     'MISO': 0.98,
-                     'ERCOT': 0.98,
-                     'SPP': 0.98,
-                     'ISONE': 0.98}
+    iso_dict_load = {'NYISO': 0.995,   ###Correlation cutoffs by ISO
+                     'PJM': 0.995,
+                     'MISO': 0.995,
+                     'ERCOT': 0.995,
+                     'SPP': 0.995,
+                     'ISONE': 0.995}
 
     for iso, perc in iso_dict_load.items():
         temp_df = input_df[[col for col in input_df.columns if 'FLOAD' in col]]
@@ -352,18 +375,21 @@ def drop_correlated_data(input_dict):
         print('Remaining Load Zones in ' + iso + ':' + str(len([col for col in count_df.columns if iso in col])))
 
     ######## drop correlated dart points
-    iso_dict_dart = {'NYISO': 0.995, #.90 ###Correlation cutoffs by ISO
-                     'PJM': 0.98, #.95
-                     'MISO': 0.94, #.90
-                     'ERCOT': 0.995, #.998
-                     'SPP': 0.98, #.96
-                     'ISONE': 0.995} #.99
+    iso_dict_dart = {'PJM': 0.975, #.98
+                     'NYISO': 0.995, #.995 ###Correlation cutoffs by ISO
+                     'MISO': 0.94, #.94
+                     'ERCOT': 0.995, #.995
+                     'SPP': 0.98, #.98
+                     'ISONE': 0.995} #.995
+
+    #Load locations that must be included in the model
+    required_locs_df = pd.read_csv(input_files_directory+'PJM_UTC_Locs.csv')
 
     for iso, perc in iso_dict_dart.items():
-        temp_df = input_df[[col for col in input_df.columns if col.split('_')[0]==iso]]
+        temp_df = input_df[[col for col in input_df.columns if '_DART' in col]]
         temp_df = temp_df[[col for col in temp_df.columns if iso in col]]
         temp_df.dropna(axis=0, inplace=True)
-        correlated_features = set()
+        correlated_dart_features = set()
         print('Running Corr Matrix ' + iso)
         corr_matrix = temp_df.corr()
         orig_cols = max(len(temp_df.columns), 0.00001)
@@ -371,10 +397,20 @@ def drop_correlated_data(input_dict):
             for j in range(i):
                 if abs(corr_matrix.iloc[i, j]) > perc:
                      colname = corr_matrix.columns[i]
-                     correlated_features.add(colname)
-        input_df.drop(columns=correlated_features, inplace=True)
-        print(iso + ' Dropped ' + str(len(correlated_features)) + ' (' + str(
-            round(100 * len(correlated_features) / orig_cols, 0)) + '%) correlated (>' + str(perc) + '%'') DART locations.')
+                     if colname not in set(required_locs_df['ModelName']):
+                        correlated_dart_features.add(colname)
+                     else:
+                        print('ignored dropping:' + colname)
+
+        correlated_dalmp_features = [col.replace('_DART','_DALMP') for col in correlated_dart_features]
+        correlated_rtlmp_features = [col.replace('_DART', '_RTLMP') for col in correlated_dart_features]
+
+        input_df.drop(columns=correlated_dart_features, inplace=True, errors='ignore')
+        input_df.drop(columns=correlated_dalmp_features, inplace=True, errors='ignore')
+        input_df.drop(columns=correlated_rtlmp_features, inplace=True, errors='ignore')
+
+        print(iso + ' Dropped ' + str(len(correlated_dart_features)) + ' (' + str(
+            round(100 * len(correlated_dart_features) / orig_cols, 0)) + '%) correlated (>' + str(perc) + '%'') DART locations.')
 
 
     count_df = input_df[[col for col in input_df.columns if 'DART' in col]]
@@ -383,6 +419,66 @@ def drop_correlated_data(input_dict):
 
     for key, value in input_dict.items():
         input_dict[key]=input_dict[key][input_df.columns]
+
+    return input_dict
+
+
+def drop_and_lag_lmps(input_dict, spread_locs_df, daily_pred=False, PnL=False):
+    ## drops DA and RT LMPs which are not also spreads
+    input_df = input_dict['EST']
+    spread_list = spread_locs_df.columns
+
+    keep_dalmp_list = set([loc.replace('DART', 'DALMP') for loc in spread_list])
+    keep_rtlmp_list = set([loc.replace('DART', 'RTLMP') for loc in spread_list])
+
+    dalmp_list = set(col for col in input_df.columns if '_DALMP' in col)
+    rtlmp_list = set(col for col in input_df.columns if '_RTLMP' in col)
+
+    remove_dalmp_list = dalmp_list - keep_dalmp_list
+    remove_rtlmp_list = rtlmp_list - keep_rtlmp_list
+
+    input_df.drop(columns=remove_dalmp_list, inplace=True)
+    input_df.drop(columns=remove_rtlmp_list, inplace=True)
+
+    for timezone, spread_df in input_dict.items():
+        input_dict[timezone] = spread_df[input_df.columns]
+
+
+    if daily_pred:
+        # Lag spreads using 16-40 function
+        if PnL==False:
+            rtlmp_dict = lag_data16_40(input_dict=input_dict.copy(),
+                                       col_type='RTLMP',
+                                       return_only_lagged=True)
+
+
+            dalmp_dict = lag_data_24(input_dict=input_dict.copy(),
+                                       col_type='DALMP',
+                                       return_only_lagged=True)
+
+            #concat DA and RT dicts together
+            for timezone in ['EST', 'EPT', 'CPT']:
+                    df1 = rtlmp_dict[timezone]
+                    df2 = dalmp_dict[timezone]
+                    df1 = df1.join(df2, how='outer', on=['Date', 'HourEnding']).sort_values(['Date', 'HourEnding'], ascending=True)
+                    input_dict[timezone]=df1
+
+        else:
+            input_dict = lag_data16_40(input_dict=input_dict,
+                                       col_type='RTLMP',
+                                       return_only_lagged=False)
+
+            input_dict = lag_data_24(input_dict=input_dict,
+                                       col_type='DALMP',
+                                       return_only_lagged=False)
+    else:
+        input_dict = lag_data16_40(input_dict=input_dict,
+                                   col_type='RTLMP',
+                                   return_only_lagged=False)
+
+        input_dict = lag_data_24(input_dict=input_dict,
+                                 col_type='DALMP',
+                                 return_only_lagged=False)
 
     return input_dict
 
@@ -397,7 +493,7 @@ def lag_data16_40(input_dict, col_type='DART', return_only_lagged = False):
         temp_df.loc[temp_df['HourEnding']<=8, 'Date'] = temp_df['Date'] + datetime.timedelta(days=1)
         temp_df.loc[temp_df['HourEnding']> 8, 'Date'] = temp_df['Date'] + datetime.timedelta(days=2)
         temp_df.set_index(['Date', 'HourEnding'],inplace=True, drop=-True)
-        temp_df.columns = [col.replace('DART','DA_RT').replace('_SPREAD','_SPR_EAD').replace('_ISOXFER','_SPR_EAD')+'_LAG' for col in temp_df.columns]
+        temp_df.columns = [col.replace('DART','DA_RT').replace('_SPREAD','_SPR_EAD').replace('_ISOXFER','_SPR_EAD').replace('_GASPRICE','_GAS_PRICE').replace('_DALMP','_DA_LMP').replace('_RTLMP','_RT_LMP')+'_LAG' for col in temp_df.columns]
 
         if return_only_lagged:
             input_dict[timezone] = temp_df.sort_values(by=['Date', 'HourEnding'], ascending=True)
@@ -407,6 +503,46 @@ def lag_data16_40(input_dict, col_type='DART', return_only_lagged = False):
             output_df = output_df[[col for col in output_df.columns if 'ISOXFER' not in col]]
             input_dict[timezone] = output_df
 
+    return input_dict
+
+
+def lag_data_24(input_dict, col_type='DART', return_only_lagged = False):
+    for timezone, dataframe in input_dict.items():
+        temp_df = dataframe[[col for col in dataframe.columns if col_type in col]].copy()
+        temp_df.reset_index(inplace=True)
+        temp_df['Date'] = temp_df['Date'].astype('datetime64[ns]')
+        temp_df['Date'] = temp_df['Date'] + datetime.timedelta(days=1)
+        temp_df.set_index(['Date', 'HourEnding'],inplace=True, drop=-True)
+        temp_df.columns = [col.replace('DART','DA_RT').replace('_SPREAD','_SPR_EAD').replace('_ISOXFER','_SPR_EAD').replace('_GASPRICE','_GAS_PRICE').replace('_DALMP','_DA_LMP').replace('_RTLMP','_RT_LMP')+'_LAG' for col in temp_df.columns]
+
+        if return_only_lagged:
+            input_dict[timezone] = temp_df.sort_values(by=['Date', 'HourEnding'], ascending=True)
+        else:
+            output_df = dataframe.join(temp_df, how='outer', rsuffix='DELETE').sort_values(by=['Date','HourEnding'],ascending=True)
+            output_df = output_df[[col for col in output_df.columns if 'DELETE' not in col]]
+            output_df = output_df[[col for col in output_df.columns if 'ISOXFER' not in col]]
+            output_df = output_df[[col for col in output_df.columns if 'GASPRICE' not in col]]
+            input_dict[timezone] = output_df
+    return input_dict
+
+
+def lag_data_48(input_dict, col_type='DART', return_only_lagged = False):
+    for timezone, dataframe in input_dict.items():
+        temp_df = dataframe[[col for col in dataframe.columns if col_type in col]].copy()
+        temp_df.reset_index(inplace=True)
+        temp_df['Date'] = temp_df['Date'].astype('datetime64[ns]')
+        temp_df['Date'] = temp_df['Date'] + datetime.timedelta(days=2)
+        temp_df.set_index(['Date', 'HourEnding'],inplace=True, drop=-True)
+        temp_df.columns = [col.replace('DART','DA_RT').replace('_SPREAD','_SPR_EAD').replace('_ISOXFER','_SPR_EAD').replace('_GASPRICE','_GAS_PRICE').replace('_DALMP','_DA_LMP').replace('_RTLMP','_RT_LMP')+'_LAG' for col in temp_df.columns]
+
+        if return_only_lagged:
+            input_dict[timezone] = temp_df.sort_values(by=['Date', 'HourEnding'], ascending=True)
+        else:
+            output_df = dataframe.join(temp_df, how='outer', rsuffix='DELETE').sort_values(by=['Date','HourEnding'],ascending=True)
+            output_df = output_df[[col for col in output_df.columns if 'DELETE' not in col]]
+            output_df = output_df[[col for col in output_df.columns if 'ISOXFER' not in col]]
+            output_df = output_df[[col for col in output_df.columns if 'GASPRICE' not in col]]
+            input_dict[timezone] = output_df
     return input_dict
 
 
@@ -628,6 +764,7 @@ def process_YES_timeseries(input_df, input_timezone, start_date, end_date, retur
                     'FORCTEMP_FAverageLatest' : '_FTEMP',
                     'RTLMPAverage': '_RTLMP',
                     'DALMPAverage': '_DALMP',
+                    'GASPRICEAverage': '_GASPRICE',
                     }
 
     PJM_list = ['AECO','AEP','ATSI','BGE','COMED','DAYTON','DEOK','DOMINION','DPL',
@@ -2005,8 +2142,14 @@ def get_ISO_api_data(start_date, end_date, previous_data_dict_name, concat_old_d
     end_date_string = end_date
     end_date = datetime.datetime.strptime(end_date,'%Y_%m_%d')
     end_date = end_date.strftime('%m/%d/%Y')
+
+    hard_end_date = parse(end_date)
+    hard_start_date = '07/15/2015'
+    hard_start_date = parse(hard_start_date)
+
     start_date = datetime.datetime.strptime(start_date, '%Y_%m_%d')
     start_date = start_date.strftime('%m/%d/%Y')
+
 
 
     #### Process and add YES Temperature timeseries file
@@ -2025,7 +2168,7 @@ def get_ISO_api_data(start_date, end_date, previous_data_dict_name, concat_old_d
                                                        input_df=ts_input_df,
                                                        input_timezone=time_zone)
 
-    #### Process and add YES ERCOT DART timeseries file
+    ### Process and add YES ERCOT DART timeseries file
     file_name = end_date_string + '_BACKTEST_INPUT_FILE_YES_TS(ERCOT_LMP)'
     time_zone = 'CPT'
     print('Processing YES Timeseries File: ' + file_name)
@@ -2041,7 +2184,7 @@ def get_ISO_api_data(start_date, end_date, previous_data_dict_name, concat_old_d
                                                            input_df=ts_input_df,
                                                            input_timezone=time_zone,
                                                            returnDARTs=True,
-                                                           returnLMPS=False)
+                                                           returnLMPS=True)
 
 
     #### Process and add YES PJMloadERCOTdata timeseries file
@@ -2147,11 +2290,11 @@ def get_ISO_api_data(start_date, end_date, previous_data_dict_name, concat_old_d
                                                                          static_directory=static_directory)
 
 
-    list_to_concat = [MISO_load_outage_dict,MISO_DART_dict,
-                      SPP_wind_dict,SPP_outage_dict,SPP_load_dict,SPP_DART_dict,
-                      PJM_outage_dict,PJM_DART_dict,PJM_load_dict,
-                      ISONE_outage_dict,ISONE_load_dict,ISONE_DART_dict,
-                      NYISO_load_dict,NYISO_DART_dict,
+    list_to_concat = [MISO_load_outage_dict,MISO_DART_dict,MISO_DALMP_dict, MISO_RTLMP_dict,
+                      SPP_wind_dict,SPP_outage_dict,SPP_load_dict,SPP_DART_dict,SPP_DALMP_dict, SPP_RTLMP_dict,
+                      PJM_outage_dict,PJM_DART_dict,PJM_load_dict,PJM_DALMP_dict,PJM_RTLMP_dict,
+                      ISONE_outage_dict,ISONE_load_dict,ISONE_DART_dict,ISONE_DALMP_dict,ISONE_RTLMP_dict,
+                      NYISO_load_dict,NYISO_DART_dict,NYISO_DALMP_dict,NYISO_RTLMP_dict,
                       yes_PJMERCOT_timeseries_dict,yes_temps_timeseries_dict,yes_ERCOTlmps_timeseries_dict]
 
 
@@ -2162,10 +2305,6 @@ def get_ISO_api_data(start_date, end_date, previous_data_dict_name, concat_old_d
                     output_dict_dataframes[timezone] = output_dict_dataframes[timezone].join(dict_to_concat[timezone],how='outer',on=['Date','HourEnding']).sort_values(['Date','HourEnding'],ascending=True)
                 except:
                     output_dict_dataframes[timezone] = dict_to_concat[timezone]
-
-
-    hard_start_date = '07/15/2015'
-    hard_start_date = parse(hard_start_date)
 
 
     # Join old dict data
@@ -2181,23 +2320,30 @@ def get_ISO_api_data(start_date, end_date, previous_data_dict_name, concat_old_d
             concat_df = concat_df.loc[~concat_df.index.duplicated(keep='last')]
             concat_df = concat_df.sort_index()
             concat_df = concat_df[concat_df.index.get_level_values('Date')>=hard_start_date]
+            concat_df = concat_df[concat_df.index.get_level_values('Date')<=hard_end_date]
             output_dict_dataframes[timezone] = concat_df
 
 
     dict_save_name = end_date_string + '_BACKTEST_DATA'
 
     # Save raw data before postprocessing and spreads
-
     save_obj(output_dict_dataframes, input_files_directory+dict_save_name+'_DICT_RAW')
-
-    output_dict_dataframes=load_obj(input_files_directory+'2020_03_27_BACKTEST_DATA_DICT_RAW')
 
     post_process_dict = post_process_backtest_data(input_dict=output_dict_dataframes,
                                                    static_directory=static_directory)
 
+
     #Get Spreads
-    spread_dict, spread_locs_df = get_spreads(input_dict=post_process_dict)
+    spread_dict, spread_locs_df = get_spreads(input_dict=post_process_dict,
+                                              static_directory=static_directory)
+
     spread_dict, iso_spread_locs_df = get_iso_spreads(input_dict=spread_dict, spread_locs_df=spread_locs_df)
+
+
+    # Remove DA and RT LMPS which are not spreads and lag them appropriately
+    spread_dict = drop_and_lag_lmps(input_dict=spread_dict,
+                                    spread_locs_df=spread_locs_df)
+
 
     # COMBINE ISO AND REGULAR SPREAD DICTS and save
     save_obj(spread_locs_df.head(48),input_files_directory + dict_save_name+'_SPREAD_DART_LOCS')
@@ -2206,10 +2352,8 @@ def get_ISO_api_data(start_date, end_date, previous_data_dict_name, concat_old_d
     # Save Final Dict with spreads and postprocessing
     save_obj(spread_dict,input_files_directory + dict_save_name+'_DICT_MASTER')
 
-
-    # Save CSV Files
-    # for key, value in spread_dict.items():
-    #     spread_dict[key].to_csv(input_files_directory+ dict_save_name+'_MASTER_'+key+'.csv')
+    # Save File of All Feature Names
+    pd.DataFrame(spread_dict['EST'].columns).to_csv(input_files_directory+ dict_save_name+'_ALL_FEAT_NAMES.csv')
 
     #Create Max Min Limits For Daily Trade File
     max_min_save_name = end_date_string + '_MAX_MIN_LIMITS'
@@ -2261,8 +2405,15 @@ def post_process_backtest_data(static_directory,dict_filename=None, input_dict=N
     # Preprocess Data (Remove Bad and Missing Data
     input_dict = preprocess_data(input_dict=input_dict,
                                  static_directory=static_directory)
-    input_dict = drop_correlated_data(input_dict=input_dict)
+
+    input_dict = drop_correlated_data(input_dict=input_dict,
+                                      static_directory=static_directory)
+
     input_dict = lag_data16_40(input_dict=input_dict, col_type='DART')
+
+    input_dict = lag_data_24(input_dict=input_dict,
+                             col_type='GASPRICE',
+                             return_only_lagged=False)
 
     return input_dict
 
@@ -2380,21 +2531,22 @@ def get_daily_input_data(predict_date_str_mm_dd_yyyy, working_directory, static_
     file_name = predict_date_str_mm_dd_yyyy + '_DAILY_INPUT_YES_PRICE_TABLE_T-XDAY'
     print('Processing YES PriceTable File: ' + file_name)
 
-    #try:
-    yes_pricetable_dict = process_YES_daily_price_tables(predict_date=predict_date,
-                                                         input_timezone = 'CPT',
-                                                         working_directory=working_directory,
-                                                         dart_only=True)
-    # except:
-    #     print('ERROR: YES PriceTable File Error. Check Start and End Dates In YES File Download')
-    #     exit()
+    try:
+        yes_pricetable_dict = process_YES_daily_price_tables(predict_date=predict_date,
+                                                             input_timezone = 'CPT',
+                                                             working_directory=working_directory,
+                                                             dart_only=False)
+    except:
+        print('ERROR: YES PriceTable File Error. Check Start and End Dates In YES File Download')
+        exit()
 
     spread_locs_df = load_obj(spread_files_directory+ spread_files_name)
 
     spreads_dict, input_df = get_spreads(input_dict=yes_pricetable_dict.copy(),
                                          spread_locs_df=spread_locs_df,
                                          daily_pred=True,
-                                         PnL=True)
+                                         PnL=True,
+                                         static_directory=static_directory)
 
 
     spreads_dict, iso_input_df = get_iso_spreads(input_dict=spreads_dict.copy(),
@@ -2402,14 +2554,24 @@ def get_daily_input_data(predict_date_str_mm_dd_yyyy, working_directory, static_
                                                  daily_pred=True,
                                                  PnL=True)
 
+
     for timezone, spread_df in spreads_dict.items():
         spreads_dict[timezone] = spread_df[[col for col in spread_df.columns if 'SPR_EAD' in col]]
 
 
     ### LAG DART DATA
-    yes_pricetable_dict = lag_data16_40(input_dict=yes_pricetable_dict.copy(),
-                                        return_only_lagged=True)
+    dart_dict = lag_data16_40(input_dict=yes_pricetable_dict.copy(),
+                              col_type='DART',
+                              return_only_lagged=True)
 
+    #Lag gas price data
+    gas_dict = lag_data_24(input_dict=yes_timeseries_dict.copy(),
+                          col_type='GASPRICE',
+                          return_only_lagged=True)
+
+    lmp_dict = drop_and_lag_lmps(input_dict=yes_pricetable_dict.copy(),
+                                 spread_locs_df=spread_locs_df,
+                                 daily_pred=True)
 
 
     ### CONCAT ALL DATA INTO ONE DICTIONARY
@@ -2425,7 +2587,10 @@ def get_daily_input_data(predict_date_str_mm_dd_yyyy, working_directory, static_
                       NYISO_load_dict,
                       yes_timeseries_dict,
                       yes_pricetable_dict,
-                      spreads_dict]
+                      spreads_dict,
+                      gas_dict,
+                      dart_dict,
+                      lmp_dict]
 
     for dict_to_concat in list_to_concat:
         for timezone in ['EST','EPT','CPT']:
@@ -2433,9 +2598,14 @@ def get_daily_input_data(predict_date_str_mm_dd_yyyy, working_directory, static_
                 df = output_dict_dataframes[timezone]
                 try:
                     df = df.join(dict_to_concat[timezone],how='outer',on=['Date','HourEnding']).sort_values(['Date','HourEnding'],ascending=True)
+                    cols_to_drop = ['GASPRICE','DAENERGY','RTENERGY','DACONG','RTCONG','DALOSS','RTLOSS','DALMP','RTLMP','DART']
+                    for drop_col in cols_to_drop:
+                        df = df[[col for col in df.columns if drop_col not in col]]
+
                 except:
                     df = dict_to_concat[timezone]
                 output_dict_dataframes[timezone]= df
+
 
     # Save Final Dict
     save_obj(output_dict_dataframes, input_files_directory+predict_date_str_mm_dd_yyyy + '_RAW_DAILY_INPUT_DATA_DICT')
@@ -2540,13 +2710,15 @@ def create_max_min_limits(input_dict):
     max_min_df['MaxLimit'] = input_df.max()
     max_min_df['MinLimit'] = input_df.min()
     max_min_df['MaxLimit'] = max_min_df['MaxLimit']*1.1
-    max_min_df['MinLimit'] = max_min_df['MinLimit']  - max_min_df['MinLimit']*0.1
+    max_min_df['MinLimit'] = max_min_df['MinLimit']  - abs(max_min_df['MinLimit']*0.1)
     max_min_df.reset_index(inplace=True)
     max_min_df.columns = ['FeatureName','MaxLimit','MinLimit']
     max_min_df['Action'] = 'Delete'
     max_min_df['ISO'] = 'None'
     max_min_df['DART?'] = 'NO'
     max_min_df.loc[(max_min_df['FeatureName'].str.contains('DA_RT')),'Action']='Ignore'
+    max_min_df.loc[(max_min_df['FeatureName'].str.contains('DA_LMP')), 'Action'] = 'Ignore'
+    max_min_df.loc[(max_min_df['FeatureName'].str.contains('RT_LMP')), 'Action'] = 'Ignore'
     max_min_df.loc[(max_min_df['FeatureName'].str.contains('DART')), 'Action'] = 'Ignore'
     max_min_df.loc[(max_min_df['FeatureName'].str.contains('SPREAD')), 'Action'] = 'Ignore'
     max_min_df.loc[(max_min_df['FeatureName'].str.contains('SPR_EAD')), 'Action'] = 'Ignore'
@@ -2829,4 +3001,5 @@ def get_reference_prices(data_dict_name, working_directory, static_directory):
 
 
     return
+
 
