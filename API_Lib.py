@@ -2918,7 +2918,7 @@ def get_reference_prices(data_dict_name, working_directory, static_directory):
         #ISONE - on peak and off peak incs and decs by month - dataset is last years' month, last 9 days two months from current, and first 19 days one month from current. 95th percentile
         #ERCOT unsure - just use ISONE rules
 
-    writer = pd.ExcelWriter(dart_files_directory + 'REF_PRICES_' + data_dict_name + '.xlsx', engine='xlsxwriter')
+    writer = pd.ExcelWriter(dart_files_directory + 'REF_PRICES_' + data_dict_name + '.xlsx', engine='openpyxl')
     for iso, df in output_dict.items():
         if iso=='MISO':
             df['year']=pd.Series(df.index).apply(lambda x : x.split('_')[0]).astype('int').values

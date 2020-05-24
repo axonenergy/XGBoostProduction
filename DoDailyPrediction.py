@@ -83,7 +83,7 @@ for row in trade_handler_df.index:
 
     if do_postprocessing:
         # Write all upload files to same Excel file
-        writer = pd.ExcelWriter(upload_directory + predict_date_str_mm_dd_yyyy + '_UPLOAD_FILES_ALL_' + model_type+'_'+ name_adder + '.xlsx', engine='xlsxwriter',datetime_format='mm/dd/yy')
+        writer = pd.ExcelWriter(upload_directory + predict_date_str_mm_dd_yyyy + '_UPLOAD_FILES_ALL_' + model_type+'_'+ name_adder + '.xlsx', engine='openpyxl',datetime_format='mm/dd/yy')
         for iso, upload_df in upload_dfs_dict.items():
             upload_df.to_excel(writer, sheet_name=iso, index=False)
         writer.save()
