@@ -1411,7 +1411,7 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
 
         temp_trades_df['Node Name'] = temp_trades_df['Node Name'].astype('str')
 
-        temp_trades_df['Node Name'] = temp_trades_df['Node Name'].str.replace('ISONE_','').str.replace('ERCOT_','').str.replace('SPP_','').str.replace('PJM_','').str.replace('MISO_','')
+        temp_trades_df['Node Name'] = temp_trades_df['Node Name'].str.replace(iso+'_','')
         temp_trades_df.set_index(['targetdate','Hour', 'Node Name'],inplace=True)
         temp_trades_df.index.names = ['Date','HourEnding','Node Name']
 

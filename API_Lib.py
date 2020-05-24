@@ -290,7 +290,7 @@ def preprocess_data(input_dict, static_directory):
     input_df = input_df.drop(columns=removed_cols)
 
     ###drop nodes that are invalid for bidding
-    drop_nodes_list = ['PJM_32417727_DART', 'PJM_32417735_DART', 'PJM_32417729_DART']
+    drop_nodes_list = ['PJM_32417727_DART', 'PJM_32417735_DART', 'PJM_32417729_DART','PJM_32417737_DART']
     input_df = input_df.drop(columns=drop_nodes_list, errors='ignore')
 
     ### drop duplicate days (from timechanges)
