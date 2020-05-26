@@ -1306,7 +1306,7 @@ def create_trade_file(input_mw_df, iso , all_ISOs_variables_df, working_director
 
         trades_tall_df['BidSegment']=2
 
-        if iso == 'ERCOT':  ### Actual spread
+        if iso in ['ERCOT', 'PJM']:  ### Actual spread
             yes_df = trades_tall_df[['Orig Source ID','Orig Sink ID','Node Name','Node ID', 'Source ID', 'Sink ID', 'Source Name', 'Sink Name', 'Trade Type', 'Bookname', 'iso', 'targetdate', 'portfolioname', 'Hour', 'MW','Bid']].copy()
             upload_df = yes_df
 
