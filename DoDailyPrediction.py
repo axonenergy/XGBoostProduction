@@ -22,7 +22,7 @@ trade_handler_directory = root_directory + '\\DailyTradeFiles\\'
 upload_directory = root_directory + '\\UploadFiles\\'
 
 
-trade_handler_df = pd.read_excel(trade_handler_directory+'$$$TradeHandler$$$.xls', skiprows=9).dropna(thresh=6)
+trade_handler_df = pd.read_excel(trade_handler_directory+'$$$TradeHandler$$$_new.xls', skiprows=9).dropna(thresh=6)
 trade_handler_df = trade_handler_df.fillna('')
 
 for row in trade_handler_df.index:

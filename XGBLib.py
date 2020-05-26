@@ -700,7 +700,7 @@ def do_xgb_prediction(predict_date_str_mm_dd_yyyy, iso, daily_trade_file_name, w
                         print('**********************************')
                         print('          SELECT ACTION!          ')
                         print('**********************************')
-                        print('Drop ' + feature + ' due to min limit breech of ' + str(round(input_df[feature].max(),2))+' (limit is set at '+str(min_limit)+')???')
+                        print('Drop ' + feature + ' due to min limit breech of ' + str(round(input_df[feature].min(),2))+' (limit is set at '+str(min_limit)+')???')
                         print('If feature is dropped (Y) all locations which use this feature will not be predicted.')
                         print('If feature is not dropped (N) then the data which exceeded the historic max/min limits will be used.')
                         y_n=input('Enter Y to drop feature or N to keep feature and press ENTER.')
@@ -1273,6 +1273,14 @@ def create_trade_file(input_mw_df, iso , all_ISOs_variables_df, working_director
         for location in trades_tall_df['Sink ID'].unique():
             trades_tall_df.loc[(trades_tall_df['Sink ID'] == location), 'Sink Name'] = alt_names_dict_spread[location.replace(' ','')]
 
+        try:
+            trades_tall_df['Source Name'] = trades_tall_df['Source Name'].astype('int', errors='ignore')
+            trades_tall_df['Sink Name'] = trades_tall_df['Sink Name'].astype('int', errors='ignore')
+            trades_tall_df['Source Name'] = trades_tall_df['Source Name'].astype('str')
+            trades_tall_df['Sink Name'] = trades_tall_df['Sink Name'].astype('str')
+        except:
+            pass
+
 
         trades_tall_df['Node Name']=trades_tall_df['Node Name'].apply(lambda row: row.replace('_SPREAD', ''))
 
@@ -1347,7 +1355,7 @@ def create_trade_file(input_mw_df, iso , all_ISOs_variables_df, working_director
             yes_df['MW'] = abs(yes_df['MW'])
 
             try:
-                yes_df['Node Name'] = yes_df['Node Name'].astype('int')
+                yes_df['Node Name'] = yes_df['Node Name'].astype('int', errors='ignore')
             except:
                 pass
 
@@ -1404,23 +1412,21 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
             trades_dict[iso]=pd.DataFrame()
             continue
 
+
+
         try:
-            temp_trades_df['Node Name'] = temp_trades_df['Node Name'].astype('int')
+            temp_trades_df['Node Name'] = temp_trades_df['Node Name'].astype('int',errors='ignore')
         except:
             pass
 
-        temp_trades_df['Node Name'] = temp_trades_df['Node Name'].astype('str')
 
+        temp_trades_df['Node Name'] = temp_trades_df['Node Name'].astype('str')
         temp_trades_df['Node Name'] = temp_trades_df['Node Name'].str.replace(iso+'_','')
         temp_trades_df.set_index(['targetdate','Hour', 'Node Name'],inplace=True)
         temp_trades_df.index.names = ['Date','HourEnding','Node Name']
 
         temp_lmp_df = yes_pricetable_dict[timezone_dict[iso]]
         temp_lmp_df = temp_lmp_df[[col for col in temp_lmp_df.columns if iso in col]]
-        temp_lmp_df = temp_lmp_df[[col for col in temp_lmp_df.columns if 'LAG' not in col]]
-
-
-
 
         temp_lmp_df = temp_lmp_df.stack().reset_index()
         temp_lmp_df.set_index(['Date','HourEnding'],drop=True,inplace=True)
@@ -1434,7 +1440,7 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
         temp_lmp_df = temp_lmp_df.unstack(3)
         temp_lmp_df.columns = temp_lmp_df.columns.get_level_values(1)
         temp_lmp_df['TOT_DART'] = temp_lmp_df['DALMP'] - temp_lmp_df['RTLMP']
-
+        temp_lmp_df.reset_index(inplace=True)
 
         try:
             temp_lmp_df['CONG_DART'] = temp_lmp_df['DACONG'] - temp_lmp_df['RTCONG']
@@ -1445,10 +1451,12 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
             temp_lmp_df['LOSS_DART'] = 0
             temp_lmp_df['ENERGY_DART'] = temp_lmp_df['TOT_DART']
 
+
         temp_lmp_df.drop(columns=['DART'],inplace=True)
         temp_lmp_df.reset_index(inplace=True)
         temp_lmp_df['Date']=temp_lmp_df['Date'].astype('datetime64[ns]')
         temp_lmp_df['Node Name'] = temp_lmp_df['Node Name'].astype('str')
+
 
         temp_trades_df.reset_index(inplace=True)
         temp_trades_df['Date']=temp_trades_df['Date'].astype('datetime64[ns]')
@@ -1457,9 +1465,9 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
         temp_trades_df.loc[temp_trades_df['iso'] == 'NEISO', 'iso'] = 'ISONE'
 
 
-
         if model_type == 'DART':
             temp_trades_df = pd.merge(temp_trades_df,temp_lmp_df, on=['Date','HourEnding','Node Name'])
+
             temp_trades_df.set_index(['Date', 'HourEnding'], drop=True, inplace=True)
             temp_trades_df['ClearedTrade'] = 1
 
@@ -1480,6 +1488,7 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
             temp_trades_df.loc[temp_trades_df['TOT_PnL'] < 0, 'SUCCESS_TRADE'] = 0
 
             trades_dict[iso] = temp_trades_df
+
 
 
         if model_type == 'SPREAD':
@@ -1555,6 +1564,7 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
                 temp_trades_df.loc[temp_trades_df['TOT_PnL'] < 0, 'SUCCESS_TRADE'] = 0
 
                 trades_dict[iso] = temp_trades_df
+
 
 
     if bool(trades_dict) == False:
@@ -1785,17 +1795,22 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
     iso_compare_df.set_index('ISO', inplace=True)
     iso_compare_df = iso_compare_df[['ActHR','TestHR','%DeltHR','ActMed', 'TestMed', '%DeltMed', 'ActMean', 'TestMean', '%DeltMean', 'MeanProb', 'DistProb']]
 
-    daily_writer = pd.ExcelWriter(save_directory + 'Daily_PnL_Results_'+model_type+'_'+name_adder+'.xlsx', engine='openpyxl')
-    for iso, df in daily_actuals_dict.items():
-        df.to_excel(daily_writer, sheet_name=iso, index=True)
-    daily_writer.save()
-    daily_writer.close()
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=PendingDeprecationWarning)
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-    distr_writer = pd.ExcelWriter(save_directory + 'PnL_Distributions_'+model_type+'_'+name_adder+'.xlsx', engine='openpyxl')
-    compare_df.to_excel(distr_writer, sheet_name='Nodal', index=True)
-    iso_compare_df.to_excel(distr_writer, sheet_name='ISOs', index=True)
-    distr_writer.save()
-    distr_writer.close()
+        daily_writer = pd.ExcelWriter(save_directory + 'Daily_PnL_Results_'+model_type+'_'+name_adder+'.xlsx', engine='openpyxl')
+        for iso, df in daily_actuals_dict.items():
+            df.to_excel(daily_writer, sheet_name=iso, index=True)
+        daily_writer.save()
+        daily_writer.close()
+
+        distr_writer = pd.ExcelWriter(save_directory + 'PnL_Distributions_'+model_type+'_'+name_adder+'.xlsx', engine='openpyxl')
+        compare_df.to_excel(distr_writer, sheet_name='Nodal', index=True)
+        iso_compare_df.to_excel(distr_writer, sheet_name='ISOs', index=True)
+        distr_writer.save()
+        distr_writer.close()
+
     compare_df = compare_df[compare_df['ActSamp']>=5]
     compare_df = compare_df[compare_df['TestSamp']>= 10]
     compare_df = compare_df[compare_df['%DeltMed'] <= 0]

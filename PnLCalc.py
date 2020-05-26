@@ -14,14 +14,14 @@ working_directory = 'X:\\Research\\'
 run_DART_PnL = True
 run_find_offer_prices = False
 lmp_filename = '2020_01_05_LMP_DATA_DICT_MASTER'
-dart_backtest_filename = 'Backtest_2020_05_04_BACKTEST_DATA_DICT_MASTER_ERCOT_EXP20_SPREAD__'
+dart_backtest_filename = 'Backtest_2020_05_04_BACKTEST_DATA_DICT_MASTER_SPP_EXP20_SPREAD__'
 # dart_backtest_filename = 'Backtest_09_11_2019_GBM_DATA_MISO_V8.0_MASTER_159F_MISO_EXP10_'
 # dart_backtest_filename = 'Backtest_09_11_2019_GBM_DATA_PJM_V8.0_MASTER_207F_PJM_EXP10_'
 # dart_backtest_filename = 'backtest_PJM_V8.0_all'
 
 dart_sd_location_filter = 'SD1000'  # Leave Blank For No Filter Otherwise Use 'SD4, SD3.5 etc' Format
 
-name_adder = ''
+name_adder = 'forcedSpread'
 
 dart_scale_mean_div_sd = False # Keep False
 limit_daily_mws = True # True increases compute time greatly. If false, scales to max hour limitations but not daily limits
@@ -168,34 +168,40 @@ def calc_hourly_pnl(backtest_filename, sd_band, inc_mean_band_peak, dec_mean_ban
     # Apply Filters
 
     # Use this snippet to take the abs value of the preds when ranking
-    pred_df = pred_df.mask(abs(pred_df).rank(axis=1, method='min', ascending=False) > top_hourly_locs, 0)
+    # pred_df = pred_df.mask(abs(pred_df).rank(axis=1, method='min', ascending=False) > top_hourly_locs, 0)
 
 
     # Use this snippet to not take the abs value of the inc and dec ranks when ranking (results in more spreads per hour)
-    # dec_preds_tier1_df = pred_df.mask(pred_df.rank(axis=1, method='min', ascending=True) > top_hourly_locs, 0)
-    # inc_preds_tier1_df = pred_df.mask(pred_df.rank(axis=1, method='min', ascending=False) > top_hourly_locs, 0)
+    top_hourly_locs = top_hourly_locs/2
+    dec_preds_tier1_df = pred_df.mask(pred_df.rank(axis=1, method='min', ascending=True) > top_hourly_locs, 0)
+    inc_preds_tier1_df = pred_df.mask(pred_df.rank(axis=1, method='min', ascending=False) > top_hourly_locs, 0)
+
+    for col in dec_preds_tier1_df.columns:
+        dec_preds_tier1_df.loc[dec_preds_tier1_df[col] != 0,col]=-1
+
+    for col in inc_preds_tier1_df.columns:
+        inc_preds_tier1_df.loc[inc_preds_tier1_df[col] != 0,col] = 1
+
+    pred_df = pd.concat([dec_preds_tier1_df,inc_preds_tier1_df])
+
+    pred_df.reset_index(inplace=True)
+    pred_df = pred_df.groupby(['Date','HE']).sum()
+    pred_df = pred_df.sort_values(by=['Date','HE'])
+
+
+    ## Removes trades based on bands. Comment out this section for forced spreads
+    # for col in pred_df.columns:
+    #     # SD Filter
+    #     pred_df.loc[abs(pred_df[col]) < (sd_df[col] * sd_band), col] = 0
     #
-    # pred_df = pd.concat([dec_preds_tier1_df,inc_preds_tier1_df])
-    #
-    # pred_df.reset_index(inplace=True)
-    # pred_df = pred_df.groupby(['Date','HE']).sum()
-    # pred_df = pred_df.sort_values(by=['Date','HE'])
-
-
-    for col in pred_df.columns:
-        # SD Filter
-        pred_df.loc[abs(pred_df[col]) < (sd_df[col] * sd_band), col] = 0
-
-        # OnPeak and OffPeak median bands
-        for hour in pred_df.index.get_level_values('HE').unique():
-            if hour in [1,2,3,4,5,6,23,24]:
-                pred_df.loc[(pred_df[col]>0) & (pred_df.index.get_level_values('HE') ==hour) & (pred_df[col]< inc_mean_band_offpeak), col] = 0
-                pred_df.loc[(pred_df[col]<0) & (pred_df.index.get_level_values('HE') ==hour) & (pred_df[col]>-dec_mean_band_offpeak), col] = 0
-            else:
-                pred_df.loc[(pred_df[col] > 0) & (pred_df.index.get_level_values('HE')==hour) & (pred_df[col] < inc_mean_band_peak), col] = 0
-                pred_df.loc[(pred_df[col] < 0) & (pred_df.index.get_level_values('HE') ==hour) & (pred_df[col] > -dec_mean_band_peak), col] = 0
-
-
+    #     # OnPeak and OffPeak median bands
+    #     for hour in pred_df.index.get_level_values('HE').unique():
+    #         if hour in [1,2,3,4,5,6,23,24]:
+    #             pred_df.loc[(pred_df[col]>0) & (pred_df.index.get_level_values('HE') ==hour) & (pred_df[col]< inc_mean_band_offpeak), col] = 0
+    #             pred_df.loc[(pred_df[col]<0) & (pred_df.index.get_level_values('HE') ==hour) & (pred_df[col]>-dec_mean_band_offpeak), col] = 0
+    #         else:
+    #             pred_df.loc[(pred_df[col] > 0) & (pred_df.index.get_level_values('HE')==hour) & (pred_df[col] < inc_mean_band_peak), col] = 0
+    #             pred_df.loc[(pred_df[col] < 0) & (pred_df.index.get_level_values('HE') ==hour) & (pred_df[col] > -dec_mean_band_peak), col] = 0
 
 
     # MW Volumne
