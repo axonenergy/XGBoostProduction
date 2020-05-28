@@ -597,7 +597,7 @@ def do_xgb_prediction(predict_date_str_mm_dd_yyyy, iso, daily_trade_file_name, w
     input_file_directory = working_directory + '\InputFiles\\'
     daily_trade_files_directory = working_directory + '\DailyTradeFiles\\'
     feat_import_files_directory = working_directory + '\FeatureImportanceFiles\\'
-    model_directory = static_directory + '\ModelFiles\\NewModelFiles\\'
+    model_directory = static_directory + '\ModelFiles\\'
 
     print('')
     print('**********************************************************************************')
