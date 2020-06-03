@@ -48,7 +48,7 @@ def get_spreads(input_dict, static_directory, spread_locs_df=None, daily_pred=Fa
 
     # Run correlations on each ISO and drop all but top X DARTs - highly negative correlated
 
-    iso_dict_dart = {'PJM': 0.90,  # .90 ###Correlation cutoffs by ISO
+    iso_dict_dart = {'PJM': 0.64,  # .90 ###Correlation cutoffs by ISO
                      'NYISO': 0.90,  # .64  PJM not used - takes UTC required locations instead
                      'MISO': 0.62,  # .61
                      'ERCOT': 0.95,  # .95
@@ -104,13 +104,26 @@ def get_spreads(input_dict, static_directory, spread_locs_df=None, daily_pred=Fa
 
 
     # Load the DARTs used in the initial model update datapull so that 10,000,0000,00000000 spreads arent calced
+    flag=False
 
     if daily_pred==True:
-        try:
-            input_df = input_df[spread_locs_df.columns]
-        except:
-            print('YES Pricetable is missing a nodes in the model. Make sure that the YES LMP collection is updated')
-            exit()
+
+        for col in spread_locs_df.columns:
+            if col not in input_df.columns:
+                spread_locs_df.drop(columns=[col],inplace=True)
+                flag=True
+
+        input_df = input_df[spread_locs_df.columns]
+
+        if flag==True:
+            print('')
+            print('*****************TAKE ACTION!!!!!*******************')
+            print('All of spread LMP locations are not in the pulled dataset from YES. Could be missing from YES datapull?')
+            y_n = input('Enter Y to ignore missing data or N to end script and troubleshoot and press ENTER.')
+            if y_n.upper() == 'Y':
+                pass
+            elif y_n.upper() == 'N':
+                exit()
 
 
     # Construct spreads from least correlated DARTs
@@ -378,7 +391,7 @@ def drop_correlated_data(input_dict, static_directory):
         print('Remaining Load Zones in ' + iso + ':' + str(len([col for col in count_df.columns if iso in col])))
 
     ######## drop correlated dart points
-    iso_dict_dart = {'PJM': 0.975, #.98
+    iso_dict_dart = {'PJM': 0.98, #.98
                      'NYISO': 0.995, #.995 ###Correlation cutoffs by ISO
                      'MISO': 0.94, #.94
                      'ERCOT': 0.995, #.995
@@ -400,10 +413,10 @@ def drop_correlated_data(input_dict, static_directory):
             for j in range(i):
                 if abs(corr_matrix.iloc[i, j]) > perc:
                      colname = corr_matrix.columns[i]
-                     if colname not in set(required_locs_df['ModelName']):
-                        correlated_dart_features.add(colname)
-                     else:
-                        print('ignored dropping:' + colname)
+                     # if colname not in set(required_locs_df['ModelName']):
+                     correlated_dart_features.add(colname)
+                     # else:
+                     #    print('ignored dropping:' + colname)
 
         correlated_dalmp_features = [col.replace('_DART','_DALMP') for col in correlated_dart_features]
         correlated_rtlmp_features = [col.replace('_DART', '_RTLMP') for col in correlated_dart_features]
@@ -2158,183 +2171,185 @@ def get_ISO_api_data(start_date, end_date, previous_data_dict_name, concat_old_d
     start_date = start_date.strftime('%m/%d/%Y')
 
 
-
-    #### Process and add YES Temperature timeseries file
-    file_name = end_date_string + '_BACKTEST_INPUT_FILE_YES_TS(Temperatures)'
-    time_zone = 'EST'
-    print('Processing YES Timeseries File: ' + file_name)
-    try:
-        ts_input_df = pd.read_excel(input_files_directory + file_name + '.xls')
-    except:
-        print(
-            input_files_directory + file_name + '.xls' + ' file is not found. Please make sure it is in the "InputFiles" directory and is named correctly')
-        exit()
-
-    yes_temps_timeseries_dict = process_YES_timeseries(start_date=start_date,
-                                                       end_date=end_date,
-                                                       input_df=ts_input_df,
-                                                       input_timezone=time_zone)
-
-    ### Process and add YES ERCOT DART timeseries file
-    file_name = end_date_string + '_BACKTEST_INPUT_FILE_YES_TS(ERCOT_LMP)'
-    time_zone = 'CPT'
-    print('Processing YES Timeseries File: ' + file_name)
-    try:
-        ts_input_df = pd.read_excel(input_files_directory + file_name + '.xlsx')
-    except:
-        print(
-            input_files_directory + file_name + '.xls' + ' file is not found. Please make sure it is in the "InputFiles" directory and is named correctly')
-        exit()
-
-    yes_ERCOTlmps_timeseries_dict = process_YES_timeseries(start_date=start_date,
-                                                           end_date=end_date,
-                                                           input_df=ts_input_df,
-                                                           input_timezone=time_zone,
-                                                           returnDARTs=True,
-                                                           returnLMPS=True)
-
-
-    #### Process and add YES PJMloadERCOTdata timeseries file
-    file_name = end_date_string + '_BACKTEST_INPUT_FILE_YES_TS(PJMloadERCOTdata)'
-    time_zone = 'EST'
-    print('Processing YES Timeseries File: ' + file_name)
-    try:
-        ts_input_df = pd.read_excel(input_files_directory + file_name + '.xls')
-    except:
-        print(
-            input_files_directory + file_name + '.xls' + ' file is not found. Please make sure it is in the "InputFiles" directory and is named correctly')
-        exit()
-
-    yes_PJMERCOT_timeseries_dict = process_YES_timeseries(start_date=start_date,
-                                                 end_date=end_date,
-                                                 input_df=ts_input_df,
-                                                 input_timezone=time_zone)
-
-
-    # #### Process and add YES data extract tall (temperatures only) files
-    # file_name = end_date_string + '_BACKTEST_INPUT_FILE_YES_DATA_EXTRACT_TALL(Temps)'
+    #
+    # #### Process and add YES Temperature timeseries file
+    # file_name = end_date_string + '_BACKTEST_INPUT_FILE_YES_TS(Temperatures)'
     # time_zone = 'EST'
-    # print('Processing YES Data Extract Tall (Temperatures) File: ' + file_name)
+    # print('Processing YES Timeseries File: ' + file_name)
     # try:
-    #     data_extract_input_df = pd.read_csv(input_files_directory + file_name + '.csv')
+    #     ts_input_df = pd.read_excel(input_files_directory + file_name + '.xls')
     # except:
-    #     print(input_files_directory + file_name + '.csv' + ' file is not found. Please make sure it is in the "InputFiles" directory and is named correctly')
+    #     print(
+    #         input_files_directory + file_name + '.xls' + ' file is not found. Please make sure it is in the "InputFiles" directory and is named correctly')
     #     exit()
     #
-    # yes_tall_temps_dict = process_YES_data_extract_temps_tall(start_date=start_date,
-    #                                                           end_date=end_date,
-    #                                                           input_df=data_extract_input_df,
-    #                                                           input_timezone=time_zone)
+    # yes_temps_timeseries_dict = process_YES_timeseries(start_date=start_date,
+    #                                                    end_date=end_date,
+    #                                                    input_df=ts_input_df,
+    #                                                    input_timezone=time_zone)
     #
-    # #### Process and add YES data extract wide files (ERCOT LMPs)
-    # file_name = end_date_string + '_BACKTEST_INPUT_FILE_YES_DATA_EXTRACT_WIDE(ERCOT_DART)'
+    # ### Process and add YES ERCOT DART timeseries file
+    # file_name = end_date_string + '_BACKTEST_INPUT_FILE_YES_TS(ERCOT_LMP)'
     # time_zone = 'CPT'
-    # print('')
-    # print('Processing Data Extract Wide File: ' + file_name)
+    # print('Processing YES Timeseries File: ' + file_name)
     # try:
-    #     data_extract_input_df = pd.read_csv(input_files_directory+file_name+'.csv')
+    #     ts_input_df = pd.read_excel(input_files_directory + file_name + '.xlsx')
     # except:
-    #     print(input_files_directory + file_name+'.csv' + ' file is not found. Please make sure it is in the "InputFiles" directory and is named correctly')
+    #     print(
+    #         input_files_directory + file_name + '.xls' + ' file is not found. Please make sure it is in the "InputFiles" directory and is named correctly')
     #     exit()
     #
-    # yes_wide_extract_dict = process_YES_data_extract_wide(start_date=start_date,
-    #                                                       end_date=end_date,
-    #                                                       input_df=data_extract_input_df,
-    #                                                       input_timezone=time_zone)
-
-
-    #Pull individual ISO API data
-    MISO_load_outage_dict = get_MISO_load_outage(start_date=start_date,
-                                                 end_date=end_date)
-
-    MISO_DALMP_dict, MISO_RTLMP_dict, MISO_DART_dict = get_MISO_LMPs(start_date=start_date,
-                                                                     end_date=end_date,
-                                                                     static_directory=static_directory)
-
-    SPP_wind_dict = get_SPP_wind(start_date=start_date,
-                                 end_date=end_date,
-                                 static_directory=static_directory)
-
-    SPP_outage_dict = get_SPP_outage(start_date=start_date,
-                                     end_date=end_date,
-                                     static_directory=static_directory)
-
-    SPP_load_dict = get_SPP_load(start_date=start_date,
-                                 end_date=end_date,
-                                 static_directory=static_directory)
-
-    SPP_DALMP_dict, SPP_RTLMP_dict, SPP_DART_dict = get_SPP_LMPs(start_date=start_date,
-                                                                 end_date=end_date,
-                                                                 static_directory=static_directory)
-
-    PJM_outage_dict = get_PJM_outage(start_date=start_date,
-                                     end_date=end_date)
-
-    PJM_load_dict = {'EST':None,'EPT':None,'CPT':None}
-    if (start_date == end_date) and (parse(start_date) > datetime.datetime.today()-datetime.timedelta(days=3)):
-        PJM_load_dict = get_PJM_load(current_date=start_date)
-
-    PJM_DALMP_dict, PJM_RTLMP_dict, PJM_DART_dict = get_PJM_LMPs(start_date=start_date,
-                                                                 end_date=end_date,
-                                                                 static_directory=static_directory)
-
-    ISONE_outage_dict = get_ISONE_outage(start_date=start_date,
-                                         end_date=end_date)
-
-    ISONE_load_dict = get_ISONE_load(start_date=start_date,
-                                     end_date=end_date)
-
-    ISONE_DALMP_dict, ISONE_RTLMP_dict, ISONE_DART_dict = get_ISONE_LMPs(start_date=start_date,
-                                                                     end_date=end_date)
-
-
-    NYISO_load_dict = get_NYISO_load(start_date=start_date,
-                                     end_date=end_date,
-                                     static_directory=static_directory)
-
-    NYISO_DALMP_dict, NYISO_RTLMP_dict, NYISO_DART_dict = get_NYISO_LMPs(start_date=start_date,
-                                                                         end_date=end_date,
-                                                                         static_directory=static_directory)
-
-
-    list_to_concat = [MISO_load_outage_dict,MISO_DART_dict,MISO_DALMP_dict, MISO_RTLMP_dict,
-                      SPP_wind_dict,SPP_outage_dict,SPP_load_dict,SPP_DART_dict,SPP_DALMP_dict, SPP_RTLMP_dict,
-                      PJM_outage_dict,PJM_DART_dict,PJM_load_dict,PJM_DALMP_dict,PJM_RTLMP_dict,
-                      ISONE_outage_dict,ISONE_load_dict,ISONE_DART_dict,ISONE_DALMP_dict,ISONE_RTLMP_dict,
-                      NYISO_load_dict,NYISO_DART_dict,NYISO_DALMP_dict,NYISO_RTLMP_dict,
-                      yes_PJMERCOT_timeseries_dict,yes_temps_timeseries_dict,yes_ERCOTlmps_timeseries_dict]
-
-
-    for dict_to_concat in list_to_concat:
-        for timezone in ['EST','EPT','CPT']:
-            if dict_to_concat[timezone] is not None:
-                try:
-                    output_dict_dataframes[timezone] = output_dict_dataframes[timezone].join(dict_to_concat[timezone],how='outer',on=['Date','HourEnding']).sort_values(['Date','HourEnding'],ascending=True)
-                except:
-                    output_dict_dataframes[timezone] = dict_to_concat[timezone]
-
-
-    # Join old dict data
-    if concat_old_dict == True:
-        for timezone in ['EST','EPT','CPT']:
-            old_df = previous_dict[timezone]
-            drop_cols = [col for col in old_df.columns if 'SPREAD' in col]
-            drop_cols2 = [col for col in old_df.columns if 'SPR_EAD' in col]
-            old_df = old_df.drop(columns=drop_cols)
-            old_df = old_df.drop(columns=drop_cols2)
-            new_df = output_dict_dataframes[timezone]
-            concat_df = pd.concat([old_df, new_df],join='inner')
-            concat_df = concat_df.loc[~concat_df.index.duplicated(keep='last')]
-            concat_df = concat_df.sort_index()
-            concat_df = concat_df[concat_df.index.get_level_values('Date')>=hard_start_date]
-            concat_df = concat_df[concat_df.index.get_level_values('Date')<=hard_end_date]
-            output_dict_dataframes[timezone] = concat_df
+    # yes_ERCOTlmps_timeseries_dict = process_YES_timeseries(start_date=start_date,
+    #                                                        end_date=end_date,
+    #                                                        input_df=ts_input_df,
+    #                                                        input_timezone=time_zone,
+    #                                                        returnDARTs=True,
+    #                                                        returnLMPS=True)
+    #
+    #
+    # #### Process and add YES PJMloadERCOTdata timeseries file
+    # file_name = end_date_string + '_BACKTEST_INPUT_FILE_YES_TS(PJMloadERCOTdata)'
+    # time_zone = 'EST'
+    # print('Processing YES Timeseries File: ' + file_name)
+    # try:
+    #     ts_input_df = pd.read_excel(input_files_directory + file_name + '.xls')
+    # except:
+    #     print(
+    #         input_files_directory + file_name + '.xls' + ' file is not found. Please make sure it is in the "InputFiles" directory and is named correctly')
+    #     exit()
+    #
+    # yes_PJMERCOT_timeseries_dict = process_YES_timeseries(start_date=start_date,
+    #                                              end_date=end_date,
+    #                                              input_df=ts_input_df,
+    #                                              input_timezone=time_zone)
+    #
+    #
+    # # #### Process and add YES data extract tall (temperatures only) files
+    # # file_name = end_date_string + '_BACKTEST_INPUT_FILE_YES_DATA_EXTRACT_TALL(Temps)'
+    # # time_zone = 'EST'
+    # # print('Processing YES Data Extract Tall (Temperatures) File: ' + file_name)
+    # # try:
+    # #     data_extract_input_df = pd.read_csv(input_files_directory + file_name + '.csv')
+    # # except:
+    # #     print(input_files_directory + file_name + '.csv' + ' file is not found. Please make sure it is in the "InputFiles" directory and is named correctly')
+    # #     exit()
+    # #
+    # # yes_tall_temps_dict = process_YES_data_extract_temps_tall(start_date=start_date,
+    # #                                                           end_date=end_date,
+    # #                                                           input_df=data_extract_input_df,
+    # #                                                           input_timezone=time_zone)
+    # #
+    # # #### Process and add YES data extract wide files (ERCOT LMPs)
+    # # file_name = end_date_string + '_BACKTEST_INPUT_FILE_YES_DATA_EXTRACT_WIDE(ERCOT_DART)'
+    # # time_zone = 'CPT'
+    # # print('')
+    # # print('Processing Data Extract Wide File: ' + file_name)
+    # # try:
+    # #     data_extract_input_df = pd.read_csv(input_files_directory+file_name+'.csv')
+    # # except:
+    # #     print(input_files_directory + file_name+'.csv' + ' file is not found. Please make sure it is in the "InputFiles" directory and is named correctly')
+    # #     exit()
+    # #
+    # # yes_wide_extract_dict = process_YES_data_extract_wide(start_date=start_date,
+    # #                                                       end_date=end_date,
+    # #                                                       input_df=data_extract_input_df,
+    # #                                                       input_timezone=time_zone)
+    #
+    #
+    # #Pull individual ISO API data
+    # MISO_load_outage_dict = get_MISO_load_outage(start_date=start_date,
+    #                                              end_date=end_date)
+    #
+    # MISO_DALMP_dict, MISO_RTLMP_dict, MISO_DART_dict = get_MISO_LMPs(start_date=start_date,
+    #                                                                  end_date=end_date,
+    #                                                                  static_directory=static_directory)
+    #
+    # SPP_wind_dict = get_SPP_wind(start_date=start_date,
+    #                              end_date=end_date,
+    #                              static_directory=static_directory)
+    #
+    # SPP_outage_dict = get_SPP_outage(start_date=start_date,
+    #                                  end_date=end_date,
+    #                                  static_directory=static_directory)
+    #
+    # SPP_load_dict = get_SPP_load(start_date=start_date,
+    #                              end_date=end_date,
+    #                              static_directory=static_directory)
+    #
+    # SPP_DALMP_dict, SPP_RTLMP_dict, SPP_DART_dict = get_SPP_LMPs(start_date=start_date,
+    #                                                              end_date=end_date,
+    #                                                              static_directory=static_directory)
+    #
+    # PJM_outage_dict = get_PJM_outage(start_date=start_date,
+    #                                  end_date=end_date)
+    #
+    # PJM_load_dict = {'EST':None,'EPT':None,'CPT':None}
+    # if (start_date == end_date) and (parse(start_date) > datetime.datetime.today()-datetime.timedelta(days=3)):
+    #     PJM_load_dict = get_PJM_load(current_date=start_date)
+    #
+    # PJM_DALMP_dict, PJM_RTLMP_dict, PJM_DART_dict = get_PJM_LMPs(start_date=start_date,
+    #                                                              end_date=end_date,
+    #                                                              static_directory=static_directory)
+    #
+    # ISONE_outage_dict = get_ISONE_outage(start_date=start_date,
+    #                                      end_date=end_date)
+    #
+    # ISONE_load_dict = get_ISONE_load(start_date=start_date,
+    #                                  end_date=end_date)
+    #
+    # ISONE_DALMP_dict, ISONE_RTLMP_dict, ISONE_DART_dict = get_ISONE_LMPs(start_date=start_date,
+    #                                                                  end_date=end_date)
+    #
+    #
+    # NYISO_load_dict = get_NYISO_load(start_date=start_date,
+    #                                  end_date=end_date,
+    #                                  static_directory=static_directory)
+    #
+    # NYISO_DALMP_dict, NYISO_RTLMP_dict, NYISO_DART_dict = get_NYISO_LMPs(start_date=start_date,
+    #                                                                      end_date=end_date,
+    #                                                                      static_directory=static_directory)
+    #
+    #
+    # list_to_concat = [MISO_load_outage_dict,MISO_DART_dict,MISO_DALMP_dict, MISO_RTLMP_dict,
+    #                   SPP_wind_dict,SPP_outage_dict,SPP_load_dict,SPP_DART_dict,SPP_DALMP_dict, SPP_RTLMP_dict,
+    #                   PJM_outage_dict,PJM_DART_dict,PJM_load_dict,PJM_DALMP_dict,PJM_RTLMP_dict,
+    #                   ISONE_outage_dict,ISONE_load_dict,ISONE_DART_dict,ISONE_DALMP_dict,ISONE_RTLMP_dict,
+    #                   NYISO_load_dict,NYISO_DART_dict,NYISO_DALMP_dict,NYISO_RTLMP_dict,
+    #                   yes_PJMERCOT_timeseries_dict,yes_temps_timeseries_dict,yes_ERCOTlmps_timeseries_dict]
+    #
+    #
+    # for dict_to_concat in list_to_concat:
+    #     for timezone in ['EST','EPT','CPT']:
+    #         if dict_to_concat[timezone] is not None:
+    #             try:
+    #                 output_dict_dataframes[timezone] = output_dict_dataframes[timezone].join(dict_to_concat[timezone],how='outer',on=['Date','HourEnding']).sort_values(['Date','HourEnding'],ascending=True)
+    #             except:
+    #                 output_dict_dataframes[timezone] = dict_to_concat[timezone]
+    #
+    #
+    # # Join old dict data
+    # if concat_old_dict == True:
+    #     for timezone in ['EST','EPT','CPT']:
+    #         old_df = previous_dict[timezone]
+    #         drop_cols = [col for col in old_df.columns if 'SPREAD' in col]
+    #         drop_cols2 = [col for col in old_df.columns if 'SPR_EAD' in col]
+    #         old_df = old_df.drop(columns=drop_cols)
+    #         old_df = old_df.drop(columns=drop_cols2)
+    #         new_df = output_dict_dataframes[timezone]
+    #         concat_df = pd.concat([old_df, new_df],join='inner')
+    #         concat_df = concat_df.loc[~concat_df.index.duplicated(keep='last')]
+    #         concat_df = concat_df.sort_index()
+    #         concat_df = concat_df[concat_df.index.get_level_values('Date')>=hard_start_date]
+    #         concat_df = concat_df[concat_df.index.get_level_values('Date')<=hard_end_date]
+    #         output_dict_dataframes[timezone] = concat_df
 
 
     dict_save_name = end_date_string + '_BACKTEST_DATA'
 
     # Save raw data before postprocessing and spreads
-    save_obj(output_dict_dataframes, input_files_directory+dict_save_name+'_DICT_RAW')
+    # save_obj(output_dict_dataframes, input_files_directory+dict_save_name+'_DICT_RAW')
+
+    output_dict_dataframes = load_obj(input_files_directory+dict_save_name+'_DICT_RAW')
 
     post_process_dict = post_process_backtest_data(input_dict=output_dict_dataframes,
                                                    static_directory=static_directory)

@@ -34,7 +34,7 @@ feat_dict = {'SPR_EAD': 2,'DA_RT': 2, 'FLOAD': 8, 'FTEMP': 24, 'OUTAGE': 4,'LMP'
 train_end_date = datetime.datetime(int(input_file_name.split(sep='_')[0]),int(input_file_name.split(sep='_')[1]),int(input_file_name.split(sep='_')[2]))
 vintage_dict = {'ONE_YEAR':train_end_date-datetime.timedelta(days=365*1), 'THREE_YEAR':train_end_date-datetime.timedelta(days=365*3), 'ALL_YEAR':train_end_date-datetime.timedelta(days=365*10)}
 
-iso_list = ['ERCOT']
+iso_list = ['PJM']
 model_type = 'DART'
 model_arch = 'LGB' # options are RF and LGB
 

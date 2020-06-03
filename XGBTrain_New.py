@@ -39,7 +39,7 @@ cat_vars = ['Month','Weekday']                                       # Categoria
 
 name_adder = ''                                                        # Additional Identifier For The Run
 
-all_best_features_filename = 'FeatImport_2020_05_28_BACKTEST_DATA_DICT_MASTER__DART_LGB_SD6_ALL'  # Name of Feature Importance File
+all_best_features_filename = 'FeatImport_2020_05_28_BACKTEST_DATA_DICT_MASTER__DART_LGB_SD6_PJM'  # Name of Feature Importance File
 
 
 iso = 'PJM'
@@ -64,7 +64,7 @@ model_arch = 'XGB'  #options are LGB or XGB
 # feat_dicts['ercot15'] = {'SPR_EAD': 6, 'DA_RT': 4, 'FLOAD': 8, 'FTEMP': 20,'OUTAGE': 4, 'LMP': 0,'GAS_PRICE': 4}  # Number Of Top Features To Use If Reading From Dict
 #
 
-run_reverse = True
+run_reverse = False
 
 run_gridsearch = False                                                # Do A Gridsearch?
 run_backtest = True                                                    # Do A Backtest?
@@ -192,7 +192,7 @@ def do_create_models(input_filename, save_name, iso, feat_dict, input_file_type,
     model_file_directory = static_directory + '\ModelFiles\\NewModelFiles\\'
     model_data_directory = static_directory + '\ModelUpdateData\\'
     gridsearch_directory = static_directory + '\GridsearchFiles\\'
-    featimport_directory = working_directory + '\FeatureImportanceFiles\\'
+    featimport_directory = static_directory + '\FeatureImportanceFiles\\'
     gpu_train=False
     train_type='cpu'
 
