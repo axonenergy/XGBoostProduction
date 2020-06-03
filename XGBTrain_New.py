@@ -15,6 +15,8 @@ from XGBLib import create_features
 from XGBLib import create_tier2_features
 from XGBLib import xgb_gridsearch
 from XGBLib import xgb_train
+from XGBLib import lgb_gridsearch
+from XGBLib import lgb_train
 from XGBLib import std_dev_outlier_remove
 from XGBLib import read_clean_data
 
@@ -31,36 +33,42 @@ working_directory = 'X:\\Research\\'
 # input_file_name = '09_11_2019_GBM_DATA_MISO_V8.0_MASTER_159F'      # Use This If Reading From CSV (Old Method)
 # input_file_name = '09_11_2019_GBM_DATA_PJM_V8.0_MASTER_207F'      # Use This If Reading From CSV (Old Method)
 # input_file_type = 'csv'                                            # Use This If Reading From CSV (Old Method)
-input_file_name = '2020_05_04_BACKTEST_DATA_DICT_MASTER'               # Use This If Reading From Dictionary (New Method)
+input_file_name = '2020_05_28_BACKTEST_DATA_DICT_MASTER'               # Use This If Reading From Dictionary (New Method)
 input_file_type = 'dict'                                             # Use This If Reading From Dictionary (New Method)
 cat_vars = ['Month','Weekday']                                       # Categorial Variables
+
 name_adder = ''                                                        # Additional Identifier For The Run
 
-all_best_features_filename = 'FeatImport_2020_05_04_BACKTEST_DATA_DICT_MASTER__SD6_ALL'  # Name of Feature Importance File
+all_best_features_filename = 'FeatImport_2020_05_28_BACKTEST_DATA_DICT_MASTER__DART_LGB_SD6_ALL'  # Name of Feature Importance File
 
 
-iso = 'SPP'
+iso = 'PJM'
 model_type = 'DART'
+model_arch = 'XGB'  #options are LGB or XGB
 
-feat_dicts = {}
-# feat_dicts['pjm1'] = {'SPR_EAD': 2, 'DA_RT': 8, 'FLOAD': 10, 'FTEMP': 28,'OUTAGE': 4, 'LMP': 0,'GAS_PRICE': 0}  # Number Of Top Features To Use If Reading From Dict
-# feat_dicts['pjm2'] = {'SPR_EAD': 4, 'DA_RT': 8, 'FLOAD': 10, 'FTEMP': 28,'OUTAGE': 4, 'LMP': 0,'GAS_PRICE': 0}  # Number Of Top Features To Use If Reading From Dict
-
-
+# feat_dicts = {}
+# feat_dicts[''] = {'SPR_EAD': 6, 'DA_RT': 4, 'FLOAD': 6, 'FTEMP': 24,'OUTAGE': 4, 'LMP': 2,'GAS_PRICE': 4}  # Number Of Top Features To Use If Reading From Dict
+# feat_dicts['ercot2'] = {'SPR_EAD': 6, 'DA_RT': 4, 'FLOAD': 8, 'FTEMP': 20,'OUTAGE': 4, 'LMP': 0,'GAS_PRICE': 0}  # Number Of Top Features To Use If Reading From Dict
+# feat_dicts['ercot3'] = {'SPR_EAD': 8, 'DA_RT': 4, 'FLOAD': 8, 'FTEMP': 20,'OUTAGE': 4, 'LMP': 0,'GAS_PRICE': 0}  # Number Of Top Features To Use If Reading From Dict
+# feat_dicts['ercot4'] = {'SPR_EAD': 6, 'DA_RT': 2, 'FLOAD': 8, 'FTEMP': 20,'OUTAGE': 4, 'LMP': 0,'GAS_PRICE': 0}  # Number Of Top Features To Use If Reading From Dict
+# feat_dicts['ercot5'] = {'SPR_EAD': 6, 'DA_RT': 6, 'FLOAD': 8, 'FTEMP': 20,'OUTAGE': 4, 'LMP': 0,'GAS_PRICE': 0}  # Number Of Top Features To Use If Reading From Dict
+# feat_dicts['ercot6'] = {'SPR_EAD': 6, 'DA_RT': 4, 'FLOAD': 6, 'FTEMP': 20,'OUTAGE': 4, 'LMP': 0,'GAS_PRICE': 0}  # Number Of Top Features To Use If Reading From Dict
+# feat_dicts['ercot7'] = {'SPR_EAD': 6, 'DA_RT': 4, 'FLOAD': 10, 'FTEMP': 20,'OUTAGE': 4, 'LMP': 0,'GAS_PRICE': 0}  # Number Of Top Features To Use If Reading From Dict
+# feat_dicts['ercot8'] = {'SPR_EAD': 6, 'DA_RT': 4, 'FLOAD': 8, 'FTEMP': 16,'OUTAGE': 4, 'LMP': 0,'GAS_PRICE': 0}  # Number Of Top Features To Use If Reading From Dict
+# feat_dicts['ercot9'] = {'SPR_EAD': 6, 'DA_RT': 4, 'FLOAD': 8, 'FTEMP': 24,'OUTAGE': 4, 'LMP': 0,'GAS_PRICE': 0}  # Number Of Top Features To Use If Reading From Dict
+# feat_dicts['ercot10'] = {'SPR_EAD': 6, 'DA_RT': 4, 'FLOAD': 8, 'FTEMP': 20,'OUTAGE': 2, 'LMP': 0,'GAS_PRICE': 0}  # Number Of Top Features To Use If Reading From Dict
+# feat_dicts['ercot11'] = {'SPR_EAD': 6, 'DA_RT': 4, 'FLOAD': 8, 'FTEMP': 20,'OUTAGE': 6, 'LMP': 0,'GAS_PRICE': 0}  # Number Of Top Features To Use If Reading From Dict
+# feat_dicts['ercot12'] = {'SPR_EAD': 6, 'DA_RT': 4, 'FLOAD': 8, 'FTEMP': 20,'OUTAGE': 4, 'LMP': 2,'GAS_PRICE': 0}  # Number Of Top Features To Use If Reading From Dict
+# feat_dicts['ercot13'] = {'SPR_EAD': 6, 'DA_RT': 4, 'FLOAD': 8, 'FTEMP': 20,'OUTAGE': 4, 'LMP': 4,'GAS_PRICE': 0}  # Number Of Top Features To Use If Reading From Dict
+# feat_dicts['ercot14'] = {'SPR_EAD': 6, 'DA_RT': 4, 'FLOAD': 8, 'FTEMP': 20,'OUTAGE': 4, 'LMP': 0,'GAS_PRICE': 2}  # Number Of Top Features To Use If Reading From Dict
+# feat_dicts['ercot15'] = {'SPR_EAD': 6, 'DA_RT': 4, 'FLOAD': 8, 'FTEMP': 20,'OUTAGE': 4, 'LMP': 0,'GAS_PRICE': 4}  # Number Of Top Features To Use If Reading From Dict
+#
 
 run_reverse = True
-# if iso == 'ERCOT':
-#     model_type = 'SPREAD'  # Options are DART or SPREAD
-# else:
-#     model_type = 'DART'  # Options are DART or SPREAD
-
-
-
-
 
 run_gridsearch = False                                                # Do A Gridsearch?
-run_backtest = False                                                    # Do A Backtest?
-run_create_models = True
+run_backtest = True                                                    # Do A Backtest?
+run_create_models = False
 
 run_tier2_backtest =False
 run_tier2_gridsearch = False
@@ -79,7 +87,7 @@ num_top_grids = 1                                                 # Number of Ra
 gpu_train = False                                                  # Train Using GPU (Default is CPU)
 
 # PARAMETERS FOR GRIDSEARCH
-gridsearch_iterations = 100                                                   # Number Of Gridsearch Iterations To Do
+gridsearch_iterations = 1000                                                   # Number Of Gridsearch Iterations To Do
 gridsearch_sd_limit = 1000                                                       # SD Limit to Use In Gridsearch
 gridsearch_nrounds = 5000                                                     # Max Rounds To Train
 gridsearch_gpu_train = False                                                   # Train Using GPU (Default is CPU)
@@ -133,7 +141,6 @@ if input_file_type.upper() == 'DICT':
         elif model_type=='SPREAD':
             hypergrid_name = 'Gridsearch_2020_05_04_BACKTEST_DATA_DICT_MASTER_PJM_SD1000_SPREAD___PJM_1069452904$PJM_1124361945_SPREAD'  # Filename of Stored Hypergrid From Gridsearch
             feat_dict = {'SPR_EAD': 6, 'DA_RT': 6, 'FLOAD': 10, 'FTEMP': 28,'OUTAGE': 8, 'LMP': 2,'GAS_PRICE': 4}
-
     elif iso=='MISO':
         if model_type == 'DART':
             hypergrid_name = 'Gridsearch_2020_05_04_BACKTEST_DATA_DICT_MASTER_MISO_SD1000_DART___MISO_ALTE.ALTE_DART' #Filename of Stored Hypergrid From Gridsearch
@@ -153,8 +160,8 @@ if input_file_type.upper() == 'DICT':
 
     elif iso == 'ERCOT':
         if model_type == 'DART':
-            hypergrid_name = 'Gridsearch_2020_05_04_BACKTEST_DATA_DICT_MASTER_ERCOT_SD1000_SPREAD___ERCOT_HB_HOUSTON$ERCOT_DC_R_SPREAD'  # Filename of Stored Hypergrid From Gridsearch
-            feat_dict = {'SPR_EAD': 6, 'DA_RT': 2, 'FLOAD': 6, 'FTEMP': 24,'OUTAGE': 4, 'LMP': 4,'GAS_PRICE': 2}
+            hypergrid_name = 'Gridsearch_2020_05_04_BACKTEST_DATA_DICT_MASTER_XGB_ERCOT_SD1000_DART___ERCOT_HB_HOUSTON_DART'  # Filename of Stored Hypergrid From Gridsearch
+            feat_dict = {'SPR_EAD': 6, 'DA_RT': 4, 'FLOAD': 6, 'FTEMP': 24,'OUTAGE': 4, 'LMP': 2,'GAS_PRICE': 4}
         elif model_type == 'SPREAD':
             hypergrid_name = 'Gridsearch_2020_05_04_BACKTEST_DATA_DICT_MASTER_ERCOT_SD1000_SPREAD___ERCOT_HB_HOUSTON$ERCOT_DC_R_SPREAD'  # Filename of Stored Hypergrid From Gridsearch
             feat_dict = {'SPR_EAD': 6, 'DA_RT': 2, 'FLOAD': 6, 'FTEMP': 24,'OUTAGE': 4, 'LMP': 4,'GAS_PRICE': 2}
@@ -166,11 +173,10 @@ if input_file_type.upper() == 'DICT':
         elif model_type == 'SPREAD':
             hypergrid_name = 'Gridsearch_2020_05_04_BACKTEST_DATA_DICT_MASTER_ISONE_SD1000_SPREAD___ISONE_10033$ISONE_10037_SPREAD'  # Filename of Stored Hypergrid From Gridsearch
             feat_dict = {'SPR_EAD': 6, 'DA_RT': 2, 'FLOAD': 10, 'FTEMP': 16,'OUTAGE': 8, 'LMP': 2,'GAS_PRICE': 4}
-
-
     else:
         print('Correct Hypergrid Missing')
         exit()
+
 
 gridsearch_feat_dict=feat_dict
 
@@ -181,7 +187,7 @@ if input_file_type.upper() == 'CSV':
         print('Correct Hypergrid Missing')
         exit()
 
-def do_create_models(input_filename, save_name, iso, feat_dict, input_file_type, cat_vars,  exp_folds, hypergrid_name,hypergrid_dict_name, num_grids, gpu_train, nrounds, early_stopping, model_creation_sd, static_directory, working_directory,model_type, run_reverse):
+def do_create_models(input_filename, save_name, iso, feat_dict, input_file_type, cat_vars,  exp_folds, hypergrid_name,hypergrid_dict_name,model_arch, num_grids, gpu_train, nrounds, early_stopping, model_creation_sd, static_directory, working_directory,model_type, run_reverse):
     # COORDINATES MODEL TRAINING
     model_file_directory = static_directory + '\ModelFiles\\NewModelFiles\\'
     model_data_directory = static_directory + '\ModelUpdateData\\'
@@ -224,6 +230,11 @@ def do_create_models(input_filename, save_name, iso, feat_dict, input_file_type,
         except: #if none exists, use default hypergrid
             hypergrid_df = pd.read_csv(gridsearch_directory + hypergrid_name + '.csv')
 
+        if model_arch=='XGB':
+            one_hot_encode=True
+        elif model_arch=='LGB':
+            one_hot_encode=False
+
         # Create Calculated Features (if reading from dict) Or Remove All Non-Target DARTs from CSV
         if input_file_type.upper() == 'DICT':
             print('Creating Features...')
@@ -231,9 +242,10 @@ def do_create_models(input_filename, save_name, iso, feat_dict, input_file_type,
                                         feat_dict=feat_dict,
                                         target_name=target,
                                         iso=iso.upper(),
+                                        one_hot_encode=one_hot_encode,
                                         all_best_features_df=all_best_features_df,
                                         cat_vars=cat_vars,
-                                         static_directory=static_directory)
+                                        static_directory=static_directory)
 
         elif input_file_type.upper() == 'CSV':
             target_col = master_df[target]
@@ -261,16 +273,28 @@ def do_create_models(input_filename, save_name, iso, feat_dict, input_file_type,
 
             print(target+ ': Creating Model:' + str(exp_fold) + '/' + str(exp_folds) + '  Total Progress: ' + str(round(num_train / total_num_trains * 100, 2)) + '%')
 
-            pred_df, model = xgb_train(train_df=train_exp,
-                                       test_df=pd.DataFrame(),
-                                       eval_df=eval_exp,
-                                       target=target,
-                                       sd_limit=model_creation_sd,
-                                       fit_params=params,
-                                       gpu_train=gpu_train,
-                                       nrounds=nrounds,
-                                       early_stopping=early_stopping,
-                                       verbose=False)
+            if model_arch=='XGB':
+                pred_df, model = xgb_train(train_df=train_exp,
+                                           test_df=pd.DataFrame(),
+                                           eval_df=eval_exp,
+                                           target=target,
+                                           sd_limit=model_creation_sd,
+                                           fit_params=params,
+                                           gpu_train=gpu_train,
+                                           nrounds=nrounds,
+                                           early_stopping=early_stopping,
+                                           verbose=False)
+            elif model_arch=='LGB':
+                pred_df, model = lgb_train(train_df=train_exp,
+                                           test_df=pd.DataFrame(),
+                                           eval_df=eval_exp,
+                                           target=target,
+                                           sd_limit=model_creation_sd,
+                                           fit_params=params,
+                                           gpu_train=gpu_train,
+                                           nrounds=nrounds,
+                                           early_stopping=early_stopping,
+                                           verbose=False)
 
             # Save Model
             save_obj(model,model_file_directory+'ModelFile_'+target+'_'+train_type+'_'+str(exp_fold))
@@ -284,7 +308,7 @@ def do_create_models(input_filename, save_name, iso, feat_dict, input_file_type,
 
     return model_list
 
-def do_backtest(input_filename, save_name, num_targets, iso, feat_dict, input_file_type, cat_vars, start_date, sd_limit_range, exp_folds, cv_folds, hypergrid_name,hypergrid_dict_name, num_grids, gpu_train, nrounds, early_stopping, static_directory, working_directory,model_type, run_reverse, verbose=True):
+def do_backtest(input_filename, save_name, num_targets, iso, feat_dict, input_file_type, cat_vars, start_date, sd_limit_range, exp_folds,model_arch, cv_folds, hypergrid_name,hypergrid_dict_name, num_grids, gpu_train, nrounds, early_stopping, static_directory, working_directory,model_type, run_reverse, verbose=True):
     # COORDINATES THE BACKTEST. SPLITS AND CLEANS DATA BEFORE SENDING IT TO XGBTRAIN
     backtest_directory = static_directory + '\BacktestFiles\\'
     model_data_directory = static_directory + '\ModelUpdateData\\'
@@ -337,12 +361,19 @@ def do_backtest(input_filename, save_name, num_targets, iso, feat_dict, input_fi
 
         print('Training Target: '+target+ '  **GPU Compute= '+str(gpu_train))
         # Create Calculated Features (if reading from dict) Or Remove All Non-Target DARTs from CSV
+
+        if model_arch=='XGB':
+            one_hot_encode=True
+        elif model_arch=='LGB':
+            one_hot_encode=False
+
         if input_file_type.upper() == 'DICT':
             print('Creating Features...')
             feature_df = create_features(input_df=master_df,
                                        feat_dict=feat_dict,
                                        target_name=target,
                                        iso=iso.upper(),
+                                       one_hot_encode=one_hot_encode,
                                        all_best_features_df=all_best_features_df,
                                        cat_vars=cat_vars,
                                        static_directory=static_directory)
@@ -390,16 +421,30 @@ def do_backtest(input_filename, save_name, num_targets, iso, feat_dict, input_fi
 
                         print('Training CVFold: '+str(cv_fold) +'/'+str(cv_folds)+'  ExpFold:'+str(exp_fold)+'/'+str(exp_folds)+ '  StdDev: '+str(sd_limit)+'  Total Progress: '+str(round(num_train/total_num_trains*100,2))+'%' )
 
-                        pred_df, model = xgb_train(train_df=train_cv_exp_df,
-                                            test_df=test_cv_df,
-                                            eval_df=eval_cv_exp_df,
-                                            target = target,
-                                            sd_limit=sd_limit,
-                                            fit_params=params,
-                                            gpu_train=gpu_train,
-                                            nrounds=nrounds,
-                                            early_stopping=early_stopping,
-                                            verbose=False)
+                        if model_arch=='XGB':
+                            pred_df, model = xgb_train(train_df=train_cv_exp_df,
+                                                test_df=test_cv_df,
+                                                eval_df=eval_cv_exp_df,
+                                                target = target,
+                                                sd_limit=sd_limit,
+                                                fit_params=params,
+                                                gpu_train=gpu_train,
+                                                nrounds=nrounds,
+                                                early_stopping=early_stopping,
+                                                verbose=False)
+
+                        elif model_arch=='LGB':
+                            pred_df, model = lgb_train(train_df=train_cv_exp_df,
+                                                test_df=test_cv_df,
+                                                eval_df=eval_cv_exp_df,
+                                                target = target,
+                                                sd_limit=sd_limit,
+                                                fit_params=params,
+                                                gpu_train=gpu_train,
+                                                nrounds=nrounds,
+                                                early_stopping=early_stopping,
+                                                verbose=False)
+
 
                         pred_df.columns = pred_df.columns+str(exp_fold)
                         exp_df = exp_df.join(pred_df,on=['Date','HE'])
@@ -429,19 +474,25 @@ def do_backtest(input_filename, save_name, num_targets, iso, feat_dict, input_fi
 
             # Add Each Successive Target To The Final Pred DF
 
+
             preds_df = pd.merge(preds_df,cv_preds_df,how='outer',on=['Date','HE'])
             preds_exp_df = pd.merge(preds_exp_df,cv_exp_preds_df,how='outer',on=['Date','HE'])
 
-            preds_df.to_csv(backtest_directory+'Backtest_'+save_name+'.csv')
-            # preds_exp_df.to_csv(backtest_directory+'Backtest_Exps_'+save_name+'.csv')
-
-
             target_num += 1
+
+            ##Save progress every 10th location
+            if (target_num%10==0) or (target_num==2):
+                preds_df.to_csv(backtest_directory+'Backtest_'+save_name+'.csv')
+                # preds_exp_df.to_csv(backtest_directory+'Backtest_Exps_'+save_name+'.csv')
+
+
+    preds_df.to_csv(backtest_directory+'Backtest_'+save_name+'.csv')
+    # preds_exp_df.to_csv(backtest_directory+'Backtest_Exps_'+save_name+'.csv')
 
 
     return preds_df
 
-def do_gridsearch(input_filename, save_name, iso, feat_dict, input_file_type, cat_vars,hypergrid_dict_name, sd_limit, cv_folds, gpu_train, nrounds, iterations, static_directory, working_directory,model_type, verbose=True):
+def do_gridsearch(input_filename, save_name, iso, feat_dict, input_file_type, cat_vars,hypergrid_dict_name, sd_limit,model_arch, cv_folds, gpu_train, nrounds, iterations, static_directory, working_directory,model_type, verbose=True):
     # COORDINATES THE GRIDSEARCH(S)
     gridsearch_directory = static_directory + '\GridsearchFiles\\'
     model_data_directory = static_directory + '\ModelUpdateData\\'
@@ -463,6 +514,7 @@ def do_gridsearch(input_filename, save_name, iso, feat_dict, input_file_type, ca
     ###### Use these for each ISO
     if model_type.upper() == 'DART':
         target_dict = {'ISONE':['ISONE_10033_DART'],
+                       'ERCOT': ['ERCOT_HB_HOUSTON_DART'],
         'SPP': ['SPP_AECC_CSWS_DART'],
         'PJM': ['PJM_50390_DART'],
         'MISO':['MISO_AECI.ALTW_DART']}
@@ -486,6 +538,11 @@ def do_gridsearch(input_filename, save_name, iso, feat_dict, input_file_type, ca
 
         print('Gridsearch Target: '+target+ '  ***GPU Compute= '+str(gpu_train))
 
+        if model_arch=='XGB':
+            one_hot_encode=True
+        elif model_arch=='LGB':
+            one_hot_encode=False
+
         # Create Calculated Features (if reading from dict) Or Remove All Non-Target DARTs from CSV
         if input_file_type.upper() == 'DICT':
             print('Creating Features...')
@@ -493,6 +550,7 @@ def do_gridsearch(input_filename, save_name, iso, feat_dict, input_file_type, ca
                                         feat_dict=feat_dict,
                                         target_name=target,
                                         iso=iso.upper(),
+                                        one_hot_encode=one_hot_encode,
                                         all_best_features_df=all_best_features_df,
                                         cat_vars=cat_vars,
                                          static_directory=static_directory)
@@ -504,13 +562,24 @@ def do_gridsearch(input_filename, save_name, iso, feat_dict, input_file_type, ca
 
 
         print('Training Gridsearch...')
-        hypergrid = xgb_gridsearch(train_df=feature_df,
-                                   target=target,
-                                   cv_folds=cv_folds,
-                                   iterations=iterations,
-                                   nrounds = nrounds,
-                                   sd_limit = sd_limit,
-                                   gpu_train=gpu_train)
+
+        if model_arch=='XGB':
+            hypergrid = xgb_gridsearch(train_df=feature_df,
+                                       target=target,
+                                       cv_folds=cv_folds,
+                                       iterations=iterations,
+                                       nrounds = nrounds,
+                                       sd_limit = sd_limit,
+                                       gpu_train=gpu_train)
+
+        elif model_arch=='LGB':
+            hypergrid = lgb_gridsearch(train_df=feature_df,
+                                       target=target,
+                                       cv_folds=cv_folds,
+                                       iterations=iterations,
+                                       nrounds = nrounds,
+                                       sd_limit = sd_limit,
+                                       gpu_train=gpu_train)
 
         hypergrid.to_csv(gridsearch_directory+'Gridsearch_' + save_name + '_' + target + '.csv', index=False)
         hypergrids.update({target: hypergrid})
@@ -801,7 +870,7 @@ if run_reverse==True:
     rev='rev'
 
 if run_gridsearch:
-    gridsearch_save_name = input_file_name + '_' + iso + '_SD' + str(gridsearch_sd_limit)  + '_'+model_type+ '_' + name_adder + '_'+rev
+    gridsearch_save_name = input_file_name + '_'+model_arch+'_' + iso + '_SD' + str(gridsearch_sd_limit)  + '_'+model_type+ '_' + name_adder + '_'+rev
     print('RUNNING GRIDSEARCH: ' + gridsearch_save_name)
     do_gridsearch(input_filename=input_file_name,
                   save_name=gridsearch_save_name,
@@ -811,6 +880,7 @@ if run_gridsearch:
                   input_file_type = input_file_type,
                   cat_vars = cat_vars,
                   sd_limit = gridsearch_sd_limit,
+                  model_arch=model_arch,
                   cv_folds = gridsearch_cv_folds,
                   gpu_train= gridsearch_gpu_train,
                   nrounds= gridsearch_nrounds,
@@ -824,7 +894,7 @@ if run_backtest:
     # for name_adder, feat_dict in feat_dicts.items():
     #     name_adder = str(name_adder)
 
-    backtest_save_name = input_file_name + '_' + iso + '_EXP' + str(exp_folds) + '_'+model_type+ '_' + name_adder + '_'+rev
+    backtest_save_name = input_file_name+ '_'+model_arch + '_' + iso + '_EXP' + str(exp_folds) + '_'+model_type+ '_' + name_adder + '_'+rev
     print('RUNNING BACKTEST: ' + backtest_save_name)
     output_df = do_backtest(input_filename=input_file_name,
                             save_name=backtest_save_name,
@@ -837,6 +907,7 @@ if run_backtest:
                             sd_limit_range = sd_limit_range,
                             exp_folds = exp_folds,
                             cv_folds = cv_folds,
+                            model_arch=model_arch,
                             hypergrid_name = hypergrid_name,
                             hypergrid_dict_name = hypergrid_dict_name,
                             num_grids = num_top_grids,
@@ -849,7 +920,7 @@ if run_backtest:
                             run_reverse=run_reverse)
 
 if run_create_models:
-    backtest_save_name = input_file_name + '_' + iso + '_'+model_type
+    backtest_save_name = input_file_name+ '_'+model_arch + '_' + iso + '_'+model_type
     print('CREATING TIER 1 MODELS: ' + backtest_save_name)
     model_list = do_create_models(input_filename=input_file_name,
                                   save_name=backtest_save_name,
@@ -862,6 +933,7 @@ if run_create_models:
                                   hypergrid_dict_name=hypergrid_dict_name,
                                   num_grids=num_top_grids,
                                   gpu_train=gpu_train,
+                                  model_arch=model_arch,
                                   nrounds=nrounds,
                                   early_stopping=early_stopping,
                                   model_creation_sd = model_creation_sd,

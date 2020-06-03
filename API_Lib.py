@@ -69,27 +69,30 @@ def get_spreads(input_dict, static_directory, spread_locs_df=None, daily_pred=Fa
             print('Running Corr Matrix ' + iso)
             orig_cols = max(len(temp_df.columns), 0.00001)
 
-            if iso != 'PJM':
-                corr_matrix = temp_df.corr()
-                for i in range(len(corr_matrix.columns)):
-                    for j in range(i):
-                        if corr_matrix.iloc[i, j] > perc:
-                            colname = corr_matrix.columns[i]
+            #if iso != 'PJM':  ### Uncomment this part and the 'else' part below to limit PJM spreads to only UTC locations
+            corr_matrix = temp_df.corr()
+            for i in range(len(corr_matrix.columns)):
+                for j in range(i):
+                    if corr_matrix.iloc[i, j] > perc:
+                        colname = corr_matrix.columns[i]
+                        if colname not in ['PJM_51217_DART','PJM_51288_DART']:  # Make sure east and west hub are included
                             correlated_features.add(colname)
-            else:
-                utc_spread_locs_df = utc_spread_locs_df[utc_spread_locs_df['ISO']==iso]
-                orig_df = temp_df
-                temp_df = temp_df[[col for col in temp_df.columns if col in set(utc_spread_locs_df['ModelName'])]]
-                other_locs_to_drop = set(orig_df.columns)-set(temp_df.columns)
-                input_df.drop(columns=other_locs_to_drop, inplace=True)
 
-                corr_matrix = temp_df.corr()
-                for i in range(len(corr_matrix.columns)):
-                    for j in range(i):
-                        if corr_matrix.iloc[i, j] > perc:
-                             colname = corr_matrix.columns[i]
-                             if colname not in ['PJM_51217_DART','PJM_51288_DART']:  #Make sure east and west hub are included
-                                correlated_features.add(colname)
+            ## This code used if only PJM UTC locs are used
+            # else:
+            #     utc_spread_locs_df = utc_spread_locs_df[utc_spread_locs_df['ISO']==iso]
+            #     orig_df = temp_df
+            #     temp_df = temp_df[[col for col in temp_df.columns if col in set(utc_spread_locs_df['ModelName'])]]
+            #     other_locs_to_drop = set(orig_df.columns)-set(temp_df.columns)
+            #     input_df.drop(columns=other_locs_to_drop, inplace=True)
+            #
+            #     corr_matrix = temp_df.corr()
+            #     for i in range(len(corr_matrix.columns)):
+            #         for j in range(i):
+            #             if corr_matrix.iloc[i, j] > perc:
+            #                  colname = corr_matrix.columns[i]
+            #                  if colname not in ['PJM_51217_DART','PJM_51288_DART']:  #Make sure east and west hub are included
+            #                     correlated_features.add(colname)
 
             input_df.drop(columns=correlated_features, inplace=True)
 
@@ -290,7 +293,7 @@ def preprocess_data(input_dict, static_directory):
     input_df = input_df.drop(columns=removed_cols)
 
     ###drop nodes that are invalid for bidding
-    drop_nodes_list = ['PJM_32417727_DART', 'PJM_32417735_DART', 'PJM_32417729_DART','PJM_32417737_DART']
+    drop_nodes_list = ['PJM_34509947_DART','PJM_1067169266_DART']
     input_df = input_df.drop(columns=drop_nodes_list, errors='ignore')
 
     ### drop duplicate days (from timechanges)
@@ -678,7 +681,7 @@ def process_YES_daily_price_tables(predict_date, input_timezone, working_directo
     T_1_df = format_pricetable_df(pricetable_df=T_1_df, date=T_1_date, dart_only=dart_only, node_alt_names_dict = node_alt_names_dict)
     T_2_df = format_pricetable_df(pricetable_df=T_2_df, date=T_2_date, dart_only=dart_only, node_alt_names_dict = node_alt_names_dict)
 
-    pricetable_df = pd.concat([T_2_df,T_1_df,T_0_df])
+    pricetable_df = pd.concat([T_2_df,T_1_df,T_0_df], sort=True)
     pricetable_df.fillna(method='ffill', inplace=True)
 
     for output_timezone in ['EST', 'EPT', 'CPT']:

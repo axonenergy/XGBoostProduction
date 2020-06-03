@@ -1,6 +1,8 @@
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.model_selection import GroupKFold
+from sklearn.model_selection import GroupShuffleSplit
+import lightgbm as lgb
 import pandas as pd
 import numpy as np
 import os
@@ -16,9 +18,7 @@ static_directory = 'C:\\XGBoostProduction\\'
 working_directory = 'X:\\Research\\'
 
 # COMMON PARAMETERS
-# input_file_name = '09_11_2019_GBM_DATA_MISO_V8.0_MASTER_159F'                 # Use This If Reading From CSV (Old Method)
-# input_file_type = 'csv'                                                       # Use This If Reading From CSV (Old Method)
-input_file_name = '2020_05_04_BACKTEST_DATA_DICT_MASTER'                        # Use This If Reading From Dictionary (New Method)
+input_file_name = '2020_05_28_BACKTEST_DATA_DICT_MASTER'                        # Use This If Reading From Dictionary (New Method)
 input_file_type = 'dict'                                                        # Use This If Reading From Dictionary
 hypergrid_dict_name = 'RFGridsearchDict_12092019_MISOAll_Master_Dataset_Dict_'  # Name Of Hypergrid File
 all_best_features_filename = 'FeatImport_2020_02_24_BACKTEST_DATA_DICT_MASTER_SPREAD_ONE_YEAR_SD6_PJM' # Name of Feature Importance File
@@ -29,34 +29,40 @@ sd_limit = 6                                                                    
 gridsearch_iterations = 100                                                      # Gridsearch Iterations
 cv_folds = 4                                                                    # CV Folds For Gridsearch
 
-feat_dict = {'SPR_EAD': 2,'DA_RT': 2, 'FLOAD': 8, 'FTEMP': 24, 'OUTAGE': 4}               # Number Of Top Features To Use If Reading From Dict And Adding Calculated Features
+feat_dict = {'SPR_EAD': 2,'DA_RT': 2, 'FLOAD': 8, 'FTEMP': 24, 'OUTAGE': 4,'LMP': 4, 'GAS_PRICE': 4}               # Number Of Top Features To Use If Reading From Dict And Adding Calculated Features
 
 train_end_date = datetime.datetime(int(input_file_name.split(sep='_')[0]),int(input_file_name.split(sep='_')[1]),int(input_file_name.split(sep='_')[2]))
 vintage_dict = {'ONE_YEAR':train_end_date-datetime.timedelta(days=365*1), 'THREE_YEAR':train_end_date-datetime.timedelta(days=365*3), 'ALL_YEAR':train_end_date-datetime.timedelta(days=365*10)}
 
 iso_list = ['ERCOT']
 model_type = 'DART'
+model_arch = 'LGB' # options are RF and LGB
 
 feat_types_list = ['SPR_EAD', 'DA_RT','LMP', 'FLOAD','FTEMP','OUTAGE','GAS_PRICE']                            # Feat Types To Run
 run_gridsearch = False                                                          # Do A Gridsearch?
 run_feature_importances = True                                                  # Do Feature Importances?
 
 
-def do_rf_gridsearch(input_filename, save_name, iso_list, feat_dict, fit_params_dict, feat_types_list, input_file_type, sd_limit, cv_folds, gridsearch_iterations, add_calculated_features, static_directory, working_directory, verbose=True):
+def do_gridsearch(input_filename, save_name, iso_list, feat_dict, fit_params_dict, feat_types_list, input_file_type, sd_limit, cv_folds, gridsearch_iterations, add_calculated_features, static_directory, working_directory,model_type,model_arch, verbose=True):
     # COORDINATES THE GRIDSEARCH(S)
     gridsearch_directory = static_directory + '\GridsearchFiles\\'
-    model_data_directory = working_directory + '\ModelUpdateData\\'
+    model_data_directory = static_directory + '\ModelUpdateData\\'
 
     # Create Empty Dict to Store Hypergrids
     hypergrids = dict()
 
     # Define Target For Each ISO
-    target_dict = {'PJM': 'PJM_50390_DART',
-                   'MISO': 'MISO_AECI.ALTW_DART',
-                   'NEISO': 'ISONE_10033_DART',
-                   'NYISO': 'NYISO_61752_DART',
-                   'ERCOT': 'ERCOT_AMISTAD_ALL_DART',
-                   'SPP': 'SPP_AECC_CSWS_DART'}
+    if model_type.upper() == 'DART':
+        target_dict = {'ISONE':'ISONE_10033_DART',
+        'SPP': 'SPP_AECC_CSWS_DART',
+        'PJM': 'PJM_50390_DART',
+        'MISO':'MISO_AECI.ALTW_DART'}
+    elif model_type.upper() =='SPREAD':
+        target_dict = {'ISONE':['ISONE_10033$ISONE_10037_SPREAD'],
+        'ERCOT':'ERCOT_HB_HOUSTON$ERCOT_DC_R_SPREAD',
+        'SPP': 'SPP_AECC_CSWS$SPP_CSWSLEEPINGBEAR_SPREAD',
+        'PJM': 'PJM_1069452904$PJM_1124361945_SPREAD',
+        'MISO':'MISO_AECI.ALTW$MISO_AECI.AMMO_SPREAD'}
 
     # Train Gridsearches for Each ISO In The List
     for iso in iso_list:
@@ -66,7 +72,7 @@ def do_rf_gridsearch(input_filename, save_name, iso_list, feat_dict, fit_params_
                                     iso=iso)
 
         target = target_dict[iso]
-        print('RF Gridsearch Target: '+target)
+        print('Gridsearch Target: '+target)
 
         # Create Calculated Features (if reading from dict) Or Remove All Non-Target DARTs from CSV
         if input_file_type.upper() == 'DICT':
@@ -86,13 +92,22 @@ def do_rf_gridsearch(input_filename, save_name, iso_list, feat_dict, fit_params_
         # Train Gridsearches for Each Feature Type In The List
         for feat_type in feat_types_list:
 
-            hypergrid = rf_gridsearch(train_df=feature_df,
-                                      feat_type=feat_type,
-                                      target=target,
-                                      cv_folds=cv_folds,
-                                      gridsearch_iterations=gridsearch_iterations,
-                                      sd_limit=sd_limit,
-                                      fit_params=fit_params_dict[feat_type])
+            if model_arch == 'RF':
+                hypergrid = rf_gridsearch(train_df=feature_df,
+                                          feat_type=feat_type,
+                                          target=target,
+                                          cv_folds=cv_folds,
+                                          gridsearch_iterations=gridsearch_iterations,
+                                          sd_limit=sd_limit,
+                                          fit_params=fit_params_dict[feat_type])
+            elif model_arch=='LGB':
+                hypergrid = lgb_gridsearch(train_df=feature_df,
+                                          feat_type=feat_type,
+                                          target=target,
+                                          cv_folds=cv_folds,
+                                          gridsearch_iterations=gridsearch_iterations,
+                                          sd_limit=sd_limit,
+                                          fit_params=fit_params_dict[feat_type])
 
             hypergrid.to_csv(gridsearch_directory+'RFGridsearch_' + save_name + '_' + iso + '_' + feat_type + '.csv', index=False)
             # hypergrids.update({iso+'_'+feat_type: hypergrid})
@@ -136,10 +151,51 @@ def rf_gridsearch(train_df, feat_type, target, cv_folds, gridsearch_iterations, 
 
     return results
 
-def do_top_features(input_filename, save_name, iso_list, feat_dict, hypergrid_dict_name, feat_types_list, input_file_type, sd_limit, train_end_date, add_calculated_features, static_directory,working_directory,vintage_dict, model_type):
-    feature_importance_directory = working_directory + '\FeatureImportanceFiles\\'
+def lgb_gridsearch(train_df, feat_type, target, cv_folds, gridsearch_iterations, sd_limit, fit_params):
+    # Remove Outliers From Train Set and Eval Set
+    train_df = std_dev_outlier_remove(input_df=train_df,
+                                      target=target,
+                                      sd_limit=sd_limit,
+                                      verbose=True)
+
+    # Prepare X_train and Y_train
+    if feat_type == 'OUTAGE':
+        x_train_df = train_df[[col for col in train_df.columns if (('DA_RT' not in col)&('FLOAD' not in col )&('FTEMP' not in col)&('DART' not in col)&('SPREAD' not in col)&('SPR_EAD' not in col))]]
+    else:
+        x_train_df = train_df[[col for col in train_df.columns if feat_type in col]]
+
+    y_train_df = pd.DataFrame(train_df[target])
+    print('Training Gridsearch For Feature: ' + feat_type)
+    print('Num Features: '+str(len(x_train_df.columns)))
+    print(x_train_df.columns)
+
+    # Build and Fit Model
+    model = lgb.LGBMRegressor(objective='rmse',
+                              boosting_type = 'gbdt',
+                             n_estimators=5000,
+                             device='cpu')
+
+    skf = GroupKFold(n_splits=cv_folds)
+
+    random_search = RandomizedSearchCV(estimator=model,
+                                       param_distributions=fit_params,
+                                       n_iter=gridsearch_iterations,
+                                       cv=skf.split(x_train_df, y_train_df, groups=x_train_df.index.get_level_values('Date')),
+                                       verbose=3,
+                                       scoring='neg_mean_squared_error',
+                                       n_jobs=-2)
+
+    random_search.fit(x_train_df, y_train_df.values.ravel())
+    results = pd.DataFrame(random_search.cv_results_)
+    results = results.sort_values(by='rank_test_score', ascending=True)
+    print('Best RF Hyper Params Target:: ' + target + ' FeatType: ' + feat_type + ' :\n', results)
+
+    return results
+
+def do_top_features(input_filename, save_name, iso_list, feat_dict, hypergrid_dict_name, feat_types_list, input_file_type, sd_limit, train_end_date, add_calculated_features, static_directory,working_directory,vintage_dict, model_type,model_arch):
+    feature_importance_directory = static_directory + '\FeatureImportanceFiles\\'
     model_data_directory = static_directory + '\ModelUpdateData\\'
-    gridsearch_directory = working_directory + '\GridsearchFiles\\'
+    gridsearch_directory = static_directory + '\GridsearchFiles\\'
 
     # Create Empty Dict to Store Feature Importances
 
@@ -199,69 +255,112 @@ def do_top_features(input_filename, save_name, iso_list, feat_dict, hypergrid_di
 
                 for vintage_string, train_start_date in vintage_dict.items():
 
-                    train_df = feature_df[feature_df.index.get_level_values('Date') < train_end_date]
-                    train_df = train_df[train_df.index.get_level_values('Date') > train_start_date]
+                    input_df = feature_df[feature_df.index.get_level_values('Date') < train_end_date]
+                    input_df = input_df[input_df.index.get_level_values('Date') > train_start_date]
 
                     #Use generic hypergrid from this file (below) to run
                     params = param_grid_backtest
 
-                    # # Read Hypergrid From Dictionary
-                    # hypergrid_dict = load_obj(gridsearch_directory+hypergrid_dict_name)
-                    # hypergrid_df = hypergrid_dict[iso+'_'+feat_type]
-                    # params = hypergrid_df['params'].iloc[0]
-
                     # # Read Hypergrid From file (Used If Non-Top Params Are Much Faster But Not More Accurage
-                    # hypergrid_df = pd.read_csv(gridsearch_directory+'RFGridsearch_12092019_MISOAll_Master_Dataset_Dict__MISO_'+feat_type+'.csv')
-                    # params = hypergrid_df['params'].iloc[0]
-                    # params = literal_eval(params)
+                    hypergrid_df = pd.read_csv(gridsearch_directory+'RFGridsearch_2020_05_04_BACKTEST_DATA_DICT_MASTER__DART_LGB_PJM_'+feat_type+'.csv')
+                    params = hypergrid_df['params'].iloc[0]
+                    params = literal_eval(params)
 
                     #Not lagged - need to remove
-                    train_df = train_df.drop(columns=[col for col in train_df.columns if 'RTLMP' in col])
-                    train_df = train_df.drop(columns=[col for col in train_df.columns if 'DALMP' in col])
+                    input_df = input_df.drop(columns=[col for col in input_df.columns if 'RTLMP' in col])
+                    input_df = input_df.drop(columns=[col for col in input_df.columns if 'DALMP' in col])
+
+                    ### Split into training and eval sets
+                    exp_cv = GroupShuffleSplit(n_splits=1, test_size=0.20, random_state=1337)
+
+                    for train_index, eval_index in exp_cv.split(input_df,groups=input_df.index.get_level_values('Date')):
+                        train_df, eval_df = input_df.iloc[train_index], input_df.iloc[eval_index]
 
                     if do_all_feats:
                         x_train_df = train_df[[col for col in train_df.columns if (('DART' not in col)&('SPREAD'not in col))]]
+                        x_eval_df = eval_df[[col for col in eval_df.columns if (('DART' not in col) & ('SPREAD' not in col))]]
                         # x_train_df = pd.get_dummies(x_train_df,columns=['Month','Weekday'])
                     elif feat_type == 'OUTAGE':
-                        x_train_df = train_df[[col for col in train_df.columns if(('DA_RT' not in col) & ('FLOAD' not in col) & ('FTEMP' not in col) & ('DART' not in col) & ('Weekday' not in col) & ('Month' not in col) & ('HourEnding' not in col)&('SPREAD' not in col)&('SPR_EAD' not in col)&('DA_LMP' not in col)&('RT_LMP' not in col))]]
+                        x_train_df = train_df[[col for col in train_df.columns if(('DA_RT' not in col) & ('FLOAD' not in col) & ('FTEMP' not in col) & ('DART' not in col) & ('Weekday' not in col) & ('Month' not in col) & ('HourEnding' not in col)&('SPREAD' not in col)&('SPR_EAD' not in col)&('DA_LMP' not in col)&('RT_LMP' not in col)&('GAS_PRICE' not in col))]]
+                        x_eval_df = eval_df[[col for col in eval_df.columns if (('DA_RT' not in col) & ('FLOAD' not in col) & ('FTEMP' not in col) & ('DART' not in col) & ('Weekday' not in col) & ('Month' not in col) & ('HourEnding' not in col) & ('SPREAD' not in col) & ('SPR_EAD' not in col) & ('DA_LMP' not in col) & ('RT_LMP' not in col)&('GAS_PRICE' not in col))]]
                     else:
                         x_train_df = train_df[[col for col in train_df.columns if feat_type in col]]
-
+                        x_eval_df = eval_df[[col for col in eval_df.columns if feat_type in col]]
 
                     y_train_df = train_df[target]
+                    y_eval_df = eval_df[target]
+
                     feat_names = x_train_df.columns
 
                     # Train Feature importances for Each Feature Type In The List
-                    rf = RandomForestRegressor(**params, n_jobs=-1)
 
-                    print('Creating ' + vintage_string+ ' Importances For Target: ' +target+'  |  ISO: '+iso+'  |  FeatType: '+feat_type+'  |  NumFeats: ' +str(len(x_train_df.columns)) + '  |  % Complete:'+  str(round(counter/tot_feats*100,2)))
+                    ## RandomForest Feature Importances
+                    if model_arch=='RF':
+                        rf = RandomForestRegressor(**params, n_jobs=-1)
 
-                    rf.fit(x_train_df, y_train_df.values.ravel())
+                        print('Creating RF ' + vintage_string+ ' Importances For Target: ' +target+'  |  ISO: '+iso+'  |  FeatType: '+feat_type+'  |  NumFeats: ' +str(len(x_train_df.columns)) + '  |  % Complete:'+  str(round(counter/tot_feats*100,2)))
 
-                    counter +=1
+                        rf.fit(x_train_df, y_train_df.values.ravel())
+                        counter +=1
 
-                    if vintage_df.empty:
-                        vintage_df = pd.DataFrame(rf.feature_importances_, index=feat_names)
-                        vintage_df.columns = [vintage_string]
-                    else:
-                        temp_df = pd.DataFrame(rf.feature_importances_, index=feat_names)
-                        temp_df.columns = [vintage_string]
-                        vintage_df = pd.concat([vintage_df, temp_df], axis=1)
+                        if vintage_df.empty:
+                            vintage_df = pd.DataFrame(rf.feature_importances_, index=feat_names)
+                            vintage_df.columns = [vintage_string]
+                        else:
+                            temp_df = pd.DataFrame(rf.feature_importances_, index=feat_names)
+                            temp_df.columns = [vintage_string]
+                            vintage_df = pd.concat([vintage_df, temp_df], axis=1)
+
+
+                    ### LightGBM feature importances
+                    if model_arch == 'LGB':
+
+                        print('Creating LGB ' + vintage_string + ' Importances For Target: ' + target + '  |  ISO: ' + iso + '  |  FeatType: ' + feat_type + '  |  NumFeats: ' + str(len(x_train_df.columns)) + '  |  % Complete:' + str(round(counter / tot_feats * 100, 2)))
+
+                        dtrain = lgb.Dataset(data=x_train_df, label=y_train_df)
+                        deval = lgb.Dataset(data=x_eval_df, label=y_eval_df)
+                        watchlist = [deval]
+
+                        params['boosting'] = 'gbdt'
+                        params['objective'] = 'rmse'
+                        params['verbose'] = '-1'
+                        early_stopping = 10
+                        nrounds = 5000
+                        eval_dict = dict()
+
+                        lbm = lgb.train(params=params,
+                                        train_set=dtrain,
+                                        num_boost_round=nrounds,
+                                        valid_sets=watchlist,
+                                        early_stopping_rounds=early_stopping,
+                                        verbose_eval=False,
+                                        evals_result=eval_dict
+                                        )
+
+                        counter += 1
+
+                        if vintage_df.empty:
+                            vintage_df = pd.DataFrame(lbm.feature_importance(), index=feat_names)
+                            vintage_df.columns = [vintage_string]
+                        else:
+                            temp_df = pd.DataFrame(lbm.feature_importance(), index=feat_names)
+                            temp_df.columns = [vintage_string]
+                            vintage_df = pd.concat([vintage_df, temp_df], axis=1)
 
                 vintage_df['Average'] = vintage_df.mean(axis=1)
 
                 importances = sorted(zip(map(lambda x: round(x, 4), vintage_df['Average']), vintage_df.index), reverse=True)
-                importances_df[iso+'_'+feat_type+'_'+target] = pd.Series(importances)
+                importances_df[iso+'_'+feat_type+'_'+target] = pd.Series(importances, )
                 importances_df.to_csv(feature_importance_directory+'FeatImport_' + save_name + '_SD'+ str(sd_limit)+'_'+iso + '.csv',index=False)
 
-def combine_feature_vintages(filenames_dict):
-    pass
 
 
 ######################################################################################################
 #                                           Gridsearch                                               #
 ######################################################################################################
 
+
+#####FOR RANDOM FOREST
 param_grid_backtest = {'bootstrap': True,
                   'max_depth': 30,
                   'max_features': 'auto',
@@ -270,43 +369,63 @@ param_grid_backtest = {'bootstrap': True,
                   'n_estimators': 100}
 
 
-param_grid_DART = {'bootstrap': [True],  # , False],
-                  'max_depth': [30],
-                  'max_features': ['auto'],
-                  'min_samples_leaf': [2],
-                  'min_samples_split': [2],
-                  'n_estimators': list(range(100, 100, 40))}
+#####FOR LIGHT GBM
+param_grid_backtest = {'learning_rate': [0.0025],  # no greater than 0.01, doesnt affect fit time below that, sometimes gets slightly better results below that
+                      'num_leaves': [25],  # SLIGHT better RMSE as more leaves used, increases training time substantially
+                      'max_bin': [40],  # Impacts RMSE a bit from 16-100 range, doesnt impact training time
+                      'colsample_bytree': [0.2]}  # Impacts RMSE and training time substantially. Training time goes up as colsample goes up
 
-param_grid_OUTAGE = {'bootstrap': [True],  # , False],
-                  'max_depth': [30],
-                  'max_features': ['auto'],
-                  'min_samples_leaf': [2],
-                  'min_samples_split': [2],
-                  'n_estimators': list(range(100, 100, 40))}
 
-param_grid_FLOAD = {'bootstrap': [True],  # , False],
-                  'max_depth': [30],
-                  'max_features': ['auto'],
-                  'min_samples_leaf': [2],
-                  'min_samples_split': [2],
-                  'n_estimators': list(range(100, 100, 40))}
+param_grid_DART = {'learning_rate': [0.0005],  # no greater than 0.01, doesnt affect fit time below that, sometimes gets slightly better results below that
+                      'num_leaves': [10,15],  # SLIGHT better RMSE as more leaves used, increases training time substantially
+                      'max_bin': [60,70,80],  # Impacts RMSE a bit from 16-100 range, doesnt impact training time
+                      'colsample_bytree': [0.05]}  # Impacts RMSE and training time substantially. Training time goes up as colsample goes up
 
-param_grid_FTEMP = {'bootstrap': [True],  # , False],
-                  'max_depth': [30],
-                  'max_features': ['auto'],
-                  'min_samples_leaf': [2],
-                  'min_samples_split': [2],
-                  'n_estimators': list(range(100, 100, 40))}
+param_grid_OUTAGE = {'learning_rate': [0.005],  # no greater than 0.01, doesnt affect fit time below that, sometimes gets slightly better results below that
+                      'num_leaves': [25],  # SLIGHT better RMSE as more leaves used, increases training time substantially
+                      'max_bin': [60,70,80],  # Impacts RMSE a bit from 16-100 range, doesnt impact training time
+                      'colsample_bytree': [0.3]}  # Impacts RMSE and training time substantially. Training time goes up as colsample goes up
+
+param_grid_FLOAD = {'learning_rate': [0.001],  # no greater than 0.01, doesnt affect fit time below that, sometimes gets slightly better results below that
+                      'num_leaves': [15],  # SLIGHT better RMSE as more leaves used, increases training time substantially
+                      'max_bin': [40,50],  # Impacts RMSE a bit from 16-100 range, doesnt impact training time
+                      'colsample_bytree': [0.2]}  # Impacts RMSE and training time substantially. Training time goes up as colsample goes up
+
+param_grid_FTEMP = {'learning_rate': [0.001],  # no greater than 0.01, doesnt affect fit time below that, sometimes gets slightly better results below that
+                      'num_leaves': [40,45,50],  # SLIGHT better RMSE as more leaves used, increases training time substantially
+                      'max_bin': [40],  # Impacts RMSE a bit from 16-100 range, doesnt impact training time
+                      'colsample_bytree': [0.2]}  # Impacts RMSE and training time substantially. Training time goes up as colsample goes up
+
+param_grid_SPR_EAD = {'learning_rate': [0.001],  # no greater than 0.01, doesnt affect fit time below that, sometimes gets slightly better results below that
+                      'num_leaves': [25],  # SLIGHT better RMSE as more leaves used, increases training time substantially
+                      'max_bin': [60],  # Impacts RMSE a bit from 16-100 range, doesnt impact training time
+                      'colsample_bytree': [0.05]}  # Impacts RMSE and training time substantially. Training time goes up as colsample goes up
+
+param_grid_LMP = {'learning_rate': [0.01],  # no greater than 0.01, doesnt affect fit time below that, sometimes gets slightly better results below that
+                      'num_leaves': [30],  # SLIGHT better RMSE as more leaves used, increases training time substantially
+                      'max_bin': [60,70,80],  # Impacts RMSE a bit from 16-100 range, doesnt impact training time
+                      'colsample_bytree': [0.35,0.4,0.45]}  # Impacts RMSE and training time substantially. Training time goes up as colsample goes up
+
+param_grid_GAS_PRICE = {'learning_rate': [0.0005],  # no greater than 0.01, doesnt affect fit time below that, sometimes gets slightly better results below that
+                      'num_leaves': [20,25,30],  # SLIGHT better RMSE as more leaves used, increases training time substantially
+                      'max_bin': [40],  # Impacts RMSE a bit from 16-100 range, doesnt impact training time
+                      'colsample_bytree': [0.2]}  # Impacts RMSE and training time substantially. Training time goes up as colsample goes up
+
+
 
 fit_params_dict = {'FLOAD':param_grid_FLOAD,
                    'DA_RT':param_grid_DART,
                    'FTEMP':param_grid_FTEMP,
-                   'OUTAGE':param_grid_OUTAGE}
+                   'OUTAGE':param_grid_OUTAGE,
+                   'SPR_EAD': param_grid_SPR_EAD,
+                   'LMP': param_grid_LMP,
+                   'GAS_PRICE': param_grid_GAS_PRICE
+                   }
 
-save_name = input_file_name+'_'+name_adder+'_'+model_type
+save_name = input_file_name+'_'+name_adder+'_'+model_type+'_'+model_arch
 
 if run_gridsearch:
-    do_rf_gridsearch(input_filename=input_file_name,
+    do_gridsearch(input_filename=input_file_name,
                      save_name=save_name,
                      iso_list=iso_list,
                      feat_dict= feat_dict,
@@ -315,6 +434,8 @@ if run_gridsearch:
                      input_file_type=input_file_type,
                      sd_limit=sd_limit,
                      cv_folds=cv_folds,
+                     model_arch=model_arch,
+                     model_type = model_type,
                      gridsearch_iterations = gridsearch_iterations,
                      add_calculated_features=add_calculated_features,
                      static_directory=static_directory,
@@ -328,6 +449,7 @@ if run_feature_importances:
                     hypergrid_dict_name=hypergrid_dict_name,
                     feat_types_list=feat_types_list,
                     input_file_type=input_file_type,
+                    model_arch=model_arch,
                     sd_limit=sd_limit,
                     train_end_date=train_end_date,
                     add_calculated_features=add_calculated_features,

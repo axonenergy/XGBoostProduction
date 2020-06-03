@@ -8,6 +8,7 @@ from plotly.subplots import make_subplots
 import os
 import glob
 import xgboost as xgb
+import lightgbm as lgb
 from API_Lib import load_obj
 from API_Lib import process_YES_daily_price_tables
 from API_Lib import get_spreads
@@ -23,7 +24,7 @@ pd.set_option('display.width', 5000)
 pd.set_option('max_row', 100)
 
 
-def create_features(input_df, iso, cat_vars, static_directory,target_name='', daily_pred=False, feat_dict=None, all_best_features_df=None):
+def create_features(input_df, iso, cat_vars, static_directory, one_hot_encode,target_name='', daily_pred=False, feat_dict=None, all_best_features_df=None):
     temp_data_directory = static_directory + '\ModelUpdateData\\Temperature_files\\'
 
     top_feats = pd.DataFrame()
@@ -188,7 +189,12 @@ def create_features(input_df, iso, cat_vars, static_directory,target_name='', da
 
     print('Num Features Without Categoricals: ' + str(len(output_df.columns) - 1))
     # Add Categoricals
-    output_df = pd.get_dummies(output_df, columns=cat_vars)
+    
+    if one_hot_encode==True:
+        output_df = pd.get_dummies(output_df, columns=cat_vars)
+    else:
+        for col in cat_vars:
+            output_df[col] = output_df[col].astype('category')
 
 
     return output_df
@@ -280,8 +286,8 @@ def read_clean_data(input_filename, input_file_type, iso, verbose=True):
     master_df = master_df.loc[~master_df.index.duplicated(keep='first')]
 
     orig_cols = set(master_df.columns)
-    inactive_nodes = ['MISO_AMIL.COFFEEN1_DART','MISO_AMIL.HAVANA86_DART','MISO_AMIL.HENNEPN82_DART','MISO_DMGEN3.AGG_DART','MISO_EES.CC.WPEC_DART','MISO_EES.WRPP1_DART',
-                      'MISO_AMIL.COFFEEN1_DA_RT_LAG','MISO_AMIL.HAVANA86_DA_RT_LAG','MISO_AMIL.HENNEPN82_DA_RT_LAG','MISO_DMGEN3.AGG_DA_RT_LAG','MISO_EES.CC.WPEC_DA_RT_LAG','MISO_EES.WRPP1_DA_RT_LAG'
+    inactive_nodes = ['MISO_AMIL.COFFEEN1_DART',
+                      'MISO_AMIL.COFFEEN1_DA_RT_LAG'
                       ]
     master_df = master_df[[col for col in master_df if col not in inactive_nodes]]
     new_cols = set(master_df.columns)
@@ -372,15 +378,15 @@ def xgb_gridsearch(train_df, target, cv_folds, iterations, sd_limit, gpu_train, 
 
 
     if gpu_train:
-        tree_method = 'gpu_hist'
+        device = 'gpu_hist'
         n_jobs = None
     else:
-        tree_method = 'hist'
-        n_jobs = -6
+        device = 'hist'
+        n_jobs = -2
 
     model = xgb.XGBRegressor(objective='reg:squarederror',
                              n_estimators=nrounds,
-                             tree_method=tree_method)
+                             device=device)
 
     skf = GroupKFold(n_splits=cv_folds)
 
@@ -418,14 +424,24 @@ def xgb_gridsearch(train_df, target, cv_folds, iterations, sd_limit, gpu_train, 
     #
 
     # # XGBOOST TIER 1 GRID SPP ***DART***
+    # param_grid = {'min_child_weight': [2],
+    #               'learning_rate': [0.01],
+    #               'reg_lambda': [3],
+    #               'reg_alpha' : [0.10],
+    #               # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
+    #               'subsample': [0.8,0.85,0.9],
+    #               'colsample_bytree': [0.05,0.1,0.15],
+    #               'max_depth': [13,15,17]}
+
+    # # XGBOOST TIER 1 GRID ERCOT **DART**
     param_grid = {'min_child_weight': [2],
-                  'learning_rate': [0.01],
+                  'learning_rate': [0.0005],
                   'reg_lambda': [3],
-                  'reg_alpha' : [0.10],
+                  'reg_alpha' : [0.1],
                   # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
-                  'subsample': [0.8,0.85,0.9],
-                  'colsample_bytree': [0.05,0.1,0.15],
-                  'max_depth': [13,15,17]}
+                  'subsample': [0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4],
+                  'colsample_bytree': [0.05],
+                  'max_depth': [14]}
 
 
     # # XGBOOST TIER 1 GRID ERCOT **SPREAD**
@@ -490,6 +506,190 @@ def xgb_gridsearch(train_df, target, cv_folds, iterations, sd_limit, gpu_train, 
     results = pd.DataFrame(random_search.cv_results_)
     results = results.sort_values(by='rank_test_score', ascending=True)
     print('Best XGB Hyper Params:\n', results)
+
+    return results
+
+def lgb_train(test_df, train_df, eval_df, target, sd_limit, fit_params, gpu_train, early_stopping, nrounds, verbose=True):
+    # TRAINS MODEL AND PREDICTS RESULTS
+
+
+    # Remove Outliers From Train Set and Eval Set
+    train_df = std_dev_outlier_remove(input_df=train_df,
+                                      target=target,
+                                      sd_limit=sd_limit,
+                                      verbose=verbose)
+
+    eval_df = std_dev_outlier_remove(input_df=eval_df,
+                                     target=target,
+                                     sd_limit=sd_limit,
+                                     verbose=verbose)
+
+    # Split Test, Train, and Eval Sets Into X and Y and Create DMatrix
+    x_test_df = test_df[[col for col in test_df.columns if target not in col]]
+    y_test_df = test_df[[col for col in test_df.columns if target in col]]
+    x_train_df = train_df[[col for col in train_df.columns if target not in col]]
+    y_train_df = train_df[[col for col in train_df.columns if target in col]]
+    x_eval_df = eval_df[[col for col in eval_df.columns if target not in col]]
+    y_eval_df = eval_df[[col for col in eval_df.columns if target in col]]
+
+
+    dtrain = lgb.Dataset(data=x_train_df, label=y_train_df)
+    deval = lgb.Dataset(data=x_eval_df, label=y_eval_df)
+    dtest = lgb.Dataset(data=x_test_df, label=y_test_df)
+
+    watchlist = [deval]
+
+    # Set Additional Model Parameters
+    # fit_params['application'] = 'regression'
+    fit_params['boosting'] = 'gbdt'
+    fit_params['objective'] = 'rmse'
+    fit_params['verbose'] = '-1'
+
+    if gpu_train: fit_params['device'] = 'gpu'
+    else: fit_params['device'] = 'cpu'
+
+
+    eval_dict = dict()
+
+    # Train Model
+    lbm = lgb.train(params=fit_params,
+                    train_set = dtrain,
+                    num_boost_round=nrounds,
+                    valid_sets=watchlist,
+                    early_stopping_rounds=early_stopping,
+                    verbose_eval=False,
+                    evals_result = eval_dict
+                    )
+
+    # Predict Model
+    pred_df = pd.DataFrame(index=y_test_df.index)
+
+    # Only Predict If A Test_df exists
+    if not test_df.empty:
+        pred_df[target+'_pred'] = lbm.predict(x_test_df)
+
+    return pred_df, lbm
+
+def lgb_gridsearch(train_df, target, cv_folds, iterations, sd_limit, gpu_train, nrounds):
+    # Remove Outliers From Train Set and Eval Set
+    train_df = std_dev_outlier_remove(input_df=train_df,
+                                      target=target,
+                                      sd_limit=sd_limit,
+                                      verbose=True)
+
+    x_train_df = train_df[[col for col in train_df.columns if target not in col]]
+    y_train_df = train_df[[col for col in train_df.columns if target in col]]
+
+
+    if gpu_train:
+        device = 'gpu'
+        n_jobs = None
+    else:
+        device = 'cpu'
+        n_jobs = -2
+
+    model = lgb.LGBMRegressor(objective='rmse',
+                              boosting_type = 'gbdt',
+                             n_estimators=nrounds,
+                             device=device)
+
+    skf = GroupKFold(n_splits=cv_folds)
+
+    ### NOTES for default parameters:
+    # 'min_child_weight': [1],  # does not impact at all - keep at 1
+    # 'subsample': [1],  # does not impact at all - keep at 1
+    #'max_depth': [-1]  # no max depth limit as the num_leaves limits it
+
+    #XGBOOST TIER 1 GRID PJM ***DART***
+    param_grid = {'learning_rate': [0.001,0.0025,0.005],  # no greater than 0.01, doesnt affect fit time below that, sometimes gets slightly better results below that
+                  'num_leaves': [20,25,30],  #SLIGHT better RMSE as more leaves used, increases training time substantially
+                  'max_bin': [30,40,50],  #Impacts RMSE a bit from 16-100 range, doesnt impact training time
+                  'reg_lambda': [3,5,7],  #Impacts RMSE a bit - keep values between 1-10, doesnt impact training time
+                  'reg_alpha' : [0.5,1,1.5],  #impacts RMSE a bit - keep values between 0.1 and 3, doesnt impact training time
+                  'colsample_bytree': [0.15,0.2,0.25]} # Impacts RMSE and training time substantially. Training time goes up as colsample goes up
+
+
+    # # XGBOOST TIER 1 GRID MISO ***DART***
+    # param_grid = {'learning_rate': [0.007],
+    #               'reg_lambda': [5],
+    #               'reg_alpha' : [0.30], ## doesnt really change much
+    #               'subsample': [0.8,0.85,0.9],
+    #               'colsample_bytree': [0.15,0.2,0.25],
+    #               'max_depth': [12,14,16]}
+
+
+    # # XGBOOST TIER 1 GRID ISONE ***DART***
+    # param_grid = {'learning_rate': [0.03],
+    #               'reg_lambda': [3],
+    #               'reg_alpha' : [0.10],
+    #               'subsample': [0.85,0.9,0.95],
+    #               'colsample_bytree': [0.05,0.1,0.15],
+    #               'max_depth': [6,8,10]}
+    #
+
+    # # XGBOOST TIER 1 GRID SPP ***DART***
+    # param_grid = {'learning_rate': [0.01],
+    #               'reg_lambda': [3],
+    #               'reg_alpha' : [0.10],
+    #               'subsample': [0.8,0.85,0.9],
+    #               'colsample_bytree': [0.05,0.1,0.15],
+    #               'max_depth': [13,15,17]}
+
+
+    # # XGBOOST TIER 1 GRID ERCOT **SPREAD**
+    # param_grid = {'learning_rate': [0.0009],
+    #               'reg_lambda': [3],
+    #               'reg_alpha' : [0.1],
+    #               'subsample': [0.8,0.85,0.9],
+    #               'colsample_bytree': [0.05,0.1,0.15],
+    #               'max_depth': [6,8,10]}
+
+    # # XGBOOST TIER 1 GRID MISO ***SPREAD***
+    # param_grid = {'learning_rate': [0.01],
+    #               'reg_lambda': [5],
+    #               'reg_alpha' : [0.30], ## doesnt really change much
+    #               'subsample': [0.85,0.9,0.95],
+    #               'colsample_bytree': [0.1,0.15,0.2],
+    #               'max_depth': [8,10,12]}
+
+    # # XGBOOST TIER 1 GRID SPP ***SPREAD***
+    # param_grid = {'learning_rate': [0.01],
+    #               'reg_lambda': [5],
+    #               'reg_alpha' : [0.30], ## doesnt really change much
+    #               'subsample': [0.85,0.9,0.95],
+    #               'colsample_bytree': [0.05,0.1,0.15],
+    #               'max_depth': [9,11,13]}
+
+    #XGBOOST TIER 1 GRID PJM ****SPREAD****
+    # param_grid = {'learning_rate': [0.01],
+    #               'reg_lambda': [3],
+    #               'reg_alpha' : [0.1],
+    #               'subsample': [0.85,0.9,0.95],
+    #               'colsample_bytree': [0.05,0.1,0.15],
+    #               'max_depth': [12,14,16]}
+
+    # # XGBOOST TIER 1 GRID ISONE ***SPREAD***
+    # param_grid = {'learning_rate': [0.01],
+    #               'reg_lambda': [3],
+    #               'reg_alpha' : [0.10],
+    #               'subsample': [0.85,0.9,0.95],
+    #               'colsample_bytree': [0.05,0.1,0.15],
+    #               'max_depth': [8,10,12]}
+
+
+
+    random_search = RandomizedSearchCV(estimator=model,
+                                       param_distributions=param_grid,
+                                       n_iter=iterations,
+                                       cv=skf.split(x_train_df, y_train_df, groups=x_train_df.index.get_level_values('Date')),
+                                       verbose=3,
+                                       scoring='neg_mean_squared_error',
+                                       n_jobs=n_jobs)
+
+    random_search.fit(x_train_df, y_train_df)
+    results = pd.DataFrame(random_search.cv_results_)
+    results = results.sort_values(by='rank_test_score', ascending=True)
+    print('Best LGB Hyper Params:\n', results)
 
     return results
 
@@ -625,6 +825,7 @@ def do_xgb_prediction(predict_date_str_mm_dd_yyyy, iso, daily_trade_file_name, w
                                iso = iso,
                                verbose=False)
 
+
     preds_tier1_df  = pd.DataFrame(index=input_df.index)
     preds_tier2_df = pd.DataFrame(index=input_df.index)
 
@@ -633,13 +834,14 @@ def do_xgb_prediction(predict_date_str_mm_dd_yyyy, iso, daily_trade_file_name, w
     all_locations_variables_df = pd.read_excel(trade_variables, 'Locations')
     all_locations_variables_df = all_locations_variables_df[all_locations_variables_df['ISO']==iso]
     all_locations_variables_df = all_locations_variables_df[all_locations_variables_df['active_trading_location'] == 1]
-    if model_type == 'DART':
+    if (model_type == 'DART') or (model_type == 'FORCED_SPREAD'):
         all_locations_variables_df = all_locations_variables_df[all_locations_variables_df['Location'].str.contains('DART')]
-    elif (model_type == 'SPREAD') or (model_type == 'SYN_SPREAD'):
+    elif model_type == 'SPREAD':
         all_locations_variables_df = all_locations_variables_df[all_locations_variables_df['Location'].str.contains('SPREAD')]
 
     all_ISOs_variables_df = pd.read_excel(trade_variables, 'ISOs')
     all_ISOs_variables_df = all_ISOs_variables_df[all_ISOs_variables_df['ISO'] == iso]
+
     all_ISOs_variables_df.reset_index(inplace=True, drop=True)
 
     if len(all_locations_variables_df)<1:
@@ -720,6 +922,7 @@ def do_xgb_prediction(predict_date_str_mm_dd_yyyy, iso, daily_trade_file_name, w
                                         iso=iso,
                                         cat_vars=cat_vars,
                                         static_directory=static_directory,
+                                        one_hot_encode=True,
                                         daily_pred=True)
 
     # Predit only the target day and save input file
@@ -774,14 +977,18 @@ def do_xgb_prediction(predict_date_str_mm_dd_yyyy, iso, daily_trade_file_name, w
     preds_tier1_df = preds_tier1_df.round(3)
     preds_tier2_df = preds_tier2_df.round(3)
 
+    if model_type=='FORCED_SPREAD':
+        save_model_type='DART'
+    else:
+        save_model_type=model_type
 
-    preds_tier1_df.to_csv(pred_save_directory + predict_date_str_mm_dd_yyyy + '_RAW_PREDS_TIER1_'+model_type+'_' + iso + '.csv', index=True)
+    preds_tier1_df.to_csv(pred_save_directory + predict_date_str_mm_dd_yyyy + '_RAW_PREDS_TIER1_'+save_model_type+'_' + iso + '.csv', index=True)
 
     if preds_tier2_df.empty == False:
         preds_tier2_df.set_index([preds_tier1_df.index], inplace=True, drop=True)
         preds_tier2_df.to_csv(pred_save_directory + predict_date_str_mm_dd_yyyy + '_RAW_PREDS_TIER2_'+model_type+'_' + iso + '.csv', index=True)
 
-    failed_locations_df.to_csv(pred_save_directory + predict_date_str_mm_dd_yyyy + '_FAILED_LOCATIONS_' +model_type+'_' + iso + '.csv')
+    failed_locations_df.to_csv(pred_save_directory + predict_date_str_mm_dd_yyyy + '_FAILED_LOCATIONS_' +save_model_type+'_' + iso + '.csv')
 
     return preds_tier1_df, preds_tier2_df, failed_locations_df
 
@@ -796,18 +1003,20 @@ def post_process_trades(iso, predict_date_str_mm_dd_yyyy, daily_trade_file_name,
     upload_save_directory = working_directory + '\\UploadFiles\\'
     daily_trade_directory = working_directory + '\\DailyTradeFiles\\'
 
-    preds_tier1_df = pd.read_csv(pred_save_directory + predict_date_str_mm_dd_yyyy + '_RAW_PREDS_TIER1_' +model_type+'_' + iso + '.csv', index_col=['Date','HE'],parse_dates=True)
-    # preds_tier1_df = pd.read_csv(pred_save_directory + predict_date_str_mm_dd_yyyy + '_RAW_PREDS_TIER1_' + iso + '.csv',index_col=['Date', 'HE'], parse_dates=True)
+    if model_type=='FORCED_SPREAD':
+        preds_tier1_df = pd.read_csv(pred_save_directory + predict_date_str_mm_dd_yyyy + '_RAW_PREDS_TIER1_DART_' + iso + '.csv', index_col=['Date','HE'],parse_dates=True)
+    else:
+        preds_tier1_df = pd.read_csv(pred_save_directory + predict_date_str_mm_dd_yyyy + '_RAW_PREDS_TIER1_' +model_type+'_' + iso + '.csv', index_col=['Date','HE'],parse_dates=True)
 
 
-    try:
-        preds_tier2_df = pd.read_csv(pred_save_directory + predict_date_str_mm_dd_yyyy + '_RAW_PREDS_TIER2_'+model_type+'_' + iso + '.csv', index_col=['Date','HE'],parse_dates=True)
-        sd_tier2_df = preds_tier2_df[[col for col in preds_tier2_df.columns if 'sd' in col]].copy()
-        preds_tier2_df = preds_tier2_df[[col for col in preds_tier2_df.columns if 'pred' in col]].copy()
-        preds_tier2_df.columns = [col.replace('_pred', '') for col in preds_tier2_df.columns]
-        sd_tier2_df.columns = [col.replace('_sd', '') for col in sd_tier2_df.columns]
-    except:
-        print('Tier2 Preds Not Available And/Or Not Used')
+    # try:
+    #     preds_tier2_df = pd.read_csv(pred_save_directory + predict_date_str_mm_dd_yyyy + '_RAW_PREDS_TIER2_'+model_type+'_' + iso + '.csv', index_col=['Date','HE'],parse_dates=True)
+    #     sd_tier2_df = preds_tier2_df[[col for col in preds_tier2_df.columns if 'sd' in col]].copy()
+    #     preds_tier2_df = preds_tier2_df[[col for col in preds_tier2_df.columns if 'pred' in col]].copy()
+    #     preds_tier2_df.columns = [col.replace('_pred', '') for col in preds_tier2_df.columns]
+    #     sd_tier2_df.columns = [col.replace('_sd', '') for col in sd_tier2_df.columns]
+    # except:
+    #     print('Tier2 Preds Not Available And/Or Not Used')
 
     # Read in daily trade variables for locations and ISOs
     trade_variables = pd.ExcelFile(daily_trade_directory+daily_trade_file_name + '.xlsx')
@@ -818,7 +1027,11 @@ def post_process_trades(iso, predict_date_str_mm_dd_yyyy, daily_trade_file_name,
 
     all_ISOs_variables_df = pd.read_excel(trade_variables, 'ISOs')
     all_ISOs_variables_df = all_ISOs_variables_df[all_ISOs_variables_df['ISO'] == iso]
-    all_ISOs_variables_df = all_ISOs_variables_df[all_ISOs_variables_df['model_type'] == model_type]
+
+    if model_type=='FORCED_SPREAD':
+        all_ISOs_variables_df = all_ISOs_variables_df[all_ISOs_variables_df['model_type'] == 'SPREAD']
+    else:
+        all_ISOs_variables_df = all_ISOs_variables_df[all_ISOs_variables_df['model_type'] == model_type]
 
     all_ISOs_variables_df.reset_index(inplace=True, drop=True)
     sd_tier1_df = preds_tier1_df[[col for col in preds_tier1_df.columns if 'sd' in col]].copy()
@@ -828,14 +1041,14 @@ def post_process_trades(iso, predict_date_str_mm_dd_yyyy, daily_trade_file_name,
 
 
     # Apply tier 2 waive-off
-    try:
-        for location in preds_tier1_df.columns:
-            location_variables_df = all_locations_variables_df[all_locations_variables_df['Location']==location].reset_index(drop=True)
-            tier2_daily_PnL_cutoff = location_variables_df['tier2_daily_PnL_cutoff'][0]
-            preds_tier1_df.loc[(preds_tier2_df[location] < tier2_daily_PnL_cutoff), location] = 0
-    except:
-        print('Tier2 Cutoffs Not Enabled')
-
+    # try:
+    #     for location in preds_tier1_df.columns:
+    #         location_variables_df = all_locations_variables_df[all_locations_variables_df['Location']==location].reset_index(drop=True)
+    #         tier2_daily_PnL_cutoff = location_variables_df['tier2_daily_PnL_cutoff'][0]
+    #         preds_tier1_df.loc[(preds_tier2_df[location] < tier2_daily_PnL_cutoff), location] = 0
+    # except:
+    #     print('Tier2 Cutoffs Not Enabled')
+    #
 
     if len(preds_tier1_df.columns)<1:
         print('No Predictions for Any Location For ISO: '+iso)
@@ -844,29 +1057,91 @@ def post_process_trades(iso, predict_date_str_mm_dd_yyyy, daily_trade_file_name,
     # Only take top nodes per hour on INC and DEC side each
     top_hourly_locs = all_ISOs_variables_df['max_hourly_trades'][0]
 
-    preds_tier1_df = preds_tier1_df.mask(abs(preds_tier1_df).rank(axis=1, method='min', ascending=False) > top_hourly_locs, 0)
 
-    inc_sd_band = all_ISOs_variables_df['INC_sd_band'][0]
-    dec_sd_band = all_ISOs_variables_df['DEC_sd_band'][0]
-    inc_mean_band_peak = all_ISOs_variables_df['INC_pred_band_peak'][0]
-    dec_mean_band_peak = all_ISOs_variables_df['DEC_pred_band_peak'][0]
-    inc_mean_band_offpeak = all_ISOs_variables_df['INC_pred_band_offpeak'][0]
-    dec_mean_band_offpeak = all_ISOs_variables_df['DEC_pred_band_offpeak'][0]
+    if (model_type=='DART') or (model_type=='SPREAD'):
+        preds_tier1_df = preds_tier1_df.mask(abs(preds_tier1_df).rank(axis=1, method='min', ascending=False) > top_hourly_locs, 0)
 
-    # Apply tier 1 bands
-    for location in preds_tier1_df.columns:
+        inc_sd_band = all_ISOs_variables_df['INC_sd_band'][0]
+        dec_sd_band = all_ISOs_variables_df['DEC_sd_band'][0]
+        inc_mean_band_peak = all_ISOs_variables_df['INC_pred_band_peak'][0]
+        dec_mean_band_peak = all_ISOs_variables_df['DEC_pred_band_peak'][0]
+        inc_mean_band_offpeak = all_ISOs_variables_df['INC_pred_band_offpeak'][0]
+        dec_mean_band_offpeak = all_ISOs_variables_df['DEC_pred_band_offpeak'][0]
 
-        # Tier 1 SD bands set preds to 0
-        preds_tier1_df.loc[(preds_tier1_df[location] > 0) & (abs(preds_tier1_df[location]) < (sd_tier1_df[location] * inc_sd_band)), location] = 0
-        preds_tier1_df.loc[(preds_tier1_df[location] < 0) & (abs(preds_tier1_df[location]) < (sd_tier1_df[location] * dec_sd_band)), location] = 0
+        # Apply tier 1 bands
+        for location in preds_tier1_df.columns:
 
-        for hour in preds_tier1_df.index.get_level_values('HE').unique():
-            if hour in [1, 2, 3, 4, 5, 6, 23, 24]:
-                preds_tier1_df.loc[(preds_tier1_df[location] > 0) & (preds_tier1_df.index.get_level_values('HE') == hour) & (preds_tier1_df[location] < inc_mean_band_offpeak), location] = 0
-                preds_tier1_df.loc[(preds_tier1_df[location] < 0) & (preds_tier1_df.index.get_level_values('HE') == hour) & (preds_tier1_df[location] > -dec_mean_band_offpeak), location] = 0
-            else:
-                preds_tier1_df.loc[(preds_tier1_df[location] > 0) & (preds_tier1_df.index.get_level_values('HE') == hour) & (preds_tier1_df[location] < inc_mean_band_peak), location] = 0
-                preds_tier1_df.loc[(preds_tier1_df[location] < 0) & (preds_tier1_df.index.get_level_values('HE') == hour) & (preds_tier1_df[location] > -dec_mean_band_peak), location] = 0
+            # Tier 1 SD bands set preds to 0
+            preds_tier1_df.loc[(preds_tier1_df[location] > 0) & (abs(preds_tier1_df[location]) < (sd_tier1_df[location] * inc_sd_band)), location] = 0
+            preds_tier1_df.loc[(preds_tier1_df[location] < 0) & (abs(preds_tier1_df[location]) < (sd_tier1_df[location] * dec_sd_band)), location] = 0
+
+            for hour in preds_tier1_df.index.get_level_values('HE').unique():
+                if hour in [1, 2, 3, 4, 5, 6, 23, 24]:
+                    preds_tier1_df.loc[(preds_tier1_df[location] > 0) & (preds_tier1_df.index.get_level_values('HE') == hour) & (preds_tier1_df[location] < inc_mean_band_offpeak), location] = 0
+                    preds_tier1_df.loc[(preds_tier1_df[location] < 0) & (preds_tier1_df.index.get_level_values('HE') == hour) & (preds_tier1_df[location] > -dec_mean_band_offpeak), location] = 0
+                else:
+                    preds_tier1_df.loc[(preds_tier1_df[location] > 0) & (preds_tier1_df.index.get_level_values('HE') == hour) & (preds_tier1_df[location] < inc_mean_band_peak), location] = 0
+                    preds_tier1_df.loc[(preds_tier1_df[location] < 0) & (preds_tier1_df.index.get_level_values('HE') == hour) & (preds_tier1_df[location] > -dec_mean_band_peak), location] = 0
+
+    elif (model_type == 'FORCED_SPREAD'):
+        forced_spread_df = pd.DataFrame(index=preds_tier1_df.index.get_level_values('HE'))
+        trade_date = preds_tier1_df.index.get_level_values('Date')[0]
+
+        top_hourly_locs = top_hourly_locs/2
+        dec_preds_tier1_df = preds_tier1_df.mask(preds_tier1_df.rank(axis=1, method='min', ascending=True) > top_hourly_locs, 0)
+        inc_preds_tier1_df = preds_tier1_df.mask(preds_tier1_df.rank(axis=1, method='min', ascending=False) > top_hourly_locs, 0)
+
+
+        for hourEnding in dec_preds_tier1_df.index.get_level_values('HE').unique():
+            inc_hour_df = inc_preds_tier1_df.iloc[inc_preds_tier1_df.index.get_level_values('HE') == hourEnding].sum().reset_index()
+            dec_hour_df = dec_preds_tier1_df.iloc[dec_preds_tier1_df.index.get_level_values('HE') == hourEnding].sum().reset_index()
+            inc_hour_df.columns = ['Node','Pred']
+            dec_hour_df.columns = ['Node', 'Pred']
+            inc_hour_df = inc_hour_df[inc_hour_df['Pred'] != 0]
+            dec_hour_df = dec_hour_df[dec_hour_df['Pred'] != 0]
+            inc_hour_df=inc_hour_df.sort_values(by=['Pred'], ascending=False).reset_index(drop=True)
+            dec_hour_df=dec_hour_df.sort_values(by=['Pred'], ascending=True).reset_index(drop=True)
+
+            for node_index in dec_hour_df.index.unique():
+                try:
+                    sink_col = inc_hour_df.iloc[node_index]['Node']
+                    source_col = dec_hour_df.iloc[node_index]['Node']
+                    sink_pred = inc_hour_df.iloc[node_index]['Pred']
+                    source_pred = dec_hour_df.iloc[node_index]['Pred']
+                    sink_name = sink_col.replace('_DART','')
+                    source_name = source_col.replace('_DART','')
+                    try:
+                        sink_name = int(sink_name)
+                        source_name = int(source_name)
+                    except:
+                        pass
+
+                    sink_name = str(sink_name)
+                    source_name = str(source_name)
+                    col_name =  sink_name+'$'+source_name+'_SPREAD'
+
+                    if col_name in forced_spread_df.columns:
+                        forced_spread_df.at[hourEnding,col_name] =  source_pred-sink_pred
+                    else:
+                        forced_spread_df[col_name]=0.00
+                        forced_spread_df.at[hourEnding,col_name] =  source_pred-sink_pred
+                except:
+                    pass
+                    # print(iso+ ' HourEnding '+ str(hourEnding) + ' mismatched INC/DECs for full forced spread')
+
+                #### SINK $ SOURCE
+                #### INC SOURCE DEC SINK
+
+        forced_spread_df['Date']=trade_date
+        forced_spread_df.reset_index(inplace=True)
+        preds_tier1_df= forced_spread_df.set_index(['Date','HE'])
+
+
+        # forced_spread_df.to_csv('forced.csv')
+        # dec_preds_tier1_df.to_csv('decs.csv')
+        # inc_preds_tier1_df.to_csv('incs.csv')
+
+
 
     # Set MW df to pred/pred
     mw_tier1_df = (preds_tier1_df/preds_tier1_df).fillna(0)
@@ -977,7 +1252,11 @@ def create_trade_summary(predict_date_str_mm_dd_yyyy, isos, do_printcharts, name
     for iso in isos:
         try:
             yes_dfs_dict[iso] = pd.read_csv(upload_save_directory + predict_date_str_mm_dd_yyyy + '_YES_FILE_' +model_type+'_' + name_adder + '_'  + iso + '.csv')
-            failed_locations_dict[iso] = pd.read_csv(pred_save_directory + predict_date_str_mm_dd_yyyy + '_FAILED_LOCATIONS_' +model_type+'_' + iso + '.csv')
+
+            if model_type=='FORCED_SPREAD':
+                failed_locations_dict[iso] = pd.read_csv(pred_save_directory + predict_date_str_mm_dd_yyyy + '_FAILED_LOCATIONS_DART_' + iso + '.csv')
+            else:
+                failed_locations_dict[iso] = pd.read_csv(pred_save_directory + predict_date_str_mm_dd_yyyy + '_FAILED_LOCATIONS_' +model_type+'_' + iso + '.csv')
 
             # yes_dfs_dict[iso] = pd.read_csv(upload_save_directory + predict_date_str_mm_dd_yyyy + '_YES_FILE_'  + name_adder + '_'  + iso + '.csv')
             # failed_locations_dict[iso] = pd.read_csv(pred_save_directory + predict_date_str_mm_dd_yyyy + '_FAILED_LOCATIONS_' + iso + '.csv')
@@ -1246,19 +1525,24 @@ def create_trade_file(input_mw_df, iso , all_ISOs_variables_df, working_director
     alt_names_dict = dict(zip(alt_names_df['Model_Name'],alt_names_df['YES_Name']))
     alt_names_dict_spread = dict(zip(alt_names_df['NodeNameNoSpaces'], alt_names_df['Short_Model_Name_Num']))
 
+    if iso=='SPPISO':
+        alt_names_dict_spread['MISO'] = 'MISO'
+    elif iso =='PJM':
+        alt_names_dict_spread['MISO'] = '40523629'
+
+
+
     inc_bid = all_ISOs_variables_df['inc_offer_price'][0]
     dec_bid = all_ISOs_variables_df['dec_offer_price'][0]
 
 
-    if model_type=='SPREAD':
-        spread_bid = inc_bid
+    if (model_type=='SPREAD') or (model_type=='FORCED_SPREAD'):
 
         trades_tall_df['Orig Sink ID'] = trades_tall_df['Node Name'].apply(lambda row: row.split('$')[0].replace('_SPREAD',''))
         trades_tall_df['Orig Source ID'] = trades_tall_df['Node Name'].apply(lambda row: row.split('$')[1].replace('_SPREAD',''))
-        trades_tall_df['Bid'] = spread_bid
 
         for location in trades_tall_df['Orig Source ID'].unique():
-            trades_tall_df.loc[(trades_tall_df['Orig Source ID'] == location) & (trades_tall_df['Trade Type']=='INC'), 'Source ID'] = alt_names_dict[location]
+            trades_tall_df.loc[(trades_tall_df['Orig Source ID'] == location) & (trades_tall_df['Trade Type'] == 'INC'), 'Source ID'] = alt_names_dict[location]
             trades_tall_df.loc[(trades_tall_df['Orig Source ID'] == location) & (trades_tall_df['Trade Type'] == 'DEC'), 'Sink ID'] = alt_names_dict[location]
 
 
@@ -1273,18 +1557,21 @@ def create_trade_file(input_mw_df, iso , all_ISOs_variables_df, working_director
         for location in trades_tall_df['Sink ID'].unique():
             trades_tall_df.loc[(trades_tall_df['Sink ID'] == location), 'Sink Name'] = alt_names_dict_spread[location.replace(' ','')]
 
-        try:
-            trades_tall_df['Source Name'] = trades_tall_df['Source Name'].astype('int', errors='ignore')
-            trades_tall_df['Sink Name'] = trades_tall_df['Sink Name'].astype('int', errors='ignore')
-            trades_tall_df['Source Name'] = trades_tall_df['Source Name'].astype('str')
-            trades_tall_df['Sink Name'] = trades_tall_df['Sink Name'].astype('str')
-        except:
-            pass
 
+        trades_tall_df['Source Name'] = trades_tall_df['Source Name'].astype('int', errors='ignore')
+        trades_tall_df['Sink Name'] = trades_tall_df['Sink Name'].astype('int', errors='ignore')
+        trades_tall_df['Source Name'] = trades_tall_df['Source Name'].astype('str')
+        trades_tall_df['Sink Name'] = trades_tall_df['Sink Name'].astype('str')
 
         trades_tall_df['Node Name']=trades_tall_df['Node Name'].apply(lambda row: row.replace('_SPREAD', ''))
-
+        trades_tall_df['Node Name'] = trades_tall_df['Node Name'].astype('int', errors='ignore')
+        trades_tall_df['Node Name'] = trades_tall_df['Node Name'].astype('str')
         trades_tall_df['Node ID'] = trades_tall_df['Node Name']
+
+
+
+        trades_tall_df.loc[(trades_tall_df['Node Name'] == location) & (trades_tall_df['Trade Type'] == 'INC'), 'Bid'] = inc_bid
+        trades_tall_df.loc[(trades_tall_df['Node Name'] == location) & (trades_tall_df['Trade Type'] == 'DEC'), 'Bid'] = dec_bid
 
     elif model_type=='DART':
         for location in trades_tall_df['Node Name'].unique():
@@ -1310,12 +1597,21 @@ def create_trade_file(input_mw_df, iso , all_ISOs_variables_df, working_director
 
 
     # Format upload files for SPREAD models
-    elif model_type == 'SPREAD':
+    elif (model_type == 'SPREAD') or (model_type == 'FORCED_SPREAD'):
 
         trades_tall_df['BidSegment']=2
 
-        if iso in ['ERCOT', 'PJM']:  ### Actual spread
+        if iso in ['ERCOT']:  ### Actual spread
             yes_df = trades_tall_df[['Orig Source ID','Orig Sink ID','Node Name','Node ID', 'Source ID', 'Sink ID', 'Source Name', 'Sink Name', 'Trade Type', 'Bookname', 'iso', 'targetdate', 'portfolioname', 'Hour', 'MW','Bid']].copy()
+            try:
+                yes_df['Source Name'] = yes_df['Source Name'].astype('int', errors='ignore')
+                yes_df['Sink Name'] = yes_df['Sink Name'].astype('int', errors='ignore')
+            except:
+                pass
+
+            yes_df['Source Name'] = yes_df['Source Name'].astype('str')
+            yes_df['Sink Name'] = yes_df['Sink Name'].astype('str')
+
             upload_df = yes_df
 
         else: ### Syntehtic Spread
@@ -1354,11 +1650,8 @@ def create_trade_file(input_mw_df, iso , all_ISOs_variables_df, working_director
 
             yes_df['MW'] = abs(yes_df['MW'])
 
-            try:
-                yes_df['Node Name'] = yes_df['Node Name'].astype('int', errors='ignore')
-            except:
-                pass
 
+            yes_df['Node Name'] = yes_df['Node Name'].astype('int', errors='ignore')
             yes_df['Node Name'] = yes_df['Node Name'].astype('str')
 
 
@@ -1412,15 +1705,12 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
             trades_dict[iso]=pd.DataFrame()
             continue
 
-
-
         try:
             temp_trades_df['Node Name'] = temp_trades_df['Node Name'].astype('int',errors='ignore')
         except:
             pass
-
-
         temp_trades_df['Node Name'] = temp_trades_df['Node Name'].astype('str')
+
         temp_trades_df['Node Name'] = temp_trades_df['Node Name'].str.replace(iso+'_','')
         temp_trades_df.set_index(['targetdate','Hour', 'Node Name'],inplace=True)
         temp_trades_df.index.names = ['Date','HourEnding','Node Name']
@@ -1491,9 +1781,13 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
 
 
 
-        if model_type == 'SPREAD':
+        if (model_type == 'SPREAD')or (model_type == 'FORCED_SPREAD'):
 
-            if iso == 'ERCOT':
+            ## Real spread
+            if iso in ['ERCOT']:
+
+                temp_lmp_df['Node Name'] = temp_lmp_df['Node Name'].astype('str')
+
                 source_lmp_df = temp_lmp_df.copy()
                 source_lmp_df.set_index(['Date', 'HourEnding','Node Name'], drop=True, inplace=True)
                 source_lmp_df.columns = [col+'_SOURCE' for col in source_lmp_df.columns]
@@ -1506,6 +1800,8 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
                 sink_lmp_df.reset_index(inplace=True)
                 sink_lmp_df.rename(columns={'Node Name': 'Sink Name'}, inplace=True)
 
+                temp_trades_df['Source Name'] = temp_trades_df['Source Name'].astype('str')
+                temp_trades_df['Sink Name'] = temp_trades_df['Sink Name'].astype('str')
                 source_df = temp_trades_df[['HourEnding','Date', 'Source Name']]
                 sink_df = temp_trades_df[['HourEnding', 'Date', 'Sink Name']]
 
@@ -1540,10 +1836,13 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
                 trades_dict[iso] = temp_trades_df
 
             else: #SYntethic spread ISOs
-                temp_trades_df['Node Name'] = temp_trades_df['Node Name'].astype('str')
-                temp_lmp_df['Node Name'] = temp_lmp_df['Node Name'].astype('str')
 
-                temp_trades_df = pd.merge(temp_trades_df, temp_lmp_df, on=['Date', 'HourEnding', 'Node Name'])
+                temp_trades_df['Node Name'] = temp_trades_df['Node Name'].astype('int', errors='ignore')
+                temp_lmp_df['Node Name'] = temp_lmp_df['Node Name'].astype('int', errors='ignore')
+                temp_trades_df['Node Name'] = temp_trades_df['Node Name'].astype('str',errors='ignore')
+                temp_lmp_df['Node Name'] = temp_lmp_df['Node Name'].astype('str',errors='ignore')
+
+                temp_trades_df = pd.merge(temp_trades_df, temp_lmp_df, on=['Date', 'HourEnding', 'Node Name'],how='inner')
 
                 temp_trades_df.set_index(['Date', 'HourEnding'], drop=True, inplace=True)
                 temp_trades_df['ClearedTrade'] = 1
@@ -1565,8 +1864,6 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
 
                 trades_dict[iso] = temp_trades_df
 
-
-
     if bool(trades_dict) == False:
         print('')
         print('')
@@ -1586,9 +1883,15 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
         else:
             all_trades_df=pd.concat([all_trades_df,df],axis=0,sort=False)
 
-    all_trades_df.to_csv(save_directory + predict_date_str_mm_dd_yyyy + '_DAILY_PnL_'+model_type+'_' + name_adder + '.csv')
+    if model_type=='FORCED_SPREAD':
+        sub_save_name = 'SPREAD'
+    else:
+        sub_save_name = model_type
 
-    master_trades_df = pd.read_csv(save_directory+'2020_MASTER_PnL_'+model_type+'_'+name_adder+'.csv', index_col=['Date','HourEnding'], parse_dates=True)
+    all_trades_df.to_csv(save_directory + predict_date_str_mm_dd_yyyy + '_DAILY_PnL_'+sub_save_name+'_' + name_adder + '.csv')
+
+
+    master_trades_df = pd.read_csv(save_directory+'2020_MASTER_PnL_'+sub_save_name+'_'+name_adder+'.csv', index_col=['Date','HourEnding'], parse_dates=True)
     master_trades_df = pd.concat([master_trades_df,all_trades_df],axis=0, sort=True)
     master_trades_df.reset_index(inplace=True)
     master_trades_df.set_index(['Date','HourEnding','Node Name'],inplace=True,drop=True)
@@ -1596,7 +1899,7 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
     master_trades_df.reset_index(inplace=True)
     master_trades_df.set_index(['Date','HourEnding'],inplace=True)
 
-    master_trades_df.to_csv(save_directory+'2020_MASTER_PnL_'+model_type+'_'+name_adder+'.csv')
+    master_trades_df.to_csv(save_directory+'2020_MASTER_PnL_'+sub_save_name+'_'+name_adder+'.csv')
 
     backtest_start_date = predict_date - datetime.timedelta(days=60)
     backtest_end_date = predict_date + datetime.timedelta(days=30)
@@ -1843,7 +2146,7 @@ def daily_PnL(predict_date_str_mm_dd_yyyy,isos, name_adder, working_directory, s
     ## Save a backup copy of the PnL alternating names based on day of year
     day_of_year = datetime.datetime.now().timetuple().tm_yday
     alt_pnl_num = str(day_of_year%2)
-    master_trades_df.to_csv(save_directory + '2020_MASTER_PnL_'+model_type +'_'+ name_adder + '_BACKUP_'+alt_pnl_num+'.csv')
+    master_trades_df.to_csv(save_directory + '2020_MASTER_PnL_'+sub_save_name +'_'+ name_adder + '_BACKUP_'+alt_pnl_num+'.csv')
 
     print('')
     print('Daily PnL Complete For: '+predict_date_str_mm_dd_yyyy)
