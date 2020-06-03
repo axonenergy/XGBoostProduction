@@ -2138,7 +2138,11 @@ def get_NYISO_LMPs(start_date, end_date,static_directory):
 
 def get_ISO_api_data(start_date, end_date, previous_data_dict_name, concat_old_dict, working_directory, static_directory):
 
-    if concat_old_dict ==True: previous_dict = load_obj(previous_data_dict_name)
+    if concat_old_dict ==True:
+        previous_dict = load_obj(previous_data_dict_name)
+        if previous_dict ==None:
+            print('Error loading previous dict. Fix raw file name?')
+            exit()
 
     output_dict_dataframes = {'EST':None,'EPT':None,'CPT':None}
     input_files_directory = static_directory + '\ModelUpdateData\\'

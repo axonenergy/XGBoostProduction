@@ -28,7 +28,7 @@ static_directory = 'C:\\XGBoostProduction\\'
 start_date = '2020_04_28'   # 7/15/2015 start date -
 end_date = '2020_05_28'   # check here for most recent file for end date: https://marketplace.spp.org/pages/rtbm-lmp-by-location# - approx 7 days before current date
 
-previous_data_dict_name = '2020_05_04_BACKTEST_DATA_DICT_RAW_GASLMPs'
+previous_data_dict_name = '2020_05_04_BACKTEST_DATA_DICT_RAW'
 
 data_dict = get_ISO_api_data(start_date=start_date,
                              end_date=end_date,
