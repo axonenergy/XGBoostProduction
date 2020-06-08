@@ -14,27 +14,31 @@ working_directory = 'X:\\Research\\'
 run_DART_PnL = True
 run_find_offer_prices = False
 lmp_filename = '2020_01_05_LMP_DATA_DICT_MASTER'
-dart_backtest_filename = 'Backtest_2020_05_04_BACKTEST_DATA_DICT_MASTER_XGB_PJM_EXP20_DART_XGBmod_LGBfeats_'
-# dart_backtest_filename = 'Backtest_09_11_2019_GBM_DATA_MISO_V8.0_MASTER_159F_MISO_EXP10_'
-# dart_backtest_filename = 'Backtest_09_11_2019_GBM_DATA_PJM_V8.0_MASTER_207F_PJM_EXP10_'
-# dart_backtest_filename = 'backtest_PJM_V8.0_all'
+dart_backtest_filename = 'Backtest_2020_05_04_BACKTEST_DATA_DICT_MASTER_ISONE_EXP20_DART__'
+dart_backtest_filename = 'Backtest_2020_05_28_BACKTEST_DATA_DICT_MASTER_XGB_ERCOT_EXP5_DART_ercot15_'
+
 
 dart_sd_location_filter = 'SD1000'  # Leave Blank For No Filter Otherwise Use 'SD4, SD3.5 etc' Format
 
 name_adder = ''
+spread_mean_band = 1.00
+
 
 dart_scale_mean_div_sd = False # Keep False
 limit_daily_mws = True # True increases compute time greatly. If false, scales to max hour limitations but not daily limits
 limit_hourly_mws = True
+forced_spread = False
+
+
 dart_sd_band = 1.00
-dart_cutoff_dolMW = 1.00
+dart_cutoff_dolMW = 1.00  # 1.00 is normal value
 cutoff_max_hourly_loss = 100000 #Positive Value!
 dart_start_date = datetime.datetime(2014, 8, 24)
 dart_end_date = datetime.datetime(2020, 9, 11)
 
 run_spread_PnL = False
 spread_cutoff = 0.00
-spread_mean_band = 1
+
 max_spreads_per_node = 2
 tier2_filter = False
 tier2_sd_filter = 'SD1000'
@@ -61,6 +65,7 @@ if 'MISO' in dart_backtest_filename:
     tier2_backtest = 'Backtest_Tier2_Backtest_Exps_2020_02_24_BACKTEST_DATA_DICT_MASTER_MISO_EXP20_'
     dart_inc_mean_band_peak = 1.25
     dart_inc_mean_band_offpeak = 1.00
+    # spread_mean_band = 0.00
     dart_dec_mean_band_peak = dart_inc_mean_band_peak  # Positive Value!
     dart_dec_mean_band_offpeak = dart_inc_mean_band_offpeak  # Positive Value!
     lmp_df = lmp_dict['EST']
@@ -73,6 +78,7 @@ elif 'PJM' in dart_backtest_filename:
     tier2_backtest = 'Backtest_Tier2_Backtest_Exps_2020_02_24_BACKTEST_DATA_DICT_MASTER_PJM_EXP20_'
     dart_inc_mean_band_peak = 0.75
     dart_inc_mean_band_offpeak = 0.75
+    # spread_mean_band = 0.00
     dart_dec_mean_band_peak = dart_inc_mean_band_peak  # Positive Value!
     dart_dec_mean_band_offpeak = dart_inc_mean_band_offpeak  # Positive Value!
     lmp_df = lmp_dict['EPT']
@@ -85,6 +91,7 @@ elif 'SPP' in dart_backtest_filename:
     top_hourly_locs = 10
     dart_inc_mean_band_peak = 1.00
     dart_inc_mean_band_offpeak = 0.75
+    # spread_mean_band = 0.00
     dart_dec_mean_band_peak = dart_inc_mean_band_peak  # Positive Value!
     dart_dec_mean_band_offpeak = dart_inc_mean_band_offpeak  # Positive Value!
     lmp_df = lmp_dict['CPT']
@@ -95,8 +102,9 @@ elif 'ERCOT' in dart_backtest_filename:
     target_mws = 400
     tier2_backtest = 'Backtest_daily_Tier2_Backtest_12092019_Master_Nodes_Dataset_Dict_ERCOT_EXP10_'
     top_hourly_locs = 15
-    dart_inc_mean_band_peak = 1.0
-    dart_inc_mean_band_offpeak = 1.0
+    dart_inc_mean_band_peak = 0.0
+    dart_inc_mean_band_offpeak = 0.0
+    # spread_mean_band = 0.00
     dart_inc_mean_band_offpeak = dart_inc_mean_band_peak
     dart_dec_mean_band_peak = dart_inc_mean_band_peak  # Positive Value!
     dart_dec_mean_band_offpeak = dart_inc_mean_band_offpeak  # Positive Value!
@@ -110,13 +118,14 @@ elif 'ISONE' in dart_backtest_filename:
     top_hourly_locs = 10
     dart_inc_mean_band_peak = 1.25
     dart_inc_mean_band_offpeak = 1.25
+    # spread_mean_band = 0.00
     dart_dec_mean_band_peak = dart_inc_mean_band_peak  # Positive Value!
     dart_dec_mean_band_offpeak = dart_inc_mean_band_offpeak  # Positive Value!
     lmp_df = lmp_dict['EPT']
 
 min_trade_mws = min(max_hourly_dec_mws/top_hourly_locs,max_hourly_inc_mws/top_hourly_locs)
 
-def calc_hourly_pnl(backtest_filename, sd_band, inc_mean_band_peak, dec_mean_band_peak, inc_mean_band_offpeak, tier2_PnL_cutoff,tier2_filter,tier2_backtest, dec_mean_band_offpeak, scale_mean_div_sd, start_date, end_date, dart_sd_location_filter,top_hourly_locs, max_trade_mws, min_trade_mws, target_mws, max_hourly_inc_mws, max_hourly_dec_mws,limit_daily_mws,limit_hourly_mws,tier2_sd_filter, working_directory,static_directory):
+def calc_hourly_pnl(backtest_filename, sd_band, inc_mean_band_peak, dec_mean_band_peak, inc_mean_band_offpeak,spread_mean_band,  tier2_PnL_cutoff,tier2_filter,tier2_backtest, dec_mean_band_offpeak, scale_mean_div_sd, start_date, end_date, forced_spread, dart_sd_location_filter,top_hourly_locs, max_trade_mws, min_trade_mws, target_mws, max_hourly_inc_mws, max_hourly_dec_mws,limit_daily_mws,limit_hourly_mws,tier2_sd_filter, working_directory,static_directory):
     load_directory = static_directory + '\BacktestFiles\\'
     # CALCULATES HOURLY PnL AND OUTPUTS DICT WITH DATAFRAMES FOR TOT/INC/DEC PnL and MWs
     input_df=pd.read_csv(load_directory+dart_backtest_filename+'.csv',index_col=['Date','HE'],parse_dates=True)
@@ -167,41 +176,80 @@ def calc_hourly_pnl(backtest_filename, sd_band, inc_mean_band_peak, dec_mean_ban
 
     # Apply Filters
 
-    # Use this snippet to take the abs value of the preds when ranking. Uncomment for non-forced spreads. Comment out for forced spreads
-    pred_df = pred_df.mask(abs(pred_df).rank(axis=1, method='min', ascending=False) > top_hourly_locs, 0)
+    if forced_spread==False:
+        pred_df = pred_df.mask(abs(pred_df).rank(axis=1, method='min', ascending=False) > top_hourly_locs, 0)
+
+        # Apply tier 1 bands
+        for location in pred_df.columns:
+
+            # Tier 1 SD bands set preds to 0
+            pred_df.loc[(pred_df[location] > 0) & (abs(pred_df[location]) < (sd_df[location] * sd_band)), location] = 0
+            pred_df.loc[(pred_df[location] < 0) & (abs(pred_df[location]) < (sd_df[location] * sd_band)), location] = 0
+
+            for hour in pred_df.index.get_level_values('HE').unique():
+                if hour in [1, 2, 3, 4, 5, 6, 23, 24]:
+                    pred_df.loc[(pred_df[location] > 0) & (pred_df.index.get_level_values('HE') == hour) & (pred_df[location] < inc_mean_band_offpeak), location] = 0
+                    pred_df.loc[(pred_df[location] < 0) & (pred_df.index.get_level_values('HE') == hour) & (pred_df[location] > -dec_mean_band_offpeak), location] = 0
+                else:
+                    pred_df.loc[(pred_df[location] > 0) & (pred_df.index.get_level_values('HE') == hour) & (pred_df[location] < inc_mean_band_peak), location] = 0
+                    pred_df.loc[(pred_df[location] < 0) & (pred_df.index.get_level_values('HE') == hour) & (pred_df[location] > -dec_mean_band_peak), location] = 0
+
+    elif forced_spread==True:
+
+        top_hourly_locs = top_hourly_locs / 2
+        dec_preds_tier1_df = pred_df.mask(pred_df.rank(axis=1, method='min', ascending=True) > top_hourly_locs, 0)
+        inc_preds_tier1_df = pred_df.mask(pred_df.rank(axis=1, method='min', ascending=False) > top_hourly_locs, 0)
+
+        #set all preds to zero - will repopulate later
+        pred_df.reset_index(inplace=True)
+        dec_preds_tier1_df.reset_index(inplace=True)
+        inc_preds_tier1_df.reset_index(inplace=True)
+        dec_preds_tier1_df.drop(columns=['Date','HE'],inplace=True)
+        inc_preds_tier1_df.drop(columns=['Date', 'HE'], inplace=True)
+
+        for col in pred_df.columns :
+            if col not in ['Date','HE']:
+                pred_df[col].values[:]=0
+
+        # iterate through each row of backtest and find the top and bottom preds and make them INCs and DECs respectivly
+        for row in dec_preds_tier1_df.index.unique():
+
+            inc_hour_df = inc_preds_tier1_df.iloc[inc_preds_tier1_df.index== row].sum().reset_index()
+            dec_hour_df = dec_preds_tier1_df.iloc[dec_preds_tier1_df.index== row].sum().reset_index()
+            inc_hour_df.columns = ['Node', 'Pred']
+            dec_hour_df.columns = ['Node', 'Pred']
+            inc_hour_df = inc_hour_df[inc_hour_df['Pred'] != 0]
+            dec_hour_df = dec_hour_df[dec_hour_df['Pred'] != 0]
+            inc_hour_df = inc_hour_df.sort_values(by=['Pred'], ascending=False).reset_index(drop=True)
+            dec_hour_df = dec_hour_df.sort_values(by=['Pred'], ascending=True).reset_index(drop=True)
+
+            # Apply forced spread bands - change all other preds to -1 and 1 for
+            for node_index in dec_hour_df.index.unique():
+                try:
+                    sink_col = inc_hour_df.iloc[node_index]['Node']
+                    source_col = dec_hour_df.iloc[node_index]['Node']
+                    sink_pred = inc_hour_df.iloc[node_index]['Pred']
+                    source_pred = dec_hour_df.iloc[node_index]['Pred']
+                    spread_pred = source_pred - sink_pred
+
+                    #apply bands and repopulate pred dataframe with new preds
+                    if abs(spread_pred)<spread_mean_band:
+                        pred_df.at[row, sink_col] = 0
+                        pred_df.at[row, source_col] = 0
+                    else:
+                        pred_df.at[row, sink_col] = 10
+                        pred_df.at[row, source_col] = -10
 
 
-    # Use this snippet to not take the abs value of the inc and dec ranks when ranking (results in more spreads per hour)
-    # top_hourly_locs = top_hourly_locs/2
-    # dec_preds_tier1_df = pred_df.mask(pred_df.rank(axis=1, method='min', ascending=True) > top_hourly_locs, 0)
-    # inc_preds_tier1_df = pred_df.mask(pred_df.rank(axis=1, method='min', ascending=False) > top_hourly_locs, 0)
-    #
-    # for col in dec_preds_tier1_df.columns:
-    #     dec_preds_tier1_df.loc[dec_preds_tier1_df[col] != 0,col]=-1
-    #
-    # for col in inc_preds_tier1_df.columns:
-    #     inc_preds_tier1_df.loc[inc_preds_tier1_df[col] != 0,col] = 1
-    #
-    # pred_df = pd.concat([dec_preds_tier1_df,inc_preds_tier1_df])
-    #
-    # pred_df.reset_index(inplace=True)
-    # pred_df = pred_df.groupby(['Date','HE']).sum()
-    # pred_df = pred_df.sort_values(by=['Date','HE'])
+                except:
+                    pass
+                    # print(iso+ ' HourEnding '+ str(hourEnding) + ' mismatched INC/DECs for full forced spread')
 
+        pred_df.set_index(['Date','HE'],inplace=True)
 
-    ## Removes trades based on bands. Comment out this section for forced spreads
-    for col in pred_df.columns:
-        # SD Filter
-        pred_df.loc[abs(pred_df[col]) < (sd_df[col] * sd_band), col] = 0
-
-        # OnPeak and OffPeak median bands
-        for hour in pred_df.index.get_level_values('HE').unique():
-            if hour in [1,2,3,4,5,6,23,24]:
-                pred_df.loc[(pred_df[col]>0) & (pred_df.index.get_level_values('HE') ==hour) & (pred_df[col]< inc_mean_band_offpeak), col] = 0
-                pred_df.loc[(pred_df[col]<0) & (pred_df.index.get_level_values('HE') ==hour) & (pred_df[col]>-dec_mean_band_offpeak), col] = 0
-            else:
-                pred_df.loc[(pred_df[col] > 0) & (pred_df.index.get_level_values('HE')==hour) & (pred_df[col] < inc_mean_band_peak), col] = 0
-                pred_df.loc[(pred_df[col] < 0) & (pred_df.index.get_level_values('HE') ==hour) & (pred_df[col] > -dec_mean_band_peak), col] = 0
+        # forced_spread_df.to_csv('forced.csv')
+        # dec_preds_tier1_df.to_csv('decs.csv')
+        # inc_preds_tier1_df.to_csv('incs.csv')
 
 
     # MW Volumne
@@ -381,7 +429,7 @@ def calc_summary_pnl(input_dict):
 
     return summary_df
 
-def do_dart_PnL(backtest_filename, save, sd_band, inc_mean_band_peak, dec_mean_band_peak, inc_mean_band_offpeak,tier2_PnL_cutoff, dec_mean_band_offpeak, tier2_filter,tier2_backtest, scale_mean_div_sd, start_date, end_date,cutoff_dolMW,cutoff_max_hourly_loss,dart_sd_location_filter,top_hourly_locs, max_trade_mws, min_trade_mws, target_mws,save_name, max_hourly_inc_mws, max_hourly_dec_mws,tier2_sd_filter,working_directory,static_directory,limit_daily_mws,limit_hourly_mws,locations=None):
+def do_dart_PnL(backtest_filename, save, sd_band, inc_mean_band_peak, dec_mean_band_peak, inc_mean_band_offpeak,spread_mean_band,tier2_PnL_cutoff, dec_mean_band_offpeak, tier2_filter,tier2_backtest, scale_mean_div_sd, start_date, end_date,cutoff_dolMW,cutoff_max_hourly_loss,dart_sd_location_filter,top_hourly_locs, max_trade_mws, min_trade_mws, target_mws,save_name, forced_spread, max_hourly_inc_mws, max_hourly_dec_mws,tier2_sd_filter,working_directory,static_directory,limit_daily_mws,limit_hourly_mws,locations=None):
     save_directory = working_directory + '\PnLFiles\\'
     hourly_PnL_dict = calc_hourly_pnl(backtest_filename=backtest_filename,
                                       sd_band=sd_band,
@@ -389,6 +437,7 @@ def do_dart_PnL(backtest_filename, save, sd_band, inc_mean_band_peak, dec_mean_b
                                       dec_mean_band_peak=dec_mean_band_peak,
                                       inc_mean_band_offpeak=inc_mean_band_offpeak,
                                       dec_mean_band_offpeak=dec_mean_band_offpeak,
+                                      spread_mean_band=spread_mean_band,
                                       tier2_PnL_cutoff=tier2_PnL_cutoff,
                                       scale_mean_div_sd=scale_mean_div_sd,
                                       tier2_filter=tier2_filter,
@@ -402,6 +451,7 @@ def do_dart_PnL(backtest_filename, save, sd_band, inc_mean_band_peak, dec_mean_b
                                       max_hourly_inc_mws=max_hourly_inc_mws,
                                       limit_daily_mws=limit_daily_mws,
                                       limit_hourly_mws=limit_hourly_mws,
+                                      forced_spread=forced_spread,
                                       target_mws = target_mws,
                                       dart_sd_location_filter=dart_sd_location_filter,
                                       tier2_sd_filter=tier2_sd_filter,
@@ -766,10 +816,18 @@ def find_offer_prices(backtest_filename, lmp_df, sd_band, inc_mean_band_peak, de
 
 if run_DART_PnL:
     if tier2_filter==True:
-        tier2_name_adder='_tier2'
+        add_name_adder='tier2'
     else:
-        tier2_name_adder = ''
-    save_name = dart_backtest_filename+'_'+dart_sd_location_filter+str(dart_inc_mean_band_peak)+'_'+name_adder +'_'+tier2_name_adder
+        add_name_adder = ''
+
+    if forced_spread == True:
+        add_name_adder = add_name_adder + 'ForcedSpread'
+    else:
+        add_name_adder = add_name_adder
+
+
+
+    save_name = dart_backtest_filename+'_'+dart_sd_location_filter+str(dart_inc_mean_band_peak)+'_'+name_adder +'_'+add_name_adder
     print('Running: '+ save_name)
     do_dart_PnL(backtest_filename=dart_backtest_filename,
                 save=True,
@@ -779,6 +837,7 @@ if run_DART_PnL:
                 inc_mean_band_offpeak=dart_inc_mean_band_offpeak,
                 dec_mean_band_offpeak=dart_dec_mean_band_offpeak,
                 scale_mean_div_sd=dart_scale_mean_div_sd,
+                forced_spread=forced_spread,
                 start_date=dart_start_date,
                 end_date=dart_end_date,
                 cutoff_dolMW=dart_cutoff_dolMW,
@@ -793,6 +852,7 @@ if run_DART_PnL:
                 tier2_filter=tier2_filter,
                 tier2_backtest=tier2_backtest,
                 target_mws = target_mws,
+                spread_mean_band = spread_mean_band,
                 tier2_sd_filter=tier2_sd_filter,
                 save_name=save_name,
                 working_directory=working_directory,

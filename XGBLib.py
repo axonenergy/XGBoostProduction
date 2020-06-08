@@ -439,9 +439,9 @@ def xgb_gridsearch(train_df, target, cv_folds, iterations, sd_limit, gpu_train, 
                   'reg_lambda': [3],
                   'reg_alpha' : [0.1],
                   # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
-                  'subsample': [0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4],
-                  'colsample_bytree': [0.05],
-                  'max_depth': [14]}
+                  'subsample': [0.10,0.15,0.2],
+                  'colsample_bytree': [0.05,0.1],
+                  'max_depth': [12,14,16]}
 
 
     # # XGBOOST TIER 1 GRID ERCOT **SPREAD**
@@ -797,7 +797,7 @@ def do_xgb_prediction(predict_date_str_mm_dd_yyyy, iso, daily_trade_file_name, w
     input_file_directory = working_directory + '\InputFiles\\'
     daily_trade_files_directory = working_directory + '\DailyTradeFiles\\'
     feat_import_files_directory = working_directory + '\FeatureImportanceFiles\\'
-    model_directory = static_directory + '\ModelFiles\\'
+    model_directory = static_directory + '\ModelFiles\\2020_05_28_ModelFiles\\'
 
     print('')
     print('**********************************************************************************')
@@ -1068,6 +1068,7 @@ def post_process_trades(iso, predict_date_str_mm_dd_yyyy, daily_trade_file_name,
         inc_mean_band_offpeak = all_ISOs_variables_df['INC_pred_band_offpeak'][0]
         dec_mean_band_offpeak = all_ISOs_variables_df['DEC_pred_band_offpeak'][0]
 
+
         # Apply tier 1 bands
         for location in preds_tier1_df.columns:
 
@@ -1086,6 +1087,8 @@ def post_process_trades(iso, predict_date_str_mm_dd_yyyy, daily_trade_file_name,
     elif (model_type == 'FORCED_SPREAD'):
         forced_spread_df = pd.DataFrame(index=preds_tier1_df.index.get_level_values('HE'))
         trade_date = preds_tier1_df.index.get_level_values('Date')[0]
+
+        forced_spread_pred_band = all_ISOs_variables_df['forced_spread_pred_band'][0]
 
         top_hourly_locs = top_hourly_locs/2
         dec_preds_tier1_df = preds_tier1_df.mask(preds_tier1_df.rank(axis=1, method='min', ascending=True) > top_hourly_locs, 0)
@@ -1108,6 +1111,7 @@ def post_process_trades(iso, predict_date_str_mm_dd_yyyy, daily_trade_file_name,
                     source_col = dec_hour_df.iloc[node_index]['Node']
                     sink_pred = inc_hour_df.iloc[node_index]['Pred']
                     source_pred = dec_hour_df.iloc[node_index]['Pred']
+                    spread_pred = source_pred - sink_pred
                     sink_name = sink_col.replace('_DART','')
                     source_name = source_col.replace('_DART','')
                     try:
@@ -1116,15 +1120,16 @@ def post_process_trades(iso, predict_date_str_mm_dd_yyyy, daily_trade_file_name,
                     except:
                         pass
 
-                    sink_name = str(sink_name)
-                    source_name = str(source_name)
-                    col_name =  sink_name+'$'+source_name+'_SPREAD'
+                    if abs(spread_pred) > forced_spread_pred_band:
+                        sink_name = str(sink_name)
+                        source_name = str(source_name)
+                        col_name =  sink_name+'$'+source_name+'_SPREAD'
 
-                    if col_name in forced_spread_df.columns:
-                        forced_spread_df.at[hourEnding,col_name] =  source_pred-sink_pred
-                    else:
-                        forced_spread_df[col_name]=0.00
-                        forced_spread_df.at[hourEnding,col_name] =  source_pred-sink_pred
+                        if col_name in forced_spread_df.columns:
+                            forced_spread_df.at[hourEnding,col_name] =  spread_pred
+                        else:
+                            forced_spread_df[col_name]=0.00
+                            forced_spread_df.at[hourEnding,col_name] =  spread_pred
                 except:
                     pass
                     # print(iso+ ' HourEnding '+ str(hourEnding) + ' mismatched INC/DECs for full forced spread')
@@ -1150,12 +1155,7 @@ def post_process_trades(iso, predict_date_str_mm_dd_yyyy, daily_trade_file_name,
     trades_df = pd.DataFrame()
 
     target_mws = all_ISOs_variables_df['target_daily_mws'][0]
-
-    # if (model_type=='SPREAD') and (iso != 'ERCOT'):
-    #     target_mws = target_mws/2
-
     max_trade_mws = all_ISOs_variables_df['max_trade_size_mws'][0]
-
     max_hourly_inc_mws = all_ISOs_variables_df['max_hourly_inc_mws'][0]
     max_hourly_dec_mws = all_ISOs_variables_df['max_hourly_dec_mws'][0]
     min_trade_mws = min(max_hourly_dec_mws / top_hourly_locs, max_hourly_inc_mws / top_hourly_locs)
@@ -1525,6 +1525,7 @@ def create_trade_file(input_mw_df, iso , all_ISOs_variables_df, working_director
     alt_names_dict = dict(zip(alt_names_df['Model_Name'],alt_names_df['YES_Name']))
     alt_names_dict_spread = dict(zip(alt_names_df['NodeNameNoSpaces'], alt_names_df['Short_Model_Name_Num']))
 
+    # SPP and PJM both have nodes called 'MISO'
     if iso=='SPPISO':
         alt_names_dict_spread['MISO'] = 'MISO'
     elif iso =='PJM':

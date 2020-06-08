@@ -306,7 +306,7 @@ def preprocess_data(input_dict, static_directory):
     input_df = input_df.drop(columns=removed_cols)
 
     ###drop nodes that are invalid for bidding
-    drop_nodes_list = ['PJM_34509947_DART','PJM_1067169266_DART']
+    drop_nodes_list = ['MISO_GRE.NSPP_1.AZ_DART','MISO_ALTW.NSPP_1.AZ_DART','PJM_34509947_DART','PJM_1067169266_DART']
     input_df = input_df.drop(columns=drop_nodes_list, errors='ignore')
 
     ### drop duplicate days (from timechanges)
@@ -696,6 +696,21 @@ def process_YES_daily_price_tables(predict_date, input_timezone, working_directo
 
     pricetable_df = pd.concat([T_2_df,T_1_df,T_0_df], sort=True)
     pricetable_df.fillna(method='ffill', inplace=True)
+
+
+    ### TEMP FIX TO SUBSTITUTE CORRELATED NODES FOR RETIRED NODES IN 5/4 DATASET - REMOVE THIS LATER
+    pricetable_df['SPP_CSWLIEBERMAN2_DART'] = pricetable_df['SPP_CSWLIEBERMAN3_DART']
+    pricetable_df['SPP_CSWLIEBERMAN2_DALMP'] = pricetable_df['SPP_CSWLIEBERMAN3_DALMP']
+    pricetable_df['SPP_CSWLIEBERMAN2_RTLMP'] = pricetable_df['SPP_CSWLIEBERMAN3_RTLMP']
+
+    pricetable_df['SPP_EXELON10_11_DART'] = pricetable_df['SPP_SPS.GGPO.STOCKYARD10_11_DART']
+    pricetable_df['SPP_EXELON10_11_DALMP'] = pricetable_df['SPP_SPS.GGPO.STOCKYARD10_11_DALMP']
+    pricetable_df['SPP_EXELON10_11_RTLMP'] = pricetable_df['SPP_SPS.GGPO.STOCKYARD10_11_RTLMP']
+
+    pricetable_df['SPP_LES_LRS_1_DART'] = pricetable_df['SPP_WAUE.BEPM.LRSE_DART']
+    pricetable_df['SPP_LES_LRS_1_DALMP'] = pricetable_df['SPP_WAUE.BEPM.LRSE_DALMP']
+    pricetable_df['SPP_LES_LRS_1_RTLMP'] = pricetable_df['SPP_WAUE.BEPM.LRSE_RTLMP']
+
 
     for output_timezone in ['EST', 'EPT', 'CPT']:
         timezone_input_df = pricetable_df.copy()

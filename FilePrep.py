@@ -25,34 +25,34 @@ static_directory = 'C:\\XGBoostProduction\\'
 #                                           API PULLS FOR HISTORIC DART DATES                                          #
 ####################################################################################################################
 
-start_date = '2020_04_28'   # 7/15/2015 start date -
-end_date = '2020_05_28'   # check here for most recent file for end date: https://marketplace.spp.org/pages/rtbm-lmp-by-location# - approx 7 days before current date
+# start_date = '2020_04_28'   # 7/15/2015 start date -
+# end_date = '2020_05_28'   # check here for most recent file for end date: https://marketplace.spp.org/pages/rtbm-lmp-by-location# - approx 7 days before current date
 
-previous_data_dict_name = '2020_05_04_BACKTEST_DATA_DICT_RAW'
-
-data_dict = get_ISO_api_data(start_date=start_date,
-                             end_date=end_date,
-                             previous_data_dict_name = save_directory+previous_data_dict_name,
-                             static_directory=static_directory,
-                             working_directory=working_directory,
-                             concat_old_dict=True)
+# previous_data_dict_name = '2020_05_04_BACKTEST_DATA_DICT_RAW'
+#
+# data_dict = get_ISO_api_data(start_date=start_date,
+#                              end_date=end_date,
+#                              previous_data_dict_name = save_directory+previous_data_dict_name,
+#                              static_directory=static_directory,
+#                              working_directory=working_directory,
+#                              concat_old_dict=True)
 
 
 ####################################################################################################################
 #                                           API PULLS FOR HISTORIC DA LMP DATES                                          #
 ####################################################################################################################
 
-start_date = '2020_04_28'   # 7/15/2015 start date
-end_date = '2020_05_28' # check here for most recent file for end date: https://marketplace.spp.org/pages/rtbm-lmp-by-location#
-
-previous_data_dict_name = '2020_05_04_LMP_DATA_DICT_MASTER'
-
-data_dict = get_lmps(start_date=start_date,
-                     end_date=end_date,
-                     previous_data_dict_name = save_directory+previous_data_dict_name,
-                     static_directory=static_directory,
-                     working_directory=working_directory,
-                     concat_old_dict=True)
+# start_date = '2020_04_28'   # 7/15/2015 start date
+# end_date = '2020_05_28' # check here for most recent file for end date: https://marketplace.spp.org/pages/rtbm-lmp-by-location#
+#
+# previous_data_dict_name = '2020_05_04_LMP_DATA_DICT_MASTER'
+#
+# data_dict = get_lmps(start_date=start_date,
+#                      end_date=end_date,
+#                      previous_data_dict_name = save_directory+previous_data_dict_name,
+#                      static_directory=static_directory,
+#                      working_directory=working_directory,
+#                      concat_old_dict=True)
 
 
 
@@ -72,69 +72,32 @@ data_dict = get_lmps(start_date=start_date,
 ####################################################################################################################
 ####################################################################################################################
 
-# start_date = '2020_04_25'   # 7/15/2015 start date -
-# end_date = '2020_05_28'   # check here for most recent file for end date: https://marketplace.spp.org/pages/rtbm-lmp-by-location# - approx 7 days before current date
-#
-# start_date = datetime.datetime.strptime(start_date, '%Y_%m_%d')
-# start_date = start_date.strftime('%m/%d/%Y')
-# end_date = datetime.datetime.strptime(end_date, '%Y_%m_%d')
-# end_date = end_date.strftime('%m/%d/%Y')
-#
-# utc_spread_locs_df = pd.read_csv(save_directory + 'PJM_UTC_Locs.csv')
-#
-#
-# input_dict = load_obj(save_directory+'2020_05_04_BACKTEST_DATA_DICT_MASTER')
-# input_df = input_dict['EST']
-#
-# input_df = input_df[[col for col in input_df.columns if 'SPREAD' in col]]
-# input_df = input_df[[col for col in input_df.columns if 'ERCOT' in col]]
-#
-# input_df = input_df.dropna(axis=0)
+start_date = '2020_04_25'   # 7/15/2015 start date -
+end_date = '2020_05_28'   # check here for most recent file for end date: https://marketplace.spp.org/pages/rtbm-lmp-by-location# - approx 7 days before current date
+
+start_date = datetime.datetime.strptime(start_date, '%Y_%m_%d')
+start_date = start_date.strftime('%m/%d/%Y')
+end_date = datetime.datetime.strptime(end_date, '%Y_%m_%d')
+end_date = end_date.strftime('%m/%d/%Y')
 
 
-## Code to find all the abs values of spreads
-# input_df = input_dict['EST']
-#
-# # input_df = input_df[[col for col in input_df.columns if col in set(utc_spread_locs_df['ModelName'])]]
-#
-# input_df = input_df[[col for col in input_df.columns if 'DART' in col]]
-# input_df = input_df[[col for col in input_df.columns if 'ERCOT' in col]]
-#
 
-#
-#
-# # input_df = input_df[input_df.columns[0:4]]
-#
-# input_df = input_df[~input_df.index.duplicated()].copy()
-#
-# spread_df = pd.DataFrame()
-#
-# for source_col_num in range(len(input_df.columns)):
-#     source_name = input_df.columns[source_col_num]
-#     for sink_col_num in range(source_col_num + 1, len(input_df.columns), 1):
-#         sink_name = input_df.columns[sink_col_num]
-#         spread_df[(source_name + '$' + sink_name + '_SPREAD').replace('_DART', '')] = input_df[source_name] - input_df[sink_name]
-#
-#
-# spread_df = input_df.abs()
-#
-# avg_df = pd.DataFrame(spread_df.mean())
-# avg_df.reset_index(inplace=True)
-# avg_df.columns = ['Spread','Avg Spread']
-#
-#
-# avg_df['Source'] =avg_df['Spread'].apply(lambda string: string.split('$')[0].replace('_SPREAD',''))
-# avg_df['Sink'] =avg_df['Spread'].apply(lambda string: string.split('$')[1].replace('_SPREAD',''))
-#
-# avg_df = avg_df.sort_values(by=['Avg Spread'], ascending=False)
-#
-# avg_df['Avg Spread'] = avg_df['Avg Spread'].round(2)
-#
-# avg_df.reset_index(inplace=True,drop=True)
-#
-# avg_df.to_csv('AbsoluteValue_of_currTraded_ERCOT_spread_locs.csv')
-#
-#
-#
-#
+input_dict = load_obj(save_directory+'2020_05_28_BACKTEST_DATA_DICT_RAW')
+input_df = input_dict['EST']
+
+input_df = input_df[[col for col in input_df.columns if '_DART' in col]]
+input_df = input_df[[col for col in input_df.columns if 'SPP_' in col]]
+
+corr_matrix = input_df.corr()
+
+pd.DataFrame(corr_matrix).to_csv('corr_full_spp.csv')
+        # orig_cols = max(len(temp_df.columns), 0.00001)
+        # for i in range(len(corr_matrix.columns)):
+        #     for j in range(i):
+        #         if abs(corr_matrix.iloc[i, j]) > perc:
+        #              colname = corr_matrix.columns[i]
+        #              # if colname not in set(required_locs_df['ModelName']):
+        #              correlated_dart_features.add(colname)
+        #              # else:
+        #              #    print('ignored dropping:' + colname)
 

@@ -37,34 +37,33 @@ input_file_name = '2020_05_28_BACKTEST_DATA_DICT_MASTER'               # Use Thi
 input_file_type = 'dict'                                             # Use This If Reading From Dictionary (New Method)
 cat_vars = ['Month','Weekday']                                       # Categorial Variables
 
-name_adder = ''                                                        # Additional Identifier For The Run
+name_adder = 'rev2'                                                        # Additional Identifier For The Run
 
-all_best_features_filename = 'FeatImport_2020_05_28_BACKTEST_DATA_DICT_MASTER__DART_LGB_SD6_PJM'  # Name of Feature Importance File
+all_best_features_filename = 'FeatImport_2020_05_28_BACKTEST_DATA_DICT_MASTER__DART_LGB_SD6_ALL'  # Name of Feature Importance File
 
 
-iso = 'PJM'
+iso = 'ERCOT'
 model_type = 'DART'
 model_arch = 'XGB'  #options are LGB or XGB
+run_reverse = True
 
-# feat_dicts = {}
-# feat_dicts[''] = {'SPR_EAD': 6, 'DA_RT': 4, 'FLOAD': 6, 'FTEMP': 24,'OUTAGE': 4, 'LMP': 2,'GAS_PRICE': 4}  # Number Of Top Features To Use If Reading From Dict
-# feat_dicts['ercot2'] = {'SPR_EAD': 6, 'DA_RT': 4, 'FLOAD': 8, 'FTEMP': 20,'OUTAGE': 4, 'LMP': 0,'GAS_PRICE': 0}  # Number Of Top Features To Use If Reading From Dict
-# feat_dicts['ercot3'] = {'SPR_EAD': 8, 'DA_RT': 4, 'FLOAD': 8, 'FTEMP': 20,'OUTAGE': 4, 'LMP': 0,'GAS_PRICE': 0}  # Number Of Top Features To Use If Reading From Dict
-# feat_dicts['ercot4'] = {'SPR_EAD': 6, 'DA_RT': 2, 'FLOAD': 8, 'FTEMP': 20,'OUTAGE': 4, 'LMP': 0,'GAS_PRICE': 0}  # Number Of Top Features To Use If Reading From Dict
-# feat_dicts['ercot5'] = {'SPR_EAD': 6, 'DA_RT': 6, 'FLOAD': 8, 'FTEMP': 20,'OUTAGE': 4, 'LMP': 0,'GAS_PRICE': 0}  # Number Of Top Features To Use If Reading From Dict
-# feat_dicts['ercot6'] = {'SPR_EAD': 6, 'DA_RT': 4, 'FLOAD': 6, 'FTEMP': 20,'OUTAGE': 4, 'LMP': 0,'GAS_PRICE': 0}  # Number Of Top Features To Use If Reading From Dict
-# feat_dicts['ercot7'] = {'SPR_EAD': 6, 'DA_RT': 4, 'FLOAD': 10, 'FTEMP': 20,'OUTAGE': 4, 'LMP': 0,'GAS_PRICE': 0}  # Number Of Top Features To Use If Reading From Dict
-# feat_dicts['ercot8'] = {'SPR_EAD': 6, 'DA_RT': 4, 'FLOAD': 8, 'FTEMP': 16,'OUTAGE': 4, 'LMP': 0,'GAS_PRICE': 0}  # Number Of Top Features To Use If Reading From Dict
-# feat_dicts['ercot9'] = {'SPR_EAD': 6, 'DA_RT': 4, 'FLOAD': 8, 'FTEMP': 24,'OUTAGE': 4, 'LMP': 0,'GAS_PRICE': 0}  # Number Of Top Features To Use If Reading From Dict
-# feat_dicts['ercot10'] = {'SPR_EAD': 6, 'DA_RT': 4, 'FLOAD': 8, 'FTEMP': 20,'OUTAGE': 2, 'LMP': 0,'GAS_PRICE': 0}  # Number Of Top Features To Use If Reading From Dict
-# feat_dicts['ercot11'] = {'SPR_EAD': 6, 'DA_RT': 4, 'FLOAD': 8, 'FTEMP': 20,'OUTAGE': 6, 'LMP': 0,'GAS_PRICE': 0}  # Number Of Top Features To Use If Reading From Dict
-# feat_dicts['ercot12'] = {'SPR_EAD': 6, 'DA_RT': 4, 'FLOAD': 8, 'FTEMP': 20,'OUTAGE': 4, 'LMP': 2,'GAS_PRICE': 0}  # Number Of Top Features To Use If Reading From Dict
-# feat_dicts['ercot13'] = {'SPR_EAD': 6, 'DA_RT': 4, 'FLOAD': 8, 'FTEMP': 20,'OUTAGE': 4, 'LMP': 4,'GAS_PRICE': 0}  # Number Of Top Features To Use If Reading From Dict
-# feat_dicts['ercot14'] = {'SPR_EAD': 6, 'DA_RT': 4, 'FLOAD': 8, 'FTEMP': 20,'OUTAGE': 4, 'LMP': 0,'GAS_PRICE': 2}  # Number Of Top Features To Use If Reading From Dict
-# feat_dicts['ercot15'] = {'SPR_EAD': 6, 'DA_RT': 4, 'FLOAD': 8, 'FTEMP': 20,'OUTAGE': 4, 'LMP': 0,'GAS_PRICE': 4}  # Number Of Top Features To Use If Reading From Dict
-#
+feat_dicts = {}
+# feat_dicts['ercot1'] = {'SPR_EAD': 2, 'DA_RT': 4, 'FLOAD': 6, 'FTEMP': 28,'OUTAGE': 2, 'LMP': 0,'GAS_PRICE': 2}  # Number Of Top Features To Use If Reading From Dict
+# feat_dicts['ercot2'] = {'SPR_EAD': 4, 'DA_RT': 4, 'FLOAD': 6, 'FTEMP': 28,'OUTAGE': 2, 'LMP': 0,'GAS_PRICE': 2}  # Number Of Top Features To Use If Reading From Dict
+# feat_dicts['ercot3'] = {'SPR_EAD': 6, 'DA_RT': 4, 'FLOAD': 6, 'FTEMP': 28,'OUTAGE': 2, 'LMP': 0,'GAS_PRICE': 2}  # Number Of Top Features To Use If Reading From Dict
+# feat_dicts['ercot4'] = {'SPR_EAD': 4, 'DA_RT': 2, 'FLOAD': 6, 'FTEMP': 28,'OUTAGE': 2, 'LMP': 0,'GAS_PRICE': 2}  # Number Of Top Features To Use If Reading From Dict
+# feat_dicts['ercot5'] = {'SPR_EAD': 4, 'DA_RT': 6, 'FLOAD': 6, 'FTEMP': 28,'OUTAGE': 2, 'LMP': 0,'GAS_PRICE': 2}  # Number Of Top Features To Use If Reading From Dict
+# feat_dicts['ercot6'] = {'SPR_EAD': 4, 'DA_RT': 4, 'FLOAD': 2, 'FTEMP': 28,'OUTAGE': 2, 'LMP': 0,'GAS_PRICE': 2}  # Number Of Top Features To Use If Reading From Dict
+# feat_dicts['ercot7'] = {'SPR_EAD': 4, 'DA_RT': 4, 'FLOAD': 6, 'FTEMP': 28,'OUTAGE': 2, 'LMP': 0,'GAS_PRICE': 2}  # Number Of Top Features To Use If Reading From Dict
+# feat_dicts['ercot8'] = {'SPR_EAD': 4, 'DA_RT': 4, 'FLOAD': 6, 'FTEMP': 24,'OUTAGE': 2, 'LMP': 0,'GAS_PRICE': 2}  # Number Of Top Features To Use If Reading From Dict
+# feat_dicts['ercot9'] = {'SPR_EAD': 4, 'DA_RT': 4, 'FLOAD': 6, 'FTEMP': 32,'OUTAGE': 2, 'LMP': 0,'GAS_PRICE': 2}  # Number Of Top Features To Use If Reading From Dict
+# feat_dicts['ercot10'] = {'SPR_EAD': 4, 'DA_RT': 4, 'FLOAD': 6, 'FTEMP': 28,'OUTAGE': 0, 'LMP': 0,'GAS_PRICE': 2}  # Number Of Top Features To Use If Reading From Dict
+# feat_dicts['ercot11'] = {'SPR_EAD': 4, 'DA_RT': 4, 'FLOAD': 6, 'FTEMP': 28,'OUTAGE': 4, 'LMP': 0,'GAS_PRICE': 2}  # Number Of Top Features To Use If Reading From Dict
+# feat_dicts['ercot12'] = {'SPR_EAD': 4, 'DA_RT': 4, 'FLOAD': 6, 'FTEMP': 28,'OUTAGE': 2, 'LMP': 2,'GAS_PRICE': 2}  # Number Of Top Features To Use If Reading From Dict
+# feat_dicts['ercot13'] = {'SPR_EAD': 4, 'DA_RT': 4, 'FLOAD': 6, 'FTEMP': 28,'OUTAGE': 2, 'LMP': 0,'GAS_PRICE': 0}  # Number Of Top Features To Use If Reading From Dict
+# feat_dicts['ercot14'] = {'SPR_EAD': 4, 'DA_RT': 4, 'FLOAD': 6, 'FTEMP': 28,'OUTAGE': 2, 'LMP': 0,'GAS_PRICE': 4}  # Number Of Top Features To Use If Reading From Dict
 
-run_reverse = False
+
 
 run_gridsearch = False                                                # Do A Gridsearch?
 run_backtest = True                                                    # Do A Backtest?
@@ -81,7 +80,7 @@ backtest_start_date = datetime.datetime(2018, 8, 24)              # Backtest Sta
 num_targets = 3000                                               # Number of Targets To Train (Large Number = Train All Targets In File)
 nrounds = 5000                                                    # Max Rounds To Train
 early_stopping=10                                                 # Early Train Stopping
-exp_folds = 20                                                     # Number of Exps To Do For Each Senario (To Take Median And SD Of)
+exp_folds = 20                                                    # Number of Exps To Do For Each Senario (To Take Median And SD Of)
 cv_folds = 4                                                      # Number of Folds If Doing CrossValidated Full Backtest (1 Or Less = No CV, Only Run Most Recent Year)
 num_top_grids = 1                                                 # Number of Random Parameter Sets From Gridsearch To Select From (1 = Only Use Top Grid)
 gpu_train = False                                                  # Train Using GPU (Default is CPU)
@@ -160,8 +159,8 @@ if input_file_type.upper() == 'DICT':
 
     elif iso == 'ERCOT':
         if model_type == 'DART':
-            hypergrid_name = 'Gridsearch_2020_05_04_BACKTEST_DATA_DICT_MASTER_XGB_ERCOT_SD1000_DART___ERCOT_HB_HOUSTON_DART'  # Filename of Stored Hypergrid From Gridsearch
-            feat_dict = {'SPR_EAD': 6, 'DA_RT': 4, 'FLOAD': 6, 'FTEMP': 24,'OUTAGE': 4, 'LMP': 2,'GAS_PRICE': 4}
+            hypergrid_name = 'Gridsearch_2020_05_28_BACKTEST_DATA_DICT_MASTER_XGB_ERCOT_SD1000_DART___ERCOT_HB_HOUSTON_DART'  # Filename of Stored Hypergrid From Gridsearch
+            feat_dict = {'SPR_EAD': 6, 'DA_RT': 4, 'FLOAD': 6, 'FTEMP': 24,'OUTAGE': 2, 'LMP': 0,'GAS_PRICE': 2}
         elif model_type == 'SPREAD':
             hypergrid_name = 'Gridsearch_2020_05_04_BACKTEST_DATA_DICT_MASTER_ERCOT_SD1000_SPREAD___ERCOT_HB_HOUSTON$ERCOT_DC_R_SPREAD'  # Filename of Stored Hypergrid From Gridsearch
             feat_dict = {'SPR_EAD': 6, 'DA_RT': 2, 'FLOAD': 6, 'FTEMP': 24,'OUTAGE': 4, 'LMP': 4,'GAS_PRICE': 2}
