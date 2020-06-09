@@ -37,7 +37,7 @@ input_file_name = '2020_05_28_BACKTEST_DATA_DICT_MASTER'               # Use Thi
 input_file_type = 'dict'                                             # Use This If Reading From Dictionary (New Method)
 cat_vars = ['Month','Weekday']                                       # Categorial Variables
 
-name_adder = 'rev2'                                                        # Additional Identifier For The Run
+name_adder = 'oldSpreadGrid'                                                        # Additional Identifier For The Run
 
 all_best_features_filename = 'FeatImport_2020_05_28_BACKTEST_DATA_DICT_MASTER__DART_LGB_SD6_ALL'  # Name of Feature Importance File
 
@@ -45,7 +45,7 @@ all_best_features_filename = 'FeatImport_2020_05_28_BACKTEST_DATA_DICT_MASTER__D
 iso = 'ERCOT'
 model_type = 'DART'
 model_arch = 'XGB'  #options are LGB or XGB
-run_reverse = True
+run_reverse = False
 
 feat_dicts = {}
 # feat_dicts['ercot1'] = {'SPR_EAD': 2, 'DA_RT': 4, 'FLOAD': 6, 'FTEMP': 28,'OUTAGE': 2, 'LMP': 0,'GAS_PRICE': 2}  # Number Of Top Features To Use If Reading From Dict
@@ -66,8 +66,8 @@ feat_dicts = {}
 
 
 run_gridsearch = False                                                # Do A Gridsearch?
-run_backtest = True                                                    # Do A Backtest?
-run_create_models = False
+run_backtest = False                                                    # Do A Backtest?
+run_create_models = True
 
 run_tier2_backtest =False
 run_tier2_gridsearch = False
@@ -159,7 +159,7 @@ if input_file_type.upper() == 'DICT':
 
     elif iso == 'ERCOT':
         if model_type == 'DART':
-            hypergrid_name = 'Gridsearch_2020_05_28_BACKTEST_DATA_DICT_MASTER_XGB_ERCOT_SD1000_DART___ERCOT_HB_HOUSTON_DART'  # Filename of Stored Hypergrid From Gridsearch
+            hypergrid_name = 'Gridsearch_2020_05_04_BACKTEST_DATA_DICT_MASTER_ERCOT_SD1000_SPREAD___ERCOT_HB_HOUSTON$ERCOT_DC_R_SPREAD'  # Filename of Stored Hypergrid From Gridsearch
             feat_dict = {'SPR_EAD': 6, 'DA_RT': 4, 'FLOAD': 6, 'FTEMP': 24,'OUTAGE': 2, 'LMP': 0,'GAS_PRICE': 2}
         elif model_type == 'SPREAD':
             hypergrid_name = 'Gridsearch_2020_05_04_BACKTEST_DATA_DICT_MASTER_ERCOT_SD1000_SPREAD___ERCOT_HB_HOUSTON$ERCOT_DC_R_SPREAD'  # Filename of Stored Hypergrid From Gridsearch
@@ -480,7 +480,7 @@ def do_backtest(input_filename, save_name, num_targets, iso, feat_dict, input_fi
             target_num += 1
 
             ##Save progress every 10th location
-            if (target_num%10==0) or (target_num==2):
+            if (target_num%0==0) or (target_num==2):
                 preds_df.to_csv(backtest_directory+'Backtest_'+save_name+'.csv')
                 # preds_exp_df.to_csv(backtest_directory+'Backtest_Exps_'+save_name+'.csv')
 

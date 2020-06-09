@@ -1532,7 +1532,8 @@ def create_trade_file(input_mw_df, iso , all_ISOs_variables_df, working_director
         alt_names_dict_spread['MISO'] = '40523629'
 
 
-
+    print(iso)
+    print()
     inc_bid = all_ISOs_variables_df['inc_offer_price'][0]
     dec_bid = all_ISOs_variables_df['dec_offer_price'][0]
 
@@ -1603,6 +1604,7 @@ def create_trade_file(input_mw_df, iso , all_ISOs_variables_df, working_director
         trades_tall_df['BidSegment']=2
 
         if iso in ['ERCOT']:  ### Actual spread
+            trades_tall_df['Bid'] = inc_bid
             yes_df = trades_tall_df[['Orig Source ID','Orig Sink ID','Node Name','Node ID', 'Source ID', 'Sink ID', 'Source Name', 'Sink Name', 'Trade Type', 'Bookname', 'iso', 'targetdate', 'portfolioname', 'Hour', 'MW','Bid']].copy()
             try:
                 yes_df['Source Name'] = yes_df['Source Name'].astype('int', errors='ignore')

@@ -14,8 +14,7 @@ working_directory = 'X:\\Research\\'
 run_DART_PnL = True
 run_find_offer_prices = False
 lmp_filename = '2020_01_05_LMP_DATA_DICT_MASTER'
-dart_backtest_filename = 'Backtest_2020_05_04_BACKTEST_DATA_DICT_MASTER_ISONE_EXP20_DART__'
-dart_backtest_filename = 'Backtest_2020_05_28_BACKTEST_DATA_DICT_MASTER_XGB_ERCOT_EXP5_DART_ercot15_'
+dart_backtest_filename = 'Backtest_2020_05_04_BACKTEST_DATA_DICT_MASTER_XGB_ERCOT_EXP20_DART__'
 
 
 dart_sd_location_filter = 'SD1000'  # Leave Blank For No Filter Otherwise Use 'SD4, SD3.5 etc' Format
@@ -431,6 +430,11 @@ def calc_summary_pnl(input_dict):
 
 def do_dart_PnL(backtest_filename, save, sd_band, inc_mean_band_peak, dec_mean_band_peak, inc_mean_band_offpeak,spread_mean_band,tier2_PnL_cutoff, dec_mean_band_offpeak, tier2_filter,tier2_backtest, scale_mean_div_sd, start_date, end_date,cutoff_dolMW,cutoff_max_hourly_loss,dart_sd_location_filter,top_hourly_locs, max_trade_mws, min_trade_mws, target_mws,save_name, forced_spread, max_hourly_inc_mws, max_hourly_dec_mws,tier2_sd_filter,working_directory,static_directory,limit_daily_mws,limit_hourly_mws,locations=None):
     save_directory = working_directory + '\PnLFiles\\'
+
+    #forced spreads must use all nodes
+    if forced_spread==True:
+        cutoff_dolMW=-99999
+
     hourly_PnL_dict = calc_hourly_pnl(backtest_filename=backtest_filename,
                                       sd_band=sd_band,
                                       inc_mean_band_peak=inc_mean_band_peak,
