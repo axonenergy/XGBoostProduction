@@ -13,12 +13,13 @@ from XGBLib import load_obj
 from XGBLib import create_features
 from XGBLib import std_dev_outlier_remove
 from XGBLib import read_clean_data
+import shap as shap
 
 static_directory = 'C:\\XGBoostProduction\\'
 working_directory = 'X:\\Research\\'
 
 # COMMON PARAMETERS
-input_file_name = '2020_05_28_BACKTEST_DATA_DICT_MASTER'                        # Use This If Reading From Dictionary (New Method)
+input_file_name = '2020_06_04_BACKTEST_DATA_DICT_MASTER'                        # Use This If Reading From Dictionary (New Method)
 input_file_type = 'dict'                                                        # Use This If Reading From Dictionary
 hypergrid_dict_name = 'RFGridsearchDict_12092019_MISOAll_Master_Dataset_Dict_'  # Name Of Hypergrid File
 all_best_features_filename = 'FeatImport_2020_02_24_BACKTEST_DATA_DICT_MASTER_SPREAD_ONE_YEAR_SD6_PJM' # Name of Feature Importance File
@@ -29,16 +30,20 @@ sd_limit = 6                                                                    
 gridsearch_iterations = 100                                                      # Gridsearch Iterations
 cv_folds = 4                                                                    # CV Folds For Gridsearch
 
+
 feat_dict = {'SPR_EAD': 2,'DA_RT': 2, 'FLOAD': 8, 'FTEMP': 24, 'OUTAGE': 4,'LMP': 4, 'GAS_PRICE': 4}               # Number Of Top Features To Use If Reading From Dict And Adding Calculated Features
 
 train_end_date = datetime.datetime(int(input_file_name.split(sep='_')[0]),int(input_file_name.split(sep='_')[1]),int(input_file_name.split(sep='_')[2]))
 vintage_dict = {'ONE_YEAR':train_end_date-datetime.timedelta(days=365*1), 'THREE_YEAR':train_end_date-datetime.timedelta(days=365*3), 'ALL_YEAR':train_end_date-datetime.timedelta(days=365*10)}
 
-iso_list = ['PJM']
+iso_list = ['ERCOT']
 model_type = 'DART'
-model_arch = 'LGB' # options are RF and LGB
+model_arch = 'RF' # options are RF and LGB
+shapely = False
 
 feat_types_list = ['SPR_EAD', 'DA_RT','LMP', 'FLOAD','FTEMP','OUTAGE','GAS_PRICE']                            # Feat Types To Run
+
+hypergrids_from_file=False
 run_gridsearch = False                                                          # Do A Gridsearch?
 run_feature_importances = True                                                  # Do Feature Importances?
 
@@ -192,7 +197,7 @@ def lgb_gridsearch(train_df, feat_type, target, cv_folds, gridsearch_iterations,
 
     return results
 
-def do_top_features(input_filename, save_name, iso_list, feat_dict, hypergrid_dict_name, feat_types_list, input_file_type, sd_limit, train_end_date, add_calculated_features, static_directory,working_directory,vintage_dict, model_type,model_arch):
+def do_top_features(input_filename, save_name, iso_list, feat_dict, hypergrid_dict_name,shapely, feat_types_list, input_file_type, sd_limit, hypergrids_from_file,train_end_date, add_calculated_features, static_directory,working_directory,vintage_dict, model_type,model_arch):
     feature_importance_directory = static_directory + '\FeatureImportanceFiles\\'
     model_data_directory = static_directory + '\ModelUpdateData\\'
     gridsearch_directory = static_directory + '\GridsearchFiles\\'
@@ -262,9 +267,10 @@ def do_top_features(input_filename, save_name, iso_list, feat_dict, hypergrid_di
                     params = param_grid_backtest
 
                     # # Read Hypergrid From file (Used If Non-Top Params Are Much Faster But Not More Accurage
-                    hypergrid_df = pd.read_csv(gridsearch_directory+'RFGridsearch_2020_05_04_BACKTEST_DATA_DICT_MASTER__DART_LGB_PJM_'+feat_type+'.csv')
-                    params = hypergrid_df['params'].iloc[0]
-                    params = literal_eval(params)
+                    if hypergrids_from_file==True:
+                        hypergrid_df = pd.read_csv(gridsearch_directory+'RFGridsearch_2020_05_04_BACKTEST_DATA_DICT_MASTER__DART_LGB_PJM_'+feat_type+'.csv')
+                        params = hypergrid_df['params'].iloc[0]
+                        params = literal_eval(params)
 
                     #Not lagged - need to remove
                     input_df = input_df.drop(columns=[col for col in input_df.columns if 'RTLMP' in col])
@@ -311,6 +317,13 @@ def do_top_features(input_filename, save_name, iso_list, feat_dict, hypergrid_di
                             temp_df.columns = [vintage_string]
                             vintage_df = pd.concat([vintage_df, temp_df], axis=1)
 
+                        if shapely == True:
+                            explainer = shap.TreeExplainer(rf)
+                            shap_values = explainer.shap_values(x_train_df)
+                            shap_df = pd.DataFrame(shap_values)
+                            shap_df.to_csv('shapoutput.csv')
+                            shap.summary_plot(shap_values, x_train_df)
+
 
                     ### LightGBM feature importances
                     if model_arch == 'LGB':
@@ -347,6 +360,14 @@ def do_top_features(input_filename, save_name, iso_list, feat_dict, hypergrid_di
                             temp_df.columns = [vintage_string]
                             vintage_df = pd.concat([vintage_df, temp_df], axis=1)
 
+                        if shapely==True:
+                            explainer = shap.TreeExplainer(lbm)
+                            shap_values = explainer.shap_values(x_train_df)
+                            shap_df = pd.DataFrame(shap_values)
+                            shap_df.to_csv('shapoutput.csv')
+                            shap.summary_plot(shap_values, x_train_df)
+
+
                 vintage_df['Average'] = vintage_df.mean(axis=1)
 
                 importances = sorted(zip(map(lambda x: round(x, 4), vintage_df['Average']), vintage_df.index), reverse=True)
@@ -370,10 +391,10 @@ param_grid_backtest = {'bootstrap': True,
 
 
 #####FOR LIGHT GBM
-param_grid_backtest = {'learning_rate': [0.0025],  # no greater than 0.01, doesnt affect fit time below that, sometimes gets slightly better results below that
-                      'num_leaves': [25],  # SLIGHT better RMSE as more leaves used, increases training time substantially
-                      'max_bin': [40],  # Impacts RMSE a bit from 16-100 range, doesnt impact training time
-                      'colsample_bytree': [0.2]}  # Impacts RMSE and training time substantially. Training time goes up as colsample goes up
+# param_grid_backtest = {'learning_rate': [0.0025],  # no greater than 0.01, doesnt affect fit time below that, sometimes gets slightly better results below that
+#                       'num_leaves': [25],  # SLIGHT better RMSE as more leaves used, increases training time substantially
+#                       'max_bin': [40],  # Impacts RMSE a bit from 16-100 range, doesnt impact training time
+#                       'colsample_bytree': [0.2]}  # Impacts RMSE and training time substantially. Training time goes up as colsample goes up
 
 
 param_grid_DART = {'learning_rate': [0.0005],  # no greater than 0.01, doesnt affect fit time below that, sometimes gets slightly better results below that
@@ -434,6 +455,7 @@ if run_gridsearch:
                      input_file_type=input_file_type,
                      sd_limit=sd_limit,
                      cv_folds=cv_folds,
+                     shapely=shapely,
                      model_arch=model_arch,
                      model_type = model_type,
                      gridsearch_iterations = gridsearch_iterations,
@@ -450,6 +472,7 @@ if run_feature_importances:
                     feat_types_list=feat_types_list,
                     input_file_type=input_file_type,
                     model_arch=model_arch,
+                    hypergrids_from_file=hypergrids_from_file,
                     sd_limit=sd_limit,
                     train_end_date=train_end_date,
                     add_calculated_features=add_calculated_features,

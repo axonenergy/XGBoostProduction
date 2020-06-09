@@ -82,7 +82,7 @@ for row in trade_handler_df.index:
                                                                                       static_directory=static_directory,
                                                                                       model_type=model_type)
 
-    ## Create master upload file
+    ## Create master upload file (contains all predictions for all model types)
     if do_postprocessing:
         # Write all upload files to same Excel file
         if model_type == 'FORCED_SPREAD':

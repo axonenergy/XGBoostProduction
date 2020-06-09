@@ -2925,7 +2925,7 @@ def create_VAR(preds_dict, VAR_ISOs, historic_var_file_name, working_directory, 
                 except:
                     pass
 
-            if model_type =='DART':
+            if model_type in ['DART', 'FORCED_SPREAD']:
                 try:
                     pred_df = pd.DataFrame(full_pred_df[[col2 for col2 in full_pred_df.columns if ('DART' in col2) and (col in col2)]])
                     act_df = pd.DataFrame(full_pred_df[col])
