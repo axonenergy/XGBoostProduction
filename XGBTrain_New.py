@@ -66,8 +66,8 @@ feat_dicts = {}
 
 
 run_gridsearch = False                                                # Do A Gridsearch?
-run_backtest = True                                                    # Do A Backtest?
-run_create_models = False
+run_backtest = False                                                    # Do A Backtest?
+run_create_models = True
 
 run_tier2_backtest =False
 run_tier2_gridsearch = False
@@ -159,10 +159,10 @@ if input_file_type.upper() == 'DICT':
 
     elif iso == 'ERCOT':
         if model_type == 'DART':
-            hypergrid_name = 'Gridsearch_2020_05_28_BACKTEST_DATA_DICT_MASTER_XGB_ERCOT_SD1000_DART___ERCOT_HB_HOUSTON_DART'  # Filename of Stored Hypergrid From Gridsearch
+            hypergrid_name = 'Gridsearch_2020_05_04_BACKTEST_DATA_DICT_MASTER_LGB_PJM_SD1000_DART___PJM_50390_DART'  # Filename of Stored Hypergrid From Gridsearch
             feat_dict = {'SPR_EAD': 6, 'DA_RT': 4, 'FLOAD': 6, 'FTEMP': 24,'OUTAGE': 2, 'LMP': 0,'GAS_PRICE': 2}
         elif model_type == 'SPREAD':
-            hypergrid_name = 'Gridsearch_2020_05_28_BACKTEST_DATA_DICT_MASTER_XGB_ERCOT_SD1000_DART___ERCOT_HB_HOUSTON_DART'  # Filename of Stored Hypergrid From Gridsearch
+            hypergrid_name = 'Gridsearch_2020_05_04_BACKTEST_DATA_DICT_MASTER_LGB_PJM_SD1000_DART___PJM_50390_DART'  # Filename of Stored Hypergrid From Gridsearch
             feat_dict = {'SPR_EAD': 6, 'DA_RT': 2, 'FLOAD': 6, 'FTEMP': 24,'OUTAGE': 4, 'LMP': 4,'GAS_PRICE': 2}
 
     elif iso == 'ISONE':

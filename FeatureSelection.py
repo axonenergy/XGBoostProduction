@@ -36,7 +36,7 @@ feat_dict = {'SPR_EAD': 2,'DA_RT': 2, 'FLOAD': 8, 'FTEMP': 24, 'OUTAGE': 4,'LMP'
 train_end_date = datetime.datetime(int(input_file_name.split(sep='_')[0]),int(input_file_name.split(sep='_')[1]),int(input_file_name.split(sep='_')[2]))
 vintage_dict = {'ONE_YEAR':train_end_date-datetime.timedelta(days=365*1), 'THREE_YEAR':train_end_date-datetime.timedelta(days=365*3), 'ALL_YEAR':train_end_date-datetime.timedelta(days=365*10)}
 
-iso_list = ['ERCOT']
+iso_list = ['ISONE']
 model_type = 'DART'
 model_arch = 'RF' # options are RF and LGB
 shapely = False
@@ -455,7 +455,6 @@ if run_gridsearch:
                      input_file_type=input_file_type,
                      sd_limit=sd_limit,
                      cv_folds=cv_folds,
-                     shapely=shapely,
                      model_arch=model_arch,
                      model_type = model_type,
                      gridsearch_iterations = gridsearch_iterations,
@@ -474,6 +473,7 @@ if run_feature_importances:
                     model_arch=model_arch,
                     hypergrids_from_file=hypergrids_from_file,
                     sd_limit=sd_limit,
+                    shapely=shapely,
                     train_end_date=train_end_date,
                     add_calculated_features=add_calculated_features,
                     static_directory=static_directory,

@@ -206,6 +206,15 @@ for row in trade_handler_df.index:
                         excel_upload_file.book.remove(sheet_to_remove)
                     except:
                         pass
+
+                    #Format combo sheets to be in the right order
+                    if iso == 'ISONE':
+                        combo_df = combo_df[['targetdate', 'Node Name', 'Trade Type', 'BidSegment', 'Hour', 'MW', 'Bid', 'Node ID']].copy()
+                    elif iso == 'PJM':
+                        combo_df = combo_df[['targetdate', 'Node Name', 'Trade Type', 'BidSegment', 'Hour', 'MW', 'Bid']].copy()
+                    else:
+                        combo_df = combo_df[['targetdate', 'Node ID', 'Trade Type', 'BidSegment', 'Hour', 'MW', 'Bid']].copy()
+
                     combo_df.to_excel(excel_upload_file, sheet_name=combo_tab_name, index=False)
 
 
@@ -255,16 +264,9 @@ for row in trade_handler_df.index:
                              model_type=model_type)
 
     if do_VAR:
-        if not do_postprocessing:
-            print('Postprocessing must be done in order to VAR to be run. Please edit the Tradehandler Excel sheet and re-run.')
-            exit()
-
-        create_VAR(preds_dict = yes_dfs_dict,
-                   VAR_ISOs=current_isos,
-                   historic_var_file_name=historic_var_file_name,
+        create_VAR(historic_var_file_name=historic_var_file_name,
                    working_directory=working_directory,
                    static_directory=static_directory,
-                   model_type=model_type,
                    predict_date_str_mm_dd_yyyy=predict_date_str_mm_dd_yyyy,
                    name_adder=name_adder)
 

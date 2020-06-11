@@ -436,12 +436,13 @@ def xgb_gridsearch(train_df, target, cv_folds, iterations, sd_limit, gpu_train, 
     # # XGBOOST TIER 1 GRID ERCOT **DART**
     param_grid = {'min_child_weight': [2],
                   'learning_rate': [0.0005],
-                  'reg_lambda': [3],
-                  'reg_alpha' : [0.1],
+                  'reg_lambda': [4],
+                  'reg_alpha' : [0.001],
                   # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
-                  'subsample': [0.10,0.15,0.2],
-                  'colsample_bytree': [0.05,0.1],
-                  'max_depth': [12,14,16]}
+                  'subsample': [0.9,],
+                  'colsample_bytree': [0.1],
+                  'max_bin': [32,48,64,96,128],
+                  'max_depth': [18]}
 
 
     # # XGBOOST TIER 1 GRID ERCOT **SPREAD**
@@ -2812,7 +2813,7 @@ def print_summary_pnl(isos,daily_actuals_dict,monthly_actuals_dict,yearly_actual
 
     return fig
 
-def print_var(var_dataframes_dict,predict_date_str_mm_dd_yyyy,name_adder,model_type):
+def print_var(var_dataframes_dict,predict_date_str_mm_dd_yyyy,name_adder):
     figures_dict = {}
 
     for type, df in var_dataframes_dict.items():
@@ -2838,10 +2839,10 @@ def print_var(var_dataframes_dict,predict_date_str_mm_dd_yyyy,name_adder,model_t
               [{"type": "table"}],
               [{"type": "table"}]]
 
-    titles = ('<b>'+model_type+' '+ name_adder + ' ' + predict_date_str_mm_dd_yyyy + ' Axon Energy 3-Year 90 Day Rolling VAR<b>',
-              '<b>'+model_type+' '+ name_adder + ' ' + predict_date_str_mm_dd_yyyy + ' Axon Energy 1-Year VAR<b>',
-              '<b>'+model_type+' '+ name_adder + ' ' + predict_date_str_mm_dd_yyyy + ' Axon Energy 2-Year VAR<b>',
-              '<b>'+model_type+' '+ name_adder + ' ' + predict_date_str_mm_dd_yyyy + ' Axon Energy 3-Year VAR<b>',
+    titles = ('<b>'+ name_adder + ' ' + predict_date_str_mm_dd_yyyy + ' Axon Energy 3-Year 90 Day Rolling VAR<b>',
+              '<b>'+ name_adder + ' ' + predict_date_str_mm_dd_yyyy + ' Axon Energy 1-Year VAR<b>',
+              '<b>'+ name_adder + ' ' + predict_date_str_mm_dd_yyyy + ' Axon Energy 2-Year VAR<b>',
+              '<b>'+ name_adder + ' ' + predict_date_str_mm_dd_yyyy + ' Axon Energy 3-Year VAR<b>',
 )
 
     fig = make_subplots(
@@ -2870,62 +2871,123 @@ def print_var(var_dataframes_dict,predict_date_str_mm_dd_yyyy,name_adder,model_t
 
     return fig
 
-def create_VAR(preds_dict, VAR_ISOs, historic_var_file_name, working_directory, static_directory, model_type,predict_date_str_mm_dd_yyyy,name_adder):
+def create_VAR(historic_var_file_name, working_directory, static_directory, predict_date_str_mm_dd_yyyy,name_adder):
     VAR_files_directory = static_directory + '\ModelUpdateData\\'
-    save_directory = working_directory + '\\DailyPnL\\'
+    load_save_directory = working_directory + '\\UploadFiles\\'
+
     iso_daily_PnL = pd.DataFrame()
 
     # Find correct VAR file
     VAR_dict = load_obj(VAR_files_directory+historic_var_file_name)
     timezone_dict = {'MISO': 'EST', 'PJM': 'EPT', 'ISONE': 'EPT', 'NYISO': 'EPT', 'ERCOT': 'CPT', 'SPP': 'CPT'}
 
+    trades_workbook = pd.ExcelFile(load_save_directory+predict_date_str_mm_dd_yyyy+'_UPLOAD_FILES_ALL_' + '.xlsx')
 
-    for iso in VAR_ISOs:
-        VAR_df = VAR_dict[timezone_dict[iso]]
-        VAR_df = VAR_df[[col for col in VAR_df.columns if iso in col]]
-        VAR_df = VAR_df.astype('float')
-        pred_df = preds_dict[iso]
+    sheet_names_list = trades_workbook.sheet_names
+    sheet_names_list = [sheet for sheet in sheet_names_list if name_adder in sheet]
+    if name_adder=='':
+        sheet_names_list = [sheet for sheet in sheet_names_list if 'TEST' not in sheet]
+        sheet_names_list = [sheet for sheet in sheet_names_list if 'PprTrd' not in sheet]
 
-        # put preds in right format and make decs negative volumne
-        mw_df = pred_df.pivot(index= 'Hour',columns='Node Name', values='MW')
-        mw_df.fillna(0,inplace=True)
-        trade_type_df = pred_df.pivot(index='Hour', columns='Node Name', values='Trade Type')
-        trade_type_df.fillna(0, inplace=True)
+    sheet_names_list = [sheet for sheet in sheet_names_list if 'COMBO' not in sheet]
 
-        for col in trade_type_df.columns:
-            trade_type_df.loc[trade_type_df[col]=='INC',col] = 1
-            trade_type_df.loc[trade_type_df[col]=='DEC',col] = -1
+    all_preds_df = None
 
-        mw_df = mw_df * trade_type_df
-        mw_df.columns = [iso+'_'+col  for col in mw_df.columns]
+    # Create tall list of all trades for the next day
+    for sheet_name in sheet_names_list:
+        df = trades_workbook.parse(sheet_name)  # read a specific sheet to DataFrame
 
-        if model_type=='SPREAD':
-            if iso == 'ERCOT':
-                mw_df.columns = [col.split('$')[0]+'$'+iso+'_'+col.split('$')[1] for col in mw_df.columns]
+        if 'DART' in sheet_name:
+            model_type = 'DART'
+        elif 'SPREAD' in sheet_name:
+            model_type ='SPREAD'
+        elif 'COMBO' in sheet_name:
+            model_type ='COMBO'
 
-        # Combine VAR df and pred df
 
-        VAR_df.reset_index(inplace=True)
-        mw_df.reset_index(inplace=True)
-        mw_df = mw_df.rename(columns={'Hour':'HourEnding'})
+        if 'PJM' in sheet_name:
+            iso='PJM'
+        elif 'MISO' in sheet_name:
+            iso = 'MISO'
+            df['Node Name'] = df['Node ID']
+        elif 'ISONE' in sheet_name:
+            iso = 'ISONE'
+        elif 'SPP' in sheet_name:
+            iso = 'SPP'
+            df['Node Name'] = df['Node ID']
+        elif 'ERCOT' in sheet_name:
+            iso = 'ERCOT'
+            if model_type =='SPREAD':
+                sink_df = df.copy()
+                source_df = df.copy()
+                sink_df['Node Name'] = sink_df['Sink Name']
+                source_df['Node Name'] = sink_df['Source Name']
+                sink_df['Trade Type'] = 'DEC'
+                source_df['Trade Type'] = 'INC'
+                df = pd.concat([sink_df,source_df],axis=0)
+            elif 'DART' in sheet_name:
+                df['Node Name'] = df['Node ID']
 
-        full_pred_df = pd.merge(VAR_df,mw_df,on='HourEnding')
-        full_pred_df.set_index(['Date','HourEnding'],inplace=True)
-        full_pred_df.sort_values(['Date','HourEnding'],inplace=True)
-        full_pred_df.fillna(0,inplace=True)
+        df['Date'] = df['targetdate']
+        df['HourEnding'] = df['Hour']
+        df['ISO'] = iso
+        df['Model Type'] = model_type
+        df = df[['Date','HourEnding','ISO','Model Type','Node Name','Trade Type','MW']]
+        if all_preds_df is None:
+            all_preds_df = df
+        else:
+            all_preds_df = pd.concat([all_preds_df,df],axis=0)
 
-        hourly_PnL_df = pd.DataFrame(index=full_pred_df.index)
 
-        for col in [col for col in full_pred_df.columns if ('DART' not in col) and ('SPREAD' not in col)]:
-            if model_type == 'SPREAD':
-                try:
-                    pred_df = pd.DataFrame(full_pred_df[[col2 for col2 in full_pred_df.columns if ('SPREAD' in col2) and (col in col2)]])
-                    act_df = pd.DataFrame(full_pred_df[col])
-                    hourly_PnL_df[col] =  pred_df[pred_df.columns[0]]*act_df[act_df.columns[0]]
-                except:
-                    pass
+    all_preds_df = all_preds_df.groupby(['Date','HourEnding','ISO','Model Type','Node Name','Trade Type']).sum()
+    all_preds_df.reset_index(inplace=True)
+    all_preds_df['Node Name'] = all_preds_df['Node Name'].astype('int', errors='ignore')
+    all_preds_df['Node Name'] = all_preds_df['Node Name'].astype('str')
 
-            if model_type in ['DART', 'FORCED_SPREAD']:
+    # Iterate through ISOs in tall trades df
+    for iso in all_preds_df['ISO'].unique():
+
+        iso_pred_df = all_preds_df[all_preds_df['ISO'] == iso]
+
+        # Iterate through model types within each ISO
+        for model_type in iso_pred_df['Model Type'].unique():
+
+            pred_df = iso_pred_df[iso_pred_df['Model Type'] == model_type]
+
+            VAR_df = VAR_dict[timezone_dict[iso]]
+            VAR_df = VAR_df[[col for col in VAR_df.columns if iso in col]]
+            VAR_df = VAR_df.astype('float')
+
+
+            # put preds in right format and make decs negative volumne
+            mw_df = pred_df.pivot(index= 'HourEnding',columns='Node Name', values='MW')
+            mw_df.fillna(0,inplace=True)
+            trade_type_df = pred_df.pivot(index='HourEnding', columns='Node Name', values='Trade Type')
+            trade_type_df.fillna(0, inplace=True)
+
+            for col in trade_type_df.columns:
+                trade_type_df.loc[trade_type_df[col]=='INC',col] = 1
+                trade_type_df.loc[trade_type_df[col]=='DEC',col] = -1
+
+            mw_df = mw_df * trade_type_df
+            mw_df.columns = [iso+'_'+col  for col in mw_df.columns]
+
+            # Combine VAR df and pred df
+
+            VAR_df.reset_index(inplace=True)
+            mw_df.reset_index(inplace=True)
+            mw_df = mw_df.rename(columns={'Hour':'HourEnding'})
+
+            full_pred_df = pd.merge(VAR_df,mw_df,on='HourEnding')
+            full_pred_df.set_index(['Date','HourEnding'],inplace=True)
+            full_pred_df.sort_values(['Date','HourEnding'],inplace=True)
+            full_pred_df.fillna(0,inplace=True)
+
+
+            hourly_PnL_df = pd.DataFrame(index=full_pred_df.index)
+
+            # first get the MW cols (they dont have spread or DART in them)
+            for col in [col for col in full_pred_df.columns if ('DART' not in col) and ('SPREAD' not in col)]:
                 try:
                     pred_df = pd.DataFrame(full_pred_df[[col2 for col2 in full_pred_df.columns if ('DART' in col2) and (col in col2)]])
                     act_df = pd.DataFrame(full_pred_df[col])
@@ -2933,15 +2995,15 @@ def create_VAR(preds_dict, VAR_ISOs, historic_var_file_name, working_directory, 
                 except:
                     pass
 
-        hourly_PnL_df.reset_index(inplace=True)
-        hourly_PnL_df.set_index('Date',inplace=True)
-        hourly_PnL_df.drop(columns='HourEnding',inplace=True)
-        hourly_PnL_df[iso] = hourly_PnL_df.sum(axis=1)
-        daily_PnL_df = hourly_PnL_df.groupby(pd.Grouper(freq='D')).sum()
-        if iso_daily_PnL.empty:
-            iso_daily_PnL = pd.DataFrame(daily_PnL_df[iso])
-        else:
-            iso_daily_PnL[iso] = daily_PnL_df[iso]
+            hourly_PnL_df.reset_index(inplace=True)
+            hourly_PnL_df.set_index('Date',inplace=True)
+            hourly_PnL_df.drop(columns='HourEnding',inplace=True)
+            hourly_PnL_df[iso+' '+model_type] = hourly_PnL_df.sum(axis=1)
+            daily_PnL_df = hourly_PnL_df.groupby(pd.Grouper(freq='D')).sum()
+            if iso_daily_PnL.empty:
+                iso_daily_PnL = pd.DataFrame(daily_PnL_df[iso+' '+model_type])
+            else:
+                iso_daily_PnL[iso+' '+model_type] = daily_PnL_df[iso+' '+model_type]
 
     iso_daily_PnL['Combined_Portfolio'] = iso_daily_PnL.sum(axis=1)
 
@@ -3007,10 +3069,9 @@ def create_VAR(preds_dict, VAR_ISOs, historic_var_file_name, working_directory, 
 
     var_fig = print_var(var_dataframes_dict=var_dataframes_dict,
                         predict_date_str_mm_dd_yyyy=predict_date_str_mm_dd_yyyy,
-                        name_adder=name_adder,
-                        model_type=model_type)
+                        name_adder=name_adder)
 
-    var_writer = pd.ExcelWriter(save_directory + 'Daily_VAR_Report_'+predict_date_str_mm_dd_yyyy+'_'+model_type+'_'+name_adder+'.xlsx', engine='openpyxl')
+    var_writer = pd.ExcelWriter(load_save_directory + 'Daily_VAR_Report_'+predict_date_str_mm_dd_yyyy+'_'+name_adder+'.xlsx', engine='openpyxl')
 
     for type, df in var_dataframes_dict.items():
         df.to_excel(var_writer, sheet_name=type, index=True)
@@ -3021,6 +3082,6 @@ def create_VAR(preds_dict, VAR_ISOs, historic_var_file_name, working_directory, 
 
 
     url = plotly.offline.plot(var_fig,
-                              filename=save_directory + 'Daily_VAR_Report_' + predict_date_str_mm_dd_yyyy + '_'+model_type+'_'+name_adder+ '.html',
+                              filename=load_save_directory + 'Daily_VAR_Report_' + predict_date_str_mm_dd_yyyy +'_'+name_adder+ '.html',
                               auto_open=True)
     return
