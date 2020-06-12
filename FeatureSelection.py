@@ -23,7 +23,7 @@ input_file_name = '2020_06_04_BACKTEST_DATA_DICT_MASTER'                        
 input_file_type = 'dict'                                                        # Use This If Reading From Dictionary
 hypergrid_dict_name = 'RFGridsearchDict_12092019_MISOAll_Master_Dataset_Dict_'  # Name Of Hypergrid File
 all_best_features_filename = 'FeatImport_2020_02_24_BACKTEST_DATA_DICT_MASTER_SPREAD_ONE_YEAR_SD6_PJM' # Name of Feature Importance File
-name_adder = ''                                                                 # Additional Identifier For The Run
+name_adder = 'shap'                                                                 # Additional Identifier For The Run
 add_calculated_features = False                                                 # If True Adds Calcualted Features From A Previous Best Feature Importance Run. Will Error If Matching Non-Calculated Feature Importances Are Not Run First. Used to Determine If Calcualted Features Are Good Or Not
 do_all_feats = False                                                             # dont segregate the features into feature types
 sd_limit = 6                                                                    # SD Limit For Outlier Removal
@@ -36,12 +36,13 @@ feat_dict = {'SPR_EAD': 2,'DA_RT': 2, 'FLOAD': 8, 'FTEMP': 24, 'OUTAGE': 4,'LMP'
 train_end_date = datetime.datetime(int(input_file_name.split(sep='_')[0]),int(input_file_name.split(sep='_')[1]),int(input_file_name.split(sep='_')[2]))
 vintage_dict = {'ONE_YEAR':train_end_date-datetime.timedelta(days=365*1), 'THREE_YEAR':train_end_date-datetime.timedelta(days=365*3), 'ALL_YEAR':train_end_date-datetime.timedelta(days=365*10)}
 
-iso_list = ['ISONE']
+iso_list = ['PJM']
 model_type = 'DART'
 model_arch = 'RF' # options are RF and LGB
-shapely = False
+shapely = True
 
 feat_types_list = ['SPR_EAD', 'DA_RT','LMP', 'FLOAD','FTEMP','OUTAGE','GAS_PRICE']                            # Feat Types To Run
+feat_types_list = ['FLOAD']                            # Feat Types To Run
 
 hypergrids_from_file=False
 run_gridsearch = False                                                          # Do A Gridsearch?
@@ -323,6 +324,7 @@ def do_top_features(input_filename, save_name, iso_list, feat_dict, hypergrid_di
                             shap_df = pd.DataFrame(shap_values)
                             shap_df.to_csv('shapoutput.csv')
                             shap.summary_plot(shap_values, x_train_df)
+                            exit()
 
 
                     ### LightGBM feature importances

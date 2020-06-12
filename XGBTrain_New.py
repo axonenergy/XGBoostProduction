@@ -39,10 +39,10 @@ cat_vars = ['Month','Weekday']                                       # Categoria
 
 name_adder = ''                                                        # Additional Identifier For The Run
 
-all_best_features_filename = 'FeatImport_2020_06_04_BACKTEST_DATA_DICT_MASTER__DART_RF_SD6_ERCOT'  # Name of Feature Importance File
+all_best_features_filename = 'FeatImport_2020_06_04_BACKTEST_DATA_DICT_MASTER__DART_RF_SD6_PJM_pt1_160long'  # Name of Feature Importance File
 
 
-iso = 'ERCOT'
+iso = 'PJM'
 model_type = 'DART'
 model_arch = 'XGB'  #options are LGB or XGB
 run_reverse = False
@@ -66,8 +66,8 @@ feat_dicts = {}
 
 
 run_gridsearch = False                                                # Do A Gridsearch?
-run_backtest = False                                                    # Do A Backtest?
-run_create_models = True
+run_backtest = True                                                    # Do A Backtest?
+run_create_models = False
 
 run_tier2_backtest =False
 run_tier2_gridsearch = False
@@ -328,6 +328,8 @@ def do_backtest(input_filename, save_name, num_targets, iso, feat_dict, input_fi
     targ_increment = int(orig_targ_len/num_targets)
     targ_increment = max(targ_increment,1)
     targets = targets[0::targ_increment]
+
+    targets = targets[:160]
 
 
     total_num_trains = len(sd_limit_range)*cv_folds*exp_folds*len(targets)

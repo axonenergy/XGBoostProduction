@@ -14,13 +14,13 @@ working_directory = 'X:\\Research\\'
 run_DART_PnL = True
 run_find_offer_prices = False
 lmp_filename = '2020_01_05_LMP_DATA_DICT_MASTER'
-dart_backtest_filename = 'Backtest_2020_05_04_BACKTEST_DATA_DICT_MASTER_LGB_ERCOT_EXP20_DART__'
+dart_backtest_filename = 'Backtest_2020_06_04_BACKTEST_DATA_DICT_MASTER_XGB_ERCOT_EXP20_DART__'
 
 
 dart_sd_location_filter = 'SD1000'  # Leave Blank For No Filter Otherwise Use 'SD4, SD3.5 etc' Format
 
-name_adder = '0.00'
-spread_mean_band = 0.00
+name_adder = '3.00'
+spread_mean_band = 3.00
 
 
 dart_scale_mean_div_sd = False # Keep False
@@ -101,8 +101,8 @@ elif 'ERCOT' in dart_backtest_filename:
     target_mws = 400
     tier2_backtest = 'Backtest_daily_Tier2_Backtest_12092019_Master_Nodes_Dataset_Dict_ERCOT_EXP10_'
     top_hourly_locs = 15
-    dart_inc_mean_band_peak = 0.0
-    dart_inc_mean_band_offpeak = 0.0
+    dart_inc_mean_band_peak = 1.00
+    dart_inc_mean_band_offpeak =1.00
     # spread_mean_band = 0.00
     dart_inc_mean_band_offpeak = dart_inc_mean_band_peak
     dart_dec_mean_band_peak = dart_inc_mean_band_peak  # Positive Value!

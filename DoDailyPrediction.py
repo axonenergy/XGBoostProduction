@@ -61,7 +61,8 @@ for row in trade_handler_df.index:
         daily_input_data_dict = get_daily_input_data(predict_date_str_mm_dd_yyyy=predict_date_str_mm_dd_yyyy,
                                                      working_directory= working_directory,
                                                      static_directory=static_directory,
-                                                     spread_files_name=spread_files_name)
+                                                     spread_files_name=spread_files_name,
+                                                     var_dict_name=historic_var_file_name)
 
     for iso in current_isos:
 

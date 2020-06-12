@@ -33,7 +33,6 @@ def save_obj(obj, name):
 def load_obj(file_name):
     try:
         obj = pd.read_pickle(file_name+'.pkl')
-        print('Loaded: ' + file_name)
         return obj
     except:
         print('Failed to load file: '+file_name)
@@ -2424,7 +2423,7 @@ def post_process_backtest_data(static_directory,dict_filename=None, input_dict=N
     return input_dict
 
 
-def get_daily_input_data(predict_date_str_mm_dd_yyyy, working_directory, static_directory,spread_files_name):
+def get_daily_input_data(predict_date_str_mm_dd_yyyy, working_directory, static_directory,spread_files_name, var_dict_name):
     print('')
     print('**********************************************************************************')
     print('')
@@ -2545,6 +2544,27 @@ def get_daily_input_data(predict_date_str_mm_dd_yyyy, working_directory, static_
     except:
         print('ERROR: YES PriceTable File Error. Check Start and End Dates In YES File Download')
         exit()
+
+    ### Update VAR dictionary with most recent DART data
+    try:
+        var_dict = load_obj(spread_files_directory + var_dict_name)
+
+        ### Add daily DART data to VAR dataframe
+        for timezone, df in var_dict.items():
+            var_df = df[[col for col in df.columns if '_DART' in col]]
+            add_df = yes_pricetable_dict[timezone]
+            add_df = add_df[[col for col in add_df.columns if col in var_df.columns]]
+            var_df = var_df.drop(index=add_df.index, errors='ignore')
+            new_df = pd.concat([var_df, add_df], axis=0, sort=True).sort_index(ascending=True)
+            var_dict[timezone] = new_df
+
+        # Save updated VAR dict
+        save_obj(var_dict, spread_files_directory + var_dict_name)
+        print('VAR File Updated with most recent DART data')
+    except:
+        print('ERROR: Error in update of VAR dictionary with most recent DART data')
+
+
 
     spread_locs_df = load_obj(spread_files_directory+ spread_files_name)
 
@@ -2743,7 +2763,7 @@ def create_max_min_limits(input_dict):
 def get_var_dict(input_dict):
 
     for timezone, df in input_dict.items():
-        df = df[[col for col in df.columns if (('DART' in col) or ('SPREAD' in col))]]
+        df = df[[col for col in df.columns if ('DART' in col)]]
         df.index = df.index.set_levels([pd.to_datetime(df.index.levels[0]), df.index.levels[1]])
         end_date = df.index.levels[0][-1]
         start_date = end_date - datetime.timedelta(days=3*365+2*30)

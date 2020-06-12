@@ -9,6 +9,7 @@ from API_Lib import save_obj
 from dateutil.parser import parse
 import datetime
 from API_Lib import process_YES_timeseries
+from API_Lib import process_YES_daily_price_tables
 
 import pandas as pd
 import os
@@ -18,6 +19,7 @@ pd.set_option('display.max_columns', 5000)
 pd.set_option('display.width', 5000)
 save_directory = os.getcwd() + '\ModelUpdateData\\'
 working_directory = 'X:\\Research\\'
+working_directory = 'X:\\Production\\'
 static_directory = 'C:\\XGBoostProduction\\'
 
 
@@ -25,47 +27,47 @@ static_directory = 'C:\\XGBoostProduction\\'
 #                                           API PULLS FOR HISTORIC DART DATES                                          #
 ####################################################################################################################
 
-start_date = '2020_05_20'   # 7/15/2015 start date -
-end_date = '2020_06_04'   # check here for most recent file for end date: https://marketplace.spp.org/pages/rtbm-lmp-by-location# - approx 7 days before current date
-
-previous_data_dict_name = '2020_05_28_BACKTEST_DATA_DICT_RAW'
-
-data_dict = get_ISO_api_data(start_date=start_date,
-                             end_date=end_date,
-                             previous_data_dict_name = save_directory+previous_data_dict_name,
-                             static_directory=static_directory,
-                             working_directory=working_directory,
-                             concat_old_dict=True)
+# start_date = '2020_05_20'   # 7/15/2015 start date -
+# end_date = '2020_06_04'   # check here for most recent file for end date: https://marketplace.spp.org/pages/rtbm-lmp-by-location# - approx 7 days before current date
+#
+# previous_data_dict_name = '2020_05_28_BACKTEST_DATA_DICT_RAW'
+#
+# data_dict = get_ISO_api_data(start_date=start_date,
+#                              end_date=end_date,
+#                              previous_data_dict_name = save_directory+previous_data_dict_name,
+#                              static_directory=static_directory,
+#                              working_directory=working_directory,
+#                              concat_old_dict=True)
 
 
 ####################################################################################################################
 #                                           API PULLS FOR HISTORIC DA LMP DATES                                          #
 ####################################################################################################################
 
-start_date = '2020_05_18'   # 7/15/2015 start date -
-end_date = '2020_06_04'   # check here for most recent file for end date: https://marketplace.spp.org/pages/rtbm-lmp-by-location# - approx 7 days before current date
-
-previous_data_dict_name = '2020_05_28_LMP_DATA_DICT_MASTER'
-
-data_dict = get_lmps(start_date=start_date,
-                     end_date=end_date,
-                     previous_data_dict_name = save_directory+previous_data_dict_name,
-                     static_directory=static_directory,
-                     working_directory=working_directory,
-                     concat_old_dict=True)
-
+# start_date = '2020_05_18'   # 7/15/2015 start date -
+# end_date = '2020_06_04'   # check here for most recent file for end date: https://marketplace.spp.org/pages/rtbm-lmp-by-location# - approx 7 days before current date
+#
+# previous_data_dict_name = '2020_05_28_LMP_DATA_DICT_MASTER'
+#
+# data_dict = get_lmps(start_date=start_date,
+#                      end_date=end_date,
+#                      previous_data_dict_name = save_directory+previous_data_dict_name,
+#                      static_directory=static_directory,
+#                      working_directory=working_directory,
+#                      concat_old_dict=True)
+#
 
 
 ####################################################################################################################
 ####################################################################################################################
 
-# Use this code to get reference prices
-
-data_dict_name = '2020_06_04_LMP_DATA_DICT_MASTER'
-
-get_reference_prices(data_dict_name=data_dict_name,
-                     working_directory=working_directory,
-                     static_directory=static_directory)
+# # Use this code to get reference prices
+#
+# data_dict_name = '2020_06_04_LMP_DATA_DICT_MASTER'
+#
+# get_reference_prices(data_dict_name=data_dict_name,
+#                      working_directory=working_directory,
+#                      static_directory=static_directory)
 
 
 
@@ -101,3 +103,40 @@ get_reference_prices(data_dict_name=data_dict_name,
         #              # else:
         #              #    print('ignored dropping:' + colname)
 
+
+####################################################################################################################
+####################################################################################################################
+
+###### Use this code for bulk- add of DART data to the VAR dictionary after update.
+
+var_dict_name = '2020_05_28_VAR_DART_DICT'
+
+predict_dates = ['06_12_2020',
+                '06_13_2020']
+
+var_dict = load_obj(save_directory+var_dict_name)
+
+for predict_date in predict_dates:
+    predict_date = datetime.datetime.strptime(predict_date, '%m_%d_%Y')
+
+    # Get Daily DART data
+    yes_pricetable_dict = process_YES_daily_price_tables(predict_date=predict_date,
+                                                         input_timezone='CPT',
+                                                         working_directory=working_directory,
+                                                         dart_only=False)
+
+
+    ### Add daily DART data to VAR dataframe
+    for timezone, df in var_dict.items():
+        var_df = df[[col for col in df.columns if '_DART' in col]]
+        add_df = yes_pricetable_dict[timezone]
+        add_df = add_df[[col for col in add_df.columns if col in var_df.columns]]
+        var_df = var_df.drop(index=add_df.index,errors='ignore')
+        new_df = pd.concat([var_df,add_df],axis=0,sort=True).sort_index(ascending=True)
+        var_dict[timezone]=new_df
+
+# Save updated dict
+save_dict = save_obj(var_dict,save_directory+var_dict_name+'_rev')
+
+####################################################################################################################
+####################################################################################################################

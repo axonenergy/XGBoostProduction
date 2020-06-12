@@ -798,7 +798,7 @@ def do_xgb_prediction(predict_date_str_mm_dd_yyyy, iso, daily_trade_file_name, w
     input_file_directory = working_directory + '\InputFiles\\'
     daily_trade_files_directory = working_directory + '\DailyTradeFiles\\'
     feat_import_files_directory = working_directory + '\FeatureImportanceFiles\\'
-    model_directory = static_directory + '\ModelFiles\\2020_05_28_ModelFiles\\'
+    model_directory = static_directory + '\ModelFiles\\NewModelFiles\\'
 
     print('')
     print('**********************************************************************************')
@@ -2890,6 +2890,7 @@ def create_VAR(historic_var_file_name, working_directory, static_directory, pred
         sheet_names_list = [sheet for sheet in sheet_names_list if 'PprTrd' not in sheet]
 
     sheet_names_list = [sheet for sheet in sheet_names_list if 'COMBO' not in sheet]
+
 
     all_preds_df = None
 
