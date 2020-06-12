@@ -111,12 +111,15 @@ static_directory = 'C:\\XGBoostProduction\\'
 
 var_dict_name = '2020_05_28_VAR_DART_DICT'
 
-predict_dates = ['06_12_2020',
-                '06_13_2020']
+predict_dates = [
+    '06_12_2020',
+    '06_13_2020'
+]
 
 var_dict = load_obj(save_directory+var_dict_name)
 
 for predict_date in predict_dates:
+    print(predict_date)
     predict_date = datetime.datetime.strptime(predict_date, '%m_%d_%Y')
 
     # Get Daily DART data
@@ -136,7 +139,8 @@ for predict_date in predict_dates:
         var_dict[timezone]=new_df
 
 # Save updated dict
-save_dict = save_obj(var_dict,save_directory+var_dict_name+'_rev')
+var_dict['EST'].to_csv('output.csv')
+save_dict = save_obj(var_dict,save_directory+var_dict_name)
 
 ####################################################################################################################
 ####################################################################################################################
