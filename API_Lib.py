@@ -700,17 +700,17 @@ def process_YES_daily_price_tables(predict_date, input_timezone, working_directo
 
 
     ### TEMP FIX TO SUBSTITUTE CORRELATED NODES FOR RETIRED NODES IN 5/4 DATASET - REMOVE THIS LATER
-    pricetable_df['SPP_CSWLIEBERMAN2_DART'] = pricetable_df['SPP_CSWLIEBERMAN3_DART']
-    pricetable_df['SPP_CSWLIEBERMAN2_DALMP'] = pricetable_df['SPP_CSWLIEBERMAN3_DALMP']
-    pricetable_df['SPP_CSWLIEBERMAN2_RTLMP'] = pricetable_df['SPP_CSWLIEBERMAN3_RTLMP']
-
-    pricetable_df['SPP_EXELON10_11_DART'] = pricetable_df['SPP_SPS.GGPO.STOCKYARD10_11_DART']
-    pricetable_df['SPP_EXELON10_11_DALMP'] = pricetable_df['SPP_SPS.GGPO.STOCKYARD10_11_DALMP']
-    pricetable_df['SPP_EXELON10_11_RTLMP'] = pricetable_df['SPP_SPS.GGPO.STOCKYARD10_11_RTLMP']
-
-    pricetable_df['SPP_LES_LRS_1_DART'] = pricetable_df['SPP_WAUE.BEPM.LRSE_DART']
-    pricetable_df['SPP_LES_LRS_1_DALMP'] = pricetable_df['SPP_WAUE.BEPM.LRSE_DALMP']
-    pricetable_df['SPP_LES_LRS_1_RTLMP'] = pricetable_df['SPP_WAUE.BEPM.LRSE_RTLMP']
+    # pricetable_df['SPP_CSWLIEBERMAN2_DART'] = pricetable_df['SPP_CSWLIEBERMAN3_DART']
+    # pricetable_df['SPP_CSWLIEBERMAN2_DALMP'] = pricetable_df['SPP_CSWLIEBERMAN3_DALMP']
+    # pricetable_df['SPP_CSWLIEBERMAN2_RTLMP'] = pricetable_df['SPP_CSWLIEBERMAN3_RTLMP']
+    #
+    # pricetable_df['SPP_EXELON10_11_DART'] = pricetable_df['SPP_SPS.GGPO.STOCKYARD10_11_DART']
+    # pricetable_df['SPP_EXELON10_11_DALMP'] = pricetable_df['SPP_SPS.GGPO.STOCKYARD10_11_DALMP']
+    # pricetable_df['SPP_EXELON10_11_RTLMP'] = pricetable_df['SPP_SPS.GGPO.STOCKYARD10_11_RTLMP']
+    #
+    # pricetable_df['SPP_LES_LRS_1_DART'] = pricetable_df['SPP_WAUE.BEPM.LRSE_DART']
+    # pricetable_df['SPP_LES_LRS_1_DALMP'] = pricetable_df['SPP_WAUE.BEPM.LRSE_DALMP']
+    # pricetable_df['SPP_LES_LRS_1_RTLMP'] = pricetable_df['SPP_WAUE.BEPM.LRSE_RTLMP']
 
 
     for output_timezone in ['EST', 'EPT', 'CPT']:
@@ -2545,6 +2545,7 @@ def get_daily_input_data(predict_date_str_mm_dd_yyyy, working_directory, static_
         print('ERROR: YES PriceTable File Error. Check Start and End Dates In YES File Download')
         exit()
 
+
     ### Update VAR dictionary with most recent DART data
     try:
         var_dict = load_obj(spread_files_directory + var_dict_name)
@@ -2554,6 +2555,10 @@ def get_daily_input_data(predict_date_str_mm_dd_yyyy, working_directory, static_
             var_df = df[[col for col in df.columns if '_DART' in col]]
             add_df = yes_pricetable_dict[timezone]
             add_df = add_df[[col for col in add_df.columns if col in var_df.columns]]
+
+            # drop last 17 rows because they havent occured yet
+            add_df = add_df.copy().drop(add_df.tail(17).index)
+
             var_df = var_df.drop(index=add_df.index, errors='ignore')
             new_df = pd.concat([var_df, add_df], axis=0, sort=True).sort_index(ascending=True)
             var_dict[timezone] = new_df
@@ -2563,8 +2568,6 @@ def get_daily_input_data(predict_date_str_mm_dd_yyyy, working_directory, static_
         print('VAR File Updated with most recent DART data')
     except:
         print('ERROR: Error in update of VAR dictionary with most recent DART data')
-
-
 
     spread_locs_df = load_obj(spread_files_directory+ spread_files_name)
 

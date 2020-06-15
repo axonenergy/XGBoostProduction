@@ -14,19 +14,19 @@ working_directory = 'X:\\Research\\'
 run_DART_PnL = True
 run_find_offer_prices = False
 lmp_filename = '2020_01_05_LMP_DATA_DICT_MASTER'
-dart_backtest_filename = 'Backtest_2020_06_04_BACKTEST_DATA_DICT_MASTER_XGB_ERCOT_EXP20_DART__'
+dart_backtest_filename = 'Backtest_2020_06_04_BACKTEST_DATA_DICT_MASTER_XGB_MISO_EXP20_DART_partial_'
 
 
 dart_sd_location_filter = 'SD1000'  # Leave Blank For No Filter Otherwise Use 'SD4, SD3.5 etc' Format
 
-name_adder = '3.00'
-spread_mean_band = 3.00
+name_adder = '1.00'
+spread_mean_band =1.00
 
 
 dart_scale_mean_div_sd = False # Keep False
 limit_daily_mws = True # True increases compute time greatly. If false, scales to max hour limitations but not daily limits
 limit_hourly_mws = True
-forced_spread = True
+forced_spread = False
 
 
 dart_sd_band = 1.00

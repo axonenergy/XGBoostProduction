@@ -39,13 +39,13 @@ cat_vars = ['Month','Weekday']                                       # Categoria
 
 name_adder = ''                                                        # Additional Identifier For The Run
 
-all_best_features_filename = 'FeatImport_2020_06_04_BACKTEST_DATA_DICT_MASTER__DART_RF_SD6_PJM_pt1_160long'  # Name of Feature Importance File
+all_best_features_filename = 'FeatImport_2020_06_04_BACKTEST_DATA_DICT_MASTER__DART_RF_SD6_MISO_pt2_167long'  # Name of Feature Importance File
 
 
-iso = 'PJM'
+iso = 'MISO'
 model_type = 'DART'
 model_arch = 'XGB'  #options are LGB or XGB
-run_reverse = False
+run_reverse = True
 
 feat_dicts = {}
 # feat_dicts['ercot1'] = {'SPR_EAD': 2, 'DA_RT': 4, 'FLOAD': 6, 'FTEMP': 28,'OUTAGE': 2, 'LMP': 0,'GAS_PRICE': 2}  # Number Of Top Features To Use If Reading From Dict
@@ -208,6 +208,7 @@ def do_create_models(input_filename, save_name, iso, feat_dict, input_file_type,
     targets = [col for col in master_df.columns if (model_type in col)&(iso in col)]
     targets = targets[0:num_targets]
 
+
     total_num_trains = exp_folds*len(targets)
     print('Training '+str(total_num_trains) +' Models')
 
@@ -329,8 +330,7 @@ def do_backtest(input_filename, save_name, num_targets, iso, feat_dict, input_fi
     targ_increment = max(targ_increment,1)
     targets = targets[0::targ_increment]
 
-    targets = targets[:160]
-
+    targets = targets[162:]
 
     total_num_trains = len(sd_limit_range)*cv_folds*exp_folds*len(targets)
     print('Training '+str(total_num_trains) +' Models.')

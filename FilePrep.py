@@ -19,7 +19,7 @@ pd.set_option('display.max_columns', 5000)
 pd.set_option('display.width', 5000)
 save_directory = os.getcwd() + '\ModelUpdateData\\'
 working_directory = 'X:\\Research\\'
-working_directory = 'X:\\Production\\'
+var_directory = 'X:\\Production\\'
 static_directory = 'C:\\XGBoostProduction\\'
 
 
@@ -109,38 +109,59 @@ static_directory = 'C:\\XGBoostProduction\\'
 
 ###### Use this code for bulk- add of DART data to the VAR dictionary after update.
 
-var_dict_name = '2020_05_28_VAR_DART_DICT'
-
-predict_dates = [
-    '06_12_2020',
-    '06_13_2020'
-]
-
-var_dict = load_obj(save_directory+var_dict_name)
-
-for predict_date in predict_dates:
-    print(predict_date)
-    predict_date = datetime.datetime.strptime(predict_date, '%m_%d_%Y')
-
-    # Get Daily DART data
-    yes_pricetable_dict = process_YES_daily_price_tables(predict_date=predict_date,
-                                                         input_timezone='CPT',
-                                                         working_directory=working_directory,
-                                                         dart_only=False)
-
-
-    ### Add daily DART data to VAR dataframe
-    for timezone, df in var_dict.items():
-        var_df = df[[col for col in df.columns if '_DART' in col]]
-        add_df = yes_pricetable_dict[timezone]
-        add_df = add_df[[col for col in add_df.columns if col in var_df.columns]]
-        var_df = var_df.drop(index=add_df.index,errors='ignore')
-        new_df = pd.concat([var_df,add_df],axis=0,sort=True).sort_index(ascending=True)
-        var_dict[timezone]=new_df
-
-# Save updated dict
-var_dict['EST'].to_csv('output.csv')
-save_dict = save_obj(var_dict,save_directory+var_dict_name)
+# var_dict_name = '2020_06_04_VAR_DART_DICT'
+#
+# predict_dates = [
+#     '06_03_2020',
+#     '06_04_2020',
+#     '06_05_2020',
+#     '06_06_2020',
+#     '06_07_2020',
+#     '06_08_2020',
+#     '06_09_2020',
+#     '06_10_2020',
+#     '06_11_2020',
+#     '06_12_2020',
+#     '06_13_2020',
+#     '06_14_2020',
+#     '06_15_2020'
+# ]
+#
+# var_dict = load_obj(save_directory+var_dict_name)
+#
+# for predict_date in predict_dates:
+#     print(predict_date)
+#     predict_date = datetime.datetime.strptime(predict_date, '%m_%d_%Y')
+#
+#     # Get Daily DART data
+#     yes_pricetable_dict = process_YES_daily_price_tables(predict_date=predict_date,
+#                                                          input_timezone='CPT',
+#                                                          working_directory=var_directory,
+#                                                          dart_only=False)
+#
+#
+#     ### Add daily DART data to VAR dataframe
+#     for timezone, df in var_dict.items():
+#         var_df = df[[col for col in df.columns if '_DART' in col]]
+#         add_df = yes_pricetable_dict[timezone]
+#         add_df = add_df[[col for col in add_df.columns if col in var_df.columns]]
+#
+#         add_df.drop(add_df.tail(17).index, inplace=True)
+#
+#
+#         var_df = var_df.drop(index=add_df.index,errors='ignore')
+#         new_df = pd.concat([var_df,add_df],axis=0,sort=True).sort_index(ascending=True)
+#         var_dict[timezone]=new_df
+#
+# # Save updated dict
+# var_dict['EST'].to_csv('output.csv')
+#
+# #
+# save_dict = save_obj(var_dict,save_directory+var_dict_name)
 
 ####################################################################################################################
 ####################################################################################################################
+
+
+var_dict = load_obj(save_directory+'2020_06_04_BACKTEST_DATA_SPREAD_DART_LOCS')
+var_dict.to_csv('test.csv')
