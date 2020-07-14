@@ -441,59 +441,17 @@ def xgb_gridsearch(train_df, target, cv_folds, iterations, sd_limit, gpu_train, 
                   # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
                   'subsample': [0.9,],
                   'colsample_bytree': [0.1],
-                  'max_bin': [32,48,64,96,128],
                   'max_depth': [18]}
 
 
-    # # XGBOOST TIER 1 GRID ERCOT **SPREAD**
-    # param_grid = {'min_child_weight': [2],
-    #               'learning_rate': [0.0009],
-    #               'reg_lambda': [3],
-    #               'reg_alpha' : [0.1],
-    #               # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
-    #               'subsample': [0.8,0.85,0.9],
-    #               'colsample_bytree': [0.05,0.1,0.15],
-    #               'max_depth': [6,8,10]}
+    param_grid = {'learning_rate': [0.0003,0.003,0.03],
+                  'reg_lambda': [3,4,5],
+                  'reg_alpha' : [0.001,0.01,0.1],
+                  'subsample': [0.1,0.3,0.5,0.7,0.9],
+                  'colsample_bytree': [0.5,0.6,0.7,0.8,0.9],
+                  'max_depth': [8,12,16,20]}
 
-    # # XGBOOST TIER 1 GRID MISO ***SPREAD***
-    # param_grid = {'min_child_weight': [2],
-    #               'learning_rate': [0.01],
-    #               'reg_lambda': [5],
-    #               'reg_alpha' : [0.30], ## doesnt really change much
-    #               # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
-    #               'subsample': [0.85,0.9,0.95],
-    #               'colsample_bytree': [0.1,0.15,0.2],
-    #               'max_depth': [8,10,12]}
 
-    # # XGBOOST TIER 1 GRID SPP ***SPREAD***
-    # param_grid = {'min_child_weight': [2],
-    #               'learning_rate': [0.01],
-    #               'reg_lambda': [5],
-    #               'reg_alpha' : [0.30], ## doesnt really change much
-    #               # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
-    #               'subsample': [0.85,0.9,0.95],
-    #               'colsample_bytree': [0.05,0.1,0.15],
-    #               'max_depth': [9,11,13]}
-
-    #XGBOOST TIER 1 GRID PJM ****SPREAD****
-    # param_grid = {'min_child_weight': [2],
-    #               'learning_rate': [0.01],
-    #               'reg_lambda': [3],
-    #               'reg_alpha' : [0.1],
-    #               # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
-    #               'subsample': [0.85,0.9,0.95],
-    #               'colsample_bytree': [0.05,0.1,0.15],
-    #               'max_depth': [12,14,16]}
-
-    # # XGBOOST TIER 1 GRID ISONE ***SPREAD***
-    # param_grid = {'min_child_weight': [2],
-    #               'learning_rate': [0.01],
-    #               'reg_lambda': [3],
-    #               'reg_alpha' : [0.10],
-    #               # 'gamma': [0,1,2],  ## Gamma does not affect results with such low min child weight
-    #               'subsample': [0.85,0.9,0.95],
-    #               'colsample_bytree': [0.05,0.1,0.15],
-    #               'max_depth': [8,10,12]}
 
     random_search = RandomizedSearchCV(estimator=model,
                                        param_distributions=param_grid,
@@ -1146,6 +1104,8 @@ def post_process_trades(iso, predict_date_str_mm_dd_yyyy, daily_trade_file_name,
         # forced_spread_df.to_csv('forced.csv')
         # dec_preds_tier1_df.to_csv('decs.csv')
         # inc_preds_tier1_df.to_csv('incs.csv')
+        #
+        # exit()
 
 
 
@@ -1533,8 +1493,6 @@ def create_trade_file(input_mw_df, iso , all_ISOs_variables_df, working_director
         alt_names_dict_spread['MISO'] = '40523629'
 
 
-    print(iso)
-    print()
     inc_bid = all_ISOs_variables_df['inc_offer_price'][0]
     dec_bid = all_ISOs_variables_df['dec_offer_price'][0]
 
@@ -1570,8 +1528,6 @@ def create_trade_file(input_mw_df, iso , all_ISOs_variables_df, working_director
         trades_tall_df['Node Name'] = trades_tall_df['Node Name'].astype('int', errors='ignore')
         trades_tall_df['Node Name'] = trades_tall_df['Node Name'].astype('str')
         trades_tall_df['Node ID'] = trades_tall_df['Node Name']
-
-
 
         trades_tall_df.loc[(trades_tall_df['Node Name'] == location) & (trades_tall_df['Trade Type'] == 'INC'), 'Bid'] = inc_bid
         trades_tall_df.loc[(trades_tall_df['Node Name'] == location) & (trades_tall_df['Trade Type'] == 'DEC'), 'Bid'] = dec_bid

@@ -3,7 +3,6 @@ import numpy as np
 import datetime
 from dateutil.parser import parse
 import pickle as pickler
-from sklearn.feature_selection import VarianceThreshold
 import requests
 import io
 import time
@@ -12,7 +11,6 @@ import os
 import pytz
 import zipfile
 import json
-from dateutil.relativedelta import relativedelta
 from pandas.io.json import json_normalize
 
 
@@ -1525,7 +1523,7 @@ def get_PJM_load(start_date, end_date):
         timezone_input_df.reset_index(inplace=True)
         timezone_input_df = timezone_shift(input_datetime_df=timezone_input_df,
                                            date_col_name='Date',
-                                           input_tz='EST',
+                                           input_tz='EPT',
                                            output_tz=output_timezone)
 
         timezone_input_df.set_index(['Date', 'HourEnding'], inplace=True, drop=True)
@@ -1741,6 +1739,7 @@ def get_ISONE_outage(start_date, end_date):
         for output_timezone in ['EST', 'EPT', 'CPT']:
             output_dict_dataframes[
                 output_timezone] = output_df  ### values for all timezones are the same since reporting is on a daily level
+
     return output_dict_dataframes
 
 
@@ -2472,6 +2471,7 @@ def get_daily_input_data(predict_date_str_mm_dd_yyyy, working_directory, static_
                                          end_date=end_date)
     ISONE_load_dict = get_ISONE_load(start_date=start_date,
                                      end_date=end_date_plus_1)
+
     NYISO_load_dict = get_NYISO_load(start_date=start_date,
                                      end_date=end_date_plus_1,
                                      static_directory=static_directory)

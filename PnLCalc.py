@@ -14,22 +14,21 @@ working_directory = 'X:\\Research\\'
 run_DART_PnL = True
 run_find_offer_prices = False
 lmp_filename = '2020_01_05_LMP_DATA_DICT_MASTER'
-dart_backtest_filename = 'Backtest_2020_06_04_BACKTEST_DATA_DICT_MASTER_XGB_MISO_EXP20_DART_partial_'
+dart_backtest_filename = 'Backtest_2020_06_04_BACKTEST_DATA_DICT_MASTER_XGB_ERCOT_EXP20_DART_top30grids_newgrid_'
 
 
 dart_sd_location_filter = 'SD1000'  # Leave Blank For No Filter Otherwise Use 'SD4, SD3.5 etc' Format
 
-name_adder = '1.00'
-spread_mean_band =1.00
+name_adder = '0.00SD'
 
 
 dart_scale_mean_div_sd = False # Keep False
 limit_daily_mws = True # True increases compute time greatly. If false, scales to max hour limitations but not daily limits
 limit_hourly_mws = True
-forced_spread = False
+forced_spread = True
 
 
-dart_sd_band = 1.00
+dart_sd_band = 0.00
 dart_cutoff_dolMW = 1.00  # 1.00 is normal value
 cutoff_max_hourly_loss = 100000 #Positive Value!
 dart_start_date = datetime.datetime(2014, 8, 24)
@@ -64,7 +63,7 @@ if 'MISO' in dart_backtest_filename:
     tier2_backtest = 'Backtest_Tier2_Backtest_Exps_2020_02_24_BACKTEST_DATA_DICT_MASTER_MISO_EXP20_'
     dart_inc_mean_band_peak = 1.25
     dart_inc_mean_band_offpeak = 1.00
-    # spread_mean_band = 0.00
+    spread_mean_band = 1.00
     dart_dec_mean_band_peak = dart_inc_mean_band_peak  # Positive Value!
     dart_dec_mean_band_offpeak = dart_inc_mean_band_offpeak  # Positive Value!
     lmp_df = lmp_dict['EST']
@@ -77,7 +76,7 @@ elif 'PJM' in dart_backtest_filename:
     tier2_backtest = 'Backtest_Tier2_Backtest_Exps_2020_02_24_BACKTEST_DATA_DICT_MASTER_PJM_EXP20_'
     dart_inc_mean_band_peak = 0.75
     dart_inc_mean_band_offpeak = 0.75
-    # spread_mean_band = 0.00
+    spread_mean_band = 1.25
     dart_dec_mean_band_peak = dart_inc_mean_band_peak  # Positive Value!
     dart_dec_mean_band_offpeak = dart_inc_mean_band_offpeak  # Positive Value!
     lmp_df = lmp_dict['EPT']
@@ -90,7 +89,7 @@ elif 'SPP' in dart_backtest_filename:
     top_hourly_locs = 10
     dart_inc_mean_band_peak = 1.00
     dart_inc_mean_band_offpeak = 0.75
-    # spread_mean_band = 0.00
+    spread_mean_band = 1.00
     dart_dec_mean_band_peak = dart_inc_mean_band_peak  # Positive Value!
     dart_dec_mean_band_offpeak = dart_inc_mean_band_offpeak  # Positive Value!
     lmp_df = lmp_dict['CPT']
@@ -103,7 +102,7 @@ elif 'ERCOT' in dart_backtest_filename:
     top_hourly_locs = 15
     dart_inc_mean_band_peak = 1.00
     dart_inc_mean_band_offpeak =1.00
-    # spread_mean_band = 0.00
+    spread_mean_band = 2.50
     dart_inc_mean_band_offpeak = dart_inc_mean_band_peak
     dart_dec_mean_band_peak = dart_inc_mean_band_peak  # Positive Value!
     dart_dec_mean_band_offpeak = dart_inc_mean_band_offpeak  # Positive Value!
@@ -117,7 +116,7 @@ elif 'ISONE' in dart_backtest_filename:
     top_hourly_locs = 10
     dart_inc_mean_band_peak = 1.25
     dart_inc_mean_band_offpeak = 1.25
-    # spread_mean_band = 0.00
+    spread_mean_band = 1.50
     dart_dec_mean_band_peak = dart_inc_mean_band_peak  # Positive Value!
     dart_dec_mean_band_offpeak = dart_inc_mean_band_offpeak  # Positive Value!
     lmp_df = lmp_dict['EPT']
@@ -239,16 +238,11 @@ def calc_hourly_pnl(backtest_filename, sd_band, inc_mean_band_peak, dec_mean_ban
                         pred_df.at[row, sink_col] = 10
                         pred_df.at[row, source_col] = -10
 
-
                 except:
                     pass
                     # print(iso+ ' HourEnding '+ str(hourEnding) + ' mismatched INC/DECs for full forced spread')
 
         pred_df.set_index(['Date','HE'],inplace=True)
-
-        # forced_spread_df.to_csv('forced.csv')
-        # dec_preds_tier1_df.to_csv('decs.csv')
-        # inc_preds_tier1_df.to_csv('incs.csv')
 
 
     # MW Volumne

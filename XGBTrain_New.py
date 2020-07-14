@@ -37,12 +37,14 @@ input_file_name = '2020_06_04_BACKTEST_DATA_DICT_MASTER'               # Use Thi
 input_file_type = 'dict'                                             # Use This If Reading From Dictionary (New Method)
 cat_vars = ['Month','Weekday']                                       # Categorial Variables
 
-name_adder = ''                                                        # Additional Identifier For The Run
+name_adder = 'top30grids_newgrid'                                                        # Additional Identifier For The Run
+num_top_grids = 30
 
-all_best_features_filename = 'FeatImport_2020_06_04_BACKTEST_DATA_DICT_MASTER__DART_RF_SD6_MISO_pt2_167long'  # Name of Feature Importance File
+
+all_best_features_filename = 'FeatImport_2020_06_04_BACKTEST_DATA_DICT_MASTER__DART_RF_SD6_ALL'  # Name of Feature Importance File
 
 
-iso = 'MISO'
+iso = 'ERCOT'
 model_type = 'DART'
 model_arch = 'XGB'  #options are LGB or XGB
 run_reverse = True
@@ -65,7 +67,7 @@ feat_dicts = {}
 
 
 
-run_gridsearch = False                                                # Do A Gridsearch?
+run_gridsearch = False                                               # Do A Gridsearch?
 run_backtest = True                                                    # Do A Backtest?
 run_create_models = False
 
@@ -77,16 +79,16 @@ run_tier2_create_models = False
 sd_limit_range = [1000]                                       # Range Of Max SDs For Outlier Processing (Large Number = No Outlier Processing)
 model_creation_sd = 1000
 backtest_start_date = datetime.datetime(2018, 8, 24)              # Backtest Start Date (If Not Doing Cross Validation)
-num_targets = 3000                                               # Number of Targets To Train (Large Number = Train All Targets In File)
+num_targets = 30000                                               # Number of Targets To Train (Large Number = Train All Targets In File)
 nrounds = 5000                                                    # Max Rounds To Train
-early_stopping=10                                                 # Early Train Stopping
+early_stopping = 10                                                 # Early Train Stopping
 exp_folds = 20                                                    # Number of Exps To Do For Each Senario (To Take Median And SD Of)
 cv_folds = 4                                                      # Number of Folds If Doing CrossValidated Full Backtest (1 Or Less = No CV, Only Run Most Recent Year)
-num_top_grids = 1                                                 # Number of Random Parameter Sets From Gridsearch To Select From (1 = Only Use Top Grid)
+                                              # Number of Random Parameter Sets From Gridsearch To Select From (1 = Only Use Top Grid)
 gpu_train = False                                                  # Train Using GPU (Default is CPU)
 
 # PARAMETERS FOR GRIDSEARCH
-gridsearch_iterations = 1000                                                   # Number Of Gridsearch Iterations To Do
+gridsearch_iterations = 675                                                   # Number Of Gridsearch Iterations To Do
 gridsearch_sd_limit = 1000                                                       # SD Limit to Use In Gridsearch
 gridsearch_nrounds = 5000                                                     # Max Rounds To Train
 gridsearch_gpu_train = False                                                   # Train Using GPU (Default is CPU)
@@ -134,15 +136,18 @@ hypergrid_dict_name=''
 if input_file_type.upper() == 'DICT':
     if iso=='PJM':
         if model_type=='DART':
-            hypergrid_name = 'Gridsearch_2020_05_04_BACKTEST_DATA_DICT_MASTER_PJM_SD1000_DART___PJM_50390_DART' #Filename of Stored Hypergrid From Gridsearch
-            hypergrid_dict_name = 'Gridsearch_2020_05_04_BACKTEST_DATA_DICT_MASTER_PJM_SD1000_DART___PJM_50390_DART'
+            hypergrid_name = 'Gridsearch_2020_06_04_BACKTEST_DATA_DICT_MASTER_XGB_PJM_SD1000_DART___PJM_50390_DART_new_no20s' #Filename of Stored Hypergrid From Gridsearch
+            # hypergrid_name = 'Gridsearch_2020_06_04_BACKTEST_DATA_DICT_MASTER_XGB_PJM_SD1000_DART___PJM_50390_DART_new' #Filename of Stored Hypergrid From Gridsearch
+            # hypergrid_name = 'Gridsearch_2020_05_04_BACKTEST_DATA_DICT_MASTER_PJM_SD1000_DART___PJM_50390_DART'  # Filename of Stored Hypergrid From Gridsearch
+            hypergrid_dict_name = 'Gridsearch_2020_06_04_BACKTEST_DATA_DICT_MASTER_XGB_PJM_SD1000_DART___PJM_50390_DART_new'
             feat_dict = {'SPR_EAD': 2, 'DA_RT': 8, 'FLOAD': 10, 'FTEMP': 28,'OUTAGE': 4, 'LMP': 4,'GAS_PRICE': 4}
         elif model_type=='SPREAD':
             hypergrid_name = 'Gridsearch_2020_05_04_BACKTEST_DATA_DICT_MASTER_PJM_SD1000_SPREAD___PJM_1069452904$PJM_1124361945_SPREAD'  # Filename of Stored Hypergrid From Gridsearch
             feat_dict = {'SPR_EAD': 6, 'DA_RT': 6, 'FLOAD': 10, 'FTEMP': 28,'OUTAGE': 8, 'LMP': 2,'GAS_PRICE': 4}
     elif iso=='MISO':
         if model_type == 'DART':
-            hypergrid_name = 'Gridsearch_2020_05_04_BACKTEST_DATA_DICT_MASTER_MISO_SD1000_DART___MISO_ALTE.ALTE_DART' #Filename of Stored Hypergrid From Gridsearch
+            # hypergrid_name = 'Gridsearch_2020_05_04_BACKTEST_DATA_DICT_MASTER_MISO_SD1000_DART___MISO_ALTE.ALTE_DART' #Filename of Stored Hypergrid From Gridsearch
+            hypergrid_name = 'Gridsearch_2020_06_04_BACKTEST_DATA_DICT_MASTER_XGB_MISO_SD1000_DART___MISO_AECI.ALTW_DART_new'  # Filename of Stored Hypergrid From Gridsearch
             hypergrid_dict_name = 'Gridsearch_2020_05_04_BACKTEST_DATA_DICT_MASTER_MISO_SD1000_DART___MISO_ALTE.ALTE_DART'
             feat_dict = {'SPR_EAD': 6, 'DA_RT': 6, 'FLOAD': 10, 'FTEMP': 28,'OUTAGE': 6, 'LMP': 4,'GAS_PRICE': 4}
         elif model_type == 'SPREAD':
@@ -160,6 +165,7 @@ if input_file_type.upper() == 'DICT':
     elif iso == 'ERCOT':
         if model_type == 'DART':
             hypergrid_name = 'Gridsearch_2020_05_04_BACKTEST_DATA_DICT_MASTER_LGB_PJM_SD1000_DART___PJM_50390_DART'  # Filename of Stored Hypergrid From Gridsearch
+            hypergrid_name = 'Gridsearch_2020_06_04_BACKTEST_DATA_DICT_MASTER_XGB_ERCOT_SD1000_DART___ERCOT_HB_HOUSTON_DART_new'  # Filename of Stored Hypergrid From Gridsearch
             feat_dict = {'SPR_EAD': 6, 'DA_RT': 4, 'FLOAD': 6, 'FTEMP': 24,'OUTAGE': 2, 'LMP': 0,'GAS_PRICE': 2}
         elif model_type == 'SPREAD':
             hypergrid_name = 'Gridsearch_2020_05_04_BACKTEST_DATA_DICT_MASTER_LGB_PJM_SD1000_DART___PJM_50390_DART'  # Filename of Stored Hypergrid From Gridsearch
@@ -168,6 +174,7 @@ if input_file_type.upper() == 'DICT':
     elif iso == 'ISONE':
         if model_type == 'DART':
             hypergrid_name = 'Gridsearch_2020_05_04_BACKTEST_DATA_DICT_MASTER_ISONE_SD1000_DART___ISONE_10033_DART'  # Filename of Stored Hypergrid From Gridsearch
+            hypergrid_name = 'Gridsearch_2020_06_04_BACKTEST_DATA_DICT_MASTER_XGB_ISONE_SD1000_DART___ISONE_10033_DART_new'  # Filename of Stored Hypergrid From Gridsearch
             feat_dict = {'SPR_EAD': 2, 'DA_RT': 2, 'FLOAD': 10, 'FTEMP': 16,'OUTAGE': 8, 'LMP': 4,'GAS_PRICE': 4}
         elif model_type == 'SPREAD':
             hypergrid_name = 'Gridsearch_2020_05_04_BACKTEST_DATA_DICT_MASTER_ISONE_SD1000_SPREAD___ISONE_10033$ISONE_10037_SPREAD'  # Filename of Stored Hypergrid From Gridsearch
@@ -329,8 +336,6 @@ def do_backtest(input_filename, save_name, num_targets, iso, feat_dict, input_fi
     targ_increment = int(orig_targ_len/num_targets)
     targ_increment = max(targ_increment,1)
     targets = targets[0::targ_increment]
-
-    targets = targets[162:]
 
     total_num_trains = len(sd_limit_range)*cv_folds*exp_folds*len(targets)
     print('Training '+str(total_num_trains) +' Models.')

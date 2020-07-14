@@ -162,6 +162,17 @@ static_directory = 'C:\\XGBoostProduction\\'
 ####################################################################################################################
 ####################################################################################################################
 
-
-var_dict = load_obj(save_directory+'2020_06_04_BACKTEST_DATA_SPREAD_DART_LOCS')
-var_dict.to_csv('test.csv')
+# hard_start_date = '06/01/2020'
+# hard_start_date = parse(hard_start_date)
+#
+# hard_end_date = '06/05/2020'
+# hard_end_date = parse(hard_end_date)
+#
+#
+# var_dict = load_obj(save_directory+'2020_06_04_BACKTEST_DATA_DICT_RAW')
+# df = var_dict['EPT']
+# df = df[[col for col in df.columns if (('DART' not in col)&('LMP' not in col))]]
+# df = df[df.index.get_level_values('Date') >= hard_start_date]
+# df = df[df.index.get_level_values('Date') <= hard_end_date]
+#
+# df.to_csv('EPT.csv')
